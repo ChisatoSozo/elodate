@@ -12,6 +12,7 @@ use paperclip::actix::{
 use models::user::User;
 
 pub mod db;
+pub mod elo;
 pub mod models;
 pub mod mokuroku;
 

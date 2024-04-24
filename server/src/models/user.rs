@@ -31,6 +31,8 @@ pub struct User {
     #[validate(length(min = 1, message = "Username must not be empty"))]
     pub username: String,
     pub password: String,
+    #[validate(length(min = 1, message = "Username must not be empty"))]
+    pub display_name: String,
     #[validate(custom(function = "validate_birthdate"))]
     pub birthdate: i64,
     pub gender: Gender,
@@ -102,6 +104,7 @@ impl User {
         let user = User {
             uuid: UuidModel::new(),
             username: random_username(),
+            display_name: random_username(),
             password: "password".to_string(),
             birthdate: rand_age_between_18_and_99(),
             gender: Gender {
