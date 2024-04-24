@@ -4,7 +4,6 @@ use paperclip::actix::Apiv2Schema;
 use rand::{distributions::Alphanumeric, thread_rng, Rng};
 use serde::{Deserialize, Serialize};
 
-use uuid::Uuid;
 // A trait that the Validate derive will impl
 use validator::{Validate, ValidationError};
 
@@ -31,7 +30,7 @@ pub struct User {
     pub uuid: UuidModel,
     #[validate(length(min = 1, message = "Username must not be empty"))]
     pub username: String,
-    pub hashed_password: String,
+    pub password: String,
     #[validate(custom(function = "validate_birthdate"))]
     pub birthdate: i64,
     pub gender: Gender,
@@ -103,7 +102,7 @@ impl User {
         let user = User {
             uuid: UuidModel::new(),
             username: random_username(),
-            hashed_password: "password".to_string(),
+            password: "password".to_string(),
             birthdate: rand_age_between_18_and_99(),
             gender: Gender {
                 percent_female: rand_range(0, 100),

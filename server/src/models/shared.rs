@@ -1,6 +1,9 @@
 use paperclip::actix::Apiv2Schema;
 use serde::{Deserialize, Serialize};
-use std::hash::{Hash, Hasher};
+use std::{
+    fmt::{self, Display, Formatter},
+    hash::{Hash, Hasher},
+};
 use uuid::Uuid;
 
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema, Clone)]
@@ -9,6 +12,12 @@ pub struct UuidModel(pub String);
 impl UuidModel {
     pub fn new() -> Self {
         UuidModel(Uuid::new_v4().to_string())
+    }
+}
+
+impl Display for UuidModel {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "{}", self.0)
     }
 }
 

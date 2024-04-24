@@ -315,7 +315,7 @@ impl<'a> Emitter<'a> {
 ///
 pub struct Database {
     /// RocksDB instance.
-    db: DB,
+    pub db: DB,
     /// Path to the database files.
     db_path: PathBuf,
     /// Collection of index ("view") names.

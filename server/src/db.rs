@@ -20,7 +20,6 @@ pub fn get_single_from_key<T: Document>(
     db: &mut Database,
 ) -> Result<T, Error> {
     //key to doc_id parse
-    let utf8 = std::str::from_utf8(key).unwrap();
     let doc_id = {
         let mut result = db.query_exact(view, key)?;
         let first = result.next();
@@ -78,10 +77,30 @@ pub fn get_documents_below(
 
 impl DB {
     pub fn new(path: &str) -> Self {
+        println!("Opening database");
         let db_path = "db/".to_owned() + path;
         let views: Vec<String> = VIEWS.to_vec().into_iter().map(|s| s.to_owned()).collect();
         let dbase = Database::open_default(Path::new(&db_path), views, Box::new(mapper)).unwrap();
         DB { db: dbase }
+    }
+
+    pub fn get_flag(&self, key: &str) -> bool {
+        let result = self.db.db.get(key);
+        match result {
+            Ok(Some(_)) => true,
+            Ok(None) => false,
+            Err(_) => false,
+        }
+    }
+
+    pub fn set_flag(&mut self, key: &str, value: bool) {
+        if value {
+            self.db.db.put(key, "t").unwrap();
+        } else {
+            if self.get_flag(key) {
+                self.db.db.delete(key).unwrap();
+            }
+        }
     }
 
     pub fn insert_user(&mut self, user: &User) -> Result<(), Error> {
@@ -535,6 +554,7 @@ fn test_with_fake_data() {
         let user2 = db.get_user_by_uuid(&uuid).unwrap();
         assert_eq!(user, user2);
 
-        let compatible_users = db.get_mutual_preference_users(&user).unwrap();
+        let mutual_connections = db.get_mutual_preference_users(&user).unwrap();
+        println!("mutual connections: {}", mutual_connections.len());
     }
 }

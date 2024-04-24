@@ -1,5 +1,5 @@
 use paperclip::actix::Apiv2Schema;
-use rand::{distributions::Alphanumeric, Rng};
+use rand::Rng;
 use serde::{Deserialize, Serialize};
 
 // A trait that the Validate derive will impl
