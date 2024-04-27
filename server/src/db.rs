@@ -35,6 +35,31 @@ pub fn get_single_from_key<T: Document>(
     }
 }
 
+pub fn get_any_from_key<T: Document>(
+    view: &str,
+    key: &[u8],
+    db: &mut Database,
+) -> Result<Vec<T>, Error> {
+    //key to doc_id parse
+    let doc_ids = {
+        let mut result = db.query_exact(view, key)?;
+        let mut doc_ids = Vec::new();
+        while let Some(document) = result.next() {
+            doc_ids.push(document.doc_id);
+        }
+        doc_ids
+    };
+    let mut documents = Vec::new();
+    for doc_id in doc_ids {
+        let document: Option<T> = db.get(doc_id)?;
+        match document {
+            Some(document) => documents.push(document),
+            None => {}
+        }
+    }
+    Ok(documents)
+}
+
 pub fn get_documents_in_range(
     view: &str,
     from: &[u8],
@@ -130,6 +155,11 @@ impl DB {
     pub fn get_user_by_username(&mut self, username: &str) -> Result<User, Error> {
         let result = get_single_from_key("username", username.as_bytes(), &mut self.db)?;
         Ok(result)
+    }
+
+    pub fn user_with_username_exists(&mut self, username: &str) -> Result<bool, Error> {
+        let result: Vec<User> = get_any_from_key("username", username.as_bytes(), &mut self.db)?;
+        Ok(!result.is_empty())
     }
 
     pub fn get_user_by_uuid(&mut self, uuid: &UuidModel) -> Result<User, Error> {

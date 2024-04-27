@@ -6,10 +6,11 @@ use db::DB;
 use paperclip::actix::{
     api_v2_operation, get, post,
     web::{self, Json},
-    OpenApiExt,
+    Apiv2Schema, OpenApiExt,
 };
 
 use models::user::User;
+use serde::{Deserialize, Serialize};
 
 pub mod db;
 pub mod elo;
@@ -36,6 +37,31 @@ async fn signup(body: Json<User>) -> Result<Json<User>, Error> {
     };
 
     Ok(Json(user))
+}
+
+#[derive(Debug, Serialize, Deserialize, Apiv2Schema, Clone, PartialEq, Eq)]
+struct CheckUsernameInput {
+    username: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Apiv2Schema, Clone, PartialEq, Eq)]
+struct CheckUsernameOutput {
+    available: bool,
+}
+
+#[api_v2_operation]
+#[post("/check_username")]
+async fn check_username(
+    db: web::Data<Mutex<DB>>,
+    body: Json<CheckUsernameInput>,
+) -> Result<Json<CheckUsernameOutput>, Error> {
+    let user = body.into_inner();
+    let mut db = db.lock().unwrap();
+
+    let available = !db.user_with_username_exists(&user.username).map_err(|e| {
+        actix_web::error::ErrorInternalServerError("Failed to check username availability")
+    })?;
+    return Ok(Json(CheckUsernameOutput { available }));
 }
 
 #[api_v2_operation]
@@ -80,7 +106,8 @@ async fn main() -> std::io::Result<()> {
             .wrap_api()
             .service(signup)
             .service(asdf)
-            .with_json_spec_at("/api/spec/v2")
+            .service(check_username)
+            .with_json_spec_at("/api/spec/v2.json")
             .build()
     })
     .bind(("127.0.0.1", 8080))?

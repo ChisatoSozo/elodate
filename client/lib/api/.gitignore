@@ -1,0 +1,6 @@
+*
+!api_build_config.dart
+!.gitignore
+!pkg
+!pkg/.keep
+pkg/.gitignore
