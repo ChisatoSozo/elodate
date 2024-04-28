@@ -1,7 +1,7 @@
+import 'package:client/api/pkg/lib/api.dart';
 import 'package:client/models/user_model.dart';
-import 'package:client/pages/login.dart';
+import 'package:client/pages/register_password.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 
 class RegisterUsernamePage extends StatefulWidget {
@@ -28,7 +28,7 @@ class RegisterUsernamePageState extends State<RegisterUsernamePage> {
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
                 Text(
-                    "Hello ${Provider.of<UserModel>(context).name}, pick a username",
+                    "Hello ${Provider.of<RegisterModel>(context).displayName}, pick a username",
                     style: Theme.of(context).textTheme.headlineMedium),
                 const SizedBox(height: 20),
                 TextFormField(
@@ -72,7 +72,7 @@ class RegisterUsernamePageState extends State<RegisterUsernamePage> {
           context,
           MaterialPageRoute(
               builder: (_) =>
-                  const LoginPage())); // Update with actual next page
+                  const RegisterPasswordPage())); // Update with actual next page
     } else {
       // Show error if username validation fails
       ScaffoldMessenger.of(context).showSnackBar(
@@ -85,11 +85,11 @@ class RegisterUsernamePageState extends State<RegisterUsernamePage> {
 
   Future<bool> _validateUsername(String username) async {
     try {
-      var response = await http
-          .get(Uri.parse('https://example.com/api/username?name=$username'));
-      if (response.statusCode == 200) {
-        return response.body.contains(
-            'true'); // Assuming the endpoint returns 'true' for valid and 'false' for taken usernames
+      var response = await DefaultApi()
+          .checkUsernamePost(CheckUsernameInput(username: username));
+
+      if (response != null && response.available) {
+        return true;
       }
       return false;
     } catch (e) {

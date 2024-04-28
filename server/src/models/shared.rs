@@ -13,6 +13,13 @@ impl UuidModel {
     pub fn new() -> Self {
         UuidModel(Uuid::new_v4().to_string())
     }
+
+    pub fn from_string(uuid: &String) -> Result<UuidModel, Box<dyn std::error::Error>> {
+        //validate format
+        let uuid = Uuid::parse_str(uuid)?;
+
+        Ok(UuidModel(uuid.to_string()))
+    }
 }
 
 impl Display for UuidModel {

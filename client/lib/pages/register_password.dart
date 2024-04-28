@@ -3,14 +3,14 @@ import 'package:client/pages/register_username.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-class RegisterStartPage extends StatefulWidget {
-  const RegisterStartPage({super.key});
+class RegisterPasswordPage extends StatefulWidget {
+  const RegisterPasswordPage({super.key});
 
   @override
-  RegisterStartPageState createState() => RegisterStartPageState();
+  RegisterPasswordPageState createState() => RegisterPasswordPageState();
 }
 
-class RegisterStartPageState extends State<RegisterStartPage> {
+class RegisterPasswordPageState extends State<RegisterPasswordPage> {
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
   final TextEditingController nameController = TextEditingController();
 

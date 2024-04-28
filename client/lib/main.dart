@@ -12,8 +12,8 @@ class MainApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider<UserModel>(
-      create: (context) => UserModel(),
+    return ChangeNotifierProvider<RegisterModel>(
+      create: (context) => RegisterModel(),
       child: MaterialApp(
         title: 'Flutter Demo',
         theme: ThemeData(

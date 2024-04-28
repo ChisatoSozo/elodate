@@ -1,12 +1,19 @@
 import 'package:flutter/material.dart';
 
-class UserModel extends ChangeNotifier {
-  String _name = '';
+class RegisterModel extends ChangeNotifier {
+  String? _username;
+  String? _displayName;
 
-  String get name => _name;
+  String? get username => _username;
+  String? get displayName => _displayName;
 
-  void setName(String newName) {
-    _name = newName;
+  void setUsername(String username) {
+    _username = username;
+    notifyListeners();
+  }
+
+  void setDisplayName(String displayName) {
+    _displayName = displayName;
     notifyListeners();
   }
 }
