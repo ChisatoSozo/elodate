@@ -1,5 +1,5 @@
-import 'package:client/models/user_model.dart';
-import 'package:client/pages/register_username.dart';
+import 'package:client/models/register_model.dart';
+import 'package:client/pages/register_gender.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -71,7 +71,7 @@ class RegisterStartPageState extends State<RegisterStartPage> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => const RegisterUsernamePage(),
+        builder: (context) => const RegisterGenderPage(),
       ),
     );
   }

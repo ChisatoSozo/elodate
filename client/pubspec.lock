@@ -198,6 +198,30 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+  flutter_dropzone:
+    dependency: "direct main"
+    description:
+      name: flutter_dropzone
+      sha256: e00e623451f40e68593d69c7ea60daf956451d1b1769b79f7aa73d26b86b0324
+      url: "https://pub.dev"
+    source: hosted
+    version: "4.0.0"
+  flutter_dropzone_platform_interface:
+    dependency: transitive
+    description:
+      name: flutter_dropzone_platform_interface
+      sha256: b4e2df75364bab2f4c3ca32b87193267d786b6e158c3f345c3a1daeb911d82b9
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.0.6"
+  flutter_dropzone_web:
+    dependency: transitive
+    description:
+      name: flutter_dropzone_web
+      sha256: "62211c1e8dd9b55f872206d6b27bb71e20bf0db1f1ab481a963fcbaa7240ff23"
+      url: "https://pub.dev"
+    source: hosted
+    version: "4.0.0"
   flutter_lints:
     dependency: "direct dev"
     description:
@@ -208,6 +232,11 @@ packages:
     version: "3.0.2"
   flutter_test:
     dependency: "direct dev"
+    description: flutter
+    source: sdk
+    version: "0.0.0"
+  flutter_web_plugins:
+    dependency: transitive
     description: flutter
     source: sdk
     version: "0.0.0"
@@ -259,6 +288,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.0.2"
+  intl:
+    dependency: "direct main"
+    description:
+      name: intl
+      sha256: d6f56758b7d3014a48af9701c085700aac781a92a87a62b1333b46d8879661cf
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.19.0"
   io:
     dependency: transitive
     description:
@@ -403,6 +440,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.9.0"
+  plugin_platform_interface:
+    dependency: transitive
+    description:
+      name: plugin_platform_interface
+      sha256: "4820fbfdb9478b1ebae27888254d445073732dae3d6ea81f0b7e06d5dedc3f02"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.1.8"
   pool:
     dependency: transitive
     description:
@@ -586,4 +631,4 @@ packages:
     version: "3.1.2"
 sdks:
   dart: ">=3.3.4 <4.0.0"
-  flutter: ">=1.16.0"
+  flutter: ">=3.13.0"

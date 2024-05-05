@@ -21,6 +21,8 @@ validator = { version = "0.18", features = ["derive"] }
 bcrypt = "0.15.1"
 jsonwebtoken = "9.3.0"
 futures-util = "0.3.30"
+base64 = "0.22.0"
+actix-cors = "0.7.0"
 
 [dev-dependencies]
 chrono = { version = "0.4.20", features = ["serde"] }

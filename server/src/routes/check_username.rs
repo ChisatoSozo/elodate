@@ -29,7 +29,8 @@ async fn check_username(
     let user = body.into_inner();
     let mut db = db.lock().unwrap();
 
-    let available = !db.user_with_username_exists(&user.username).map_err(|_| {
+    let available = !db.user_with_username_exists(&user.username).map_err(|e| {
+        println!("Failed to check username availability: {:?}", e);
         actix_web::error::ErrorInternalServerError("Failed to check username availability")
     })?;
     return Ok(Json(CheckUsernameOutput { available }));

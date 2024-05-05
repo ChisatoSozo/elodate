@@ -1,5 +1,5 @@
-import 'package:client/models/user_model.dart';
-import 'package:client/pages/register_username.dart';
+import 'package:client/models/register_model.dart';
+import 'package:client/pages/register_images.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -12,11 +12,43 @@ class RegisterPasswordPage extends StatefulWidget {
 
 class RegisterPasswordPageState extends State<RegisterPasswordPage> {
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
-  final TextEditingController nameController = TextEditingController();
+
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
+
+  bool _isPasswordValid(String password) {
+    // Implement your own password validation logic
+    //password must be at least 8 characters long, contain at least one uppercase letter, one lowercase letter, one number, and one special character
+    final passwordRegExp = RegExp(
+        r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+{}|:<>?]).{8,}$');
+    return passwordRegExp.hasMatch(password);
+  }
+
+  bool _isPasswordConfirmed() {
+    return _passwordController.text == _confirmPasswordController.text;
+  }
+
+  void _submit() {
+    if (formKey.currentState?.validate() ?? false) {
+      Provider.of<RegisterModel>(context, listen: false)
+          .setPassword(_passwordController.text);
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const RegisterImagesPage(),
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('Register Password'),
+      ),
       body: Center(
         child: Container(
           padding: const EdgeInsets.all(20),
@@ -25,53 +57,50 @@ class RegisterPasswordPageState extends State<RegisterPasswordPage> {
             key: formKey,
             child: Column(
               mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                Text("What should we call you?",
-                    style: Theme.of(context).textTheme.headlineMedium),
-                const SizedBox(height: 20),
+              children: [
                 TextFormField(
-                  controller: nameController,
+                  controller: _passwordController,
+                  obscureText: true,
                   decoration: const InputDecoration(
-                    labelText: 'Name',
-                    border: OutlineInputBorder(),
+                    labelText: 'Password',
+                    hintText: 'Enter your password',
                   ),
-                  onFieldSubmitted: (_) => _saveNameAndProceed(
-                    nameController.text,
-                  ),
-                  validator: (value) =>
-                      value!.isEmpty ? 'Name cannot be empty' : null,
+                  validator: (value) {
+                    if (value == null ||
+                        value.isEmpty ||
+                        !_isPasswordValid(value)) {
+                      return 'Password must be at least 8 characters long, contain at least one uppercase letter, one lowercase letter, one number, and one special character';
+                    }
+                    return null;
+                  },
                 ),
                 const SizedBox(height: 20),
+                TextFormField(
+                  controller: _confirmPasswordController,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Confirm Password',
+                    hintText: 'Confirm your password',
+                  ),
+                  validator: (value) {
+                    if (value == null ||
+                        value.isEmpty ||
+                        !_isPasswordValid(value) ||
+                        !_isPasswordConfirmed()) {
+                      return 'Passwords do not match';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 40),
                 ElevatedButton(
-                  onPressed: () => _saveNameAndProceed(
-                    nameController.text,
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text('Next'),
-                      Icon(Icons.arrow_forward),
-                    ],
-                  ),
+                  onPressed: _submit,
+                  child: const Text('Register'),
                 ),
               ],
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  _saveNameAndProceed(String name) {
-    if (!formKey.currentState!.validate()) return;
-
-    Provider.of<RegisterModel>(context, listen: false).setDisplayName(name);
-
-    // Save the name and proceed to the next step
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const RegisterUsernamePage(),
       ),
     );
   }

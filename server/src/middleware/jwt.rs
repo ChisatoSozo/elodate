@@ -16,7 +16,7 @@ use actix_web::{
 };
 use futures_util::future::LocalBoxFuture;
 
-use crate::models::shared::UuidModel;
+use crate::{models::shared::UuidModel, JSON_SPEC_PATH};
 
 // There are two steps in middleware processing.
 // 1. Middleware initialization, middleware factory gets called with
@@ -48,7 +48,7 @@ pub struct JwtMiddleware<S> {
     service: S,
 }
 
-const NOAUTH_PATHS: [&str; 3] = ["/login", "/signup", "/check_username"];
+const NOAUTH_PATHS: [&str; 4] = ["/login", "/signup", "/check_username", JSON_SPEC_PATH];
 
 impl<S, B> Service<ServiceRequest> for JwtMiddleware<S>
 where

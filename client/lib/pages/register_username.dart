@@ -1,5 +1,5 @@
 import 'package:client/api/pkg/lib/api.dart';
-import 'package:client/models/user_model.dart';
+import 'package:client/models/register_model.dart';
 import 'package:client/pages/register_password.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -62,8 +62,28 @@ class RegisterUsernamePageState extends State<RegisterUsernamePage> {
 
   Future<void> _goNext() async {
     if (!formKey.currentState!.validate()) return;
+    late bool valid;
+    try {
+      valid = await _validateUsername(usernameController.text);
+    } catch (e) {
+      if (!mounted) return;
 
-    var valid = await _validateUsername(usernameController.text);
+      if (e is ApiException) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('An error occurred: ${e.message}'),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('An error occurred, please try again later.'),
+          ),
+        );
+      }
+      return;
+    }
+
     if (!mounted) return;
 
     if (valid) {
@@ -84,16 +104,13 @@ class RegisterUsernamePageState extends State<RegisterUsernamePage> {
   }
 
   Future<bool> _validateUsername(String username) async {
-    try {
-      var response = await DefaultApi()
-          .checkUsernamePost(CheckUsernameInput(username: username));
+    var response =
+        await DefaultApi(ApiClient(basePath: 'http://localhost:8080'))
+            .checkUsernamePost(CheckUsernameInput(username: username));
 
-      if (response != null && response.available) {
-        return true;
-      }
-      return false;
-    } catch (e) {
-      return false;
+    if (response != null && response.available) {
+      return true;
     }
+    return false;
   }
 }
