@@ -11,6 +11,7 @@ import 'package:client/pages/register_location.dart';
 import 'package:client/pages/register_password.dart';
 import 'package:client/pages/register_start.dart';
 import 'package:client/pages/register_username.dart';
+import 'package:client/utils.dart';
 import 'package:flutter/material.dart';
 
 const pages = [
@@ -135,24 +136,24 @@ class RegisterModel extends ChangeNotifier {
       throw Exception('Images are required');
     }
 
-    var input = SignupInput(
-      user: SignupInputUser(
-          birthdate: _birthdate!.millisecondsSinceEpoch ~/ 1000,
-          displayName: _displayName!,
-          elo: 0,
-          gender: SignupInputUserGender(
-              percentFemale: (_percentFemale! * 100).toInt(),
-              percentMale: (_percentMale! * 100).toInt()),
-          password: _password!,
-          preference: SignupInputUserPreference(),
-          username: _username!,
-          location: SignupInputUserLocation(lat: _lat!, long: _long!),
-          uuid: ''),
+    var input = UserWithImagesAndPassword(
+      user: UserWithImagesUser(
+        birthdate: _birthdate!.millisecondsSinceEpoch ~/ 1000,
+        displayName: _displayName!,
+        gender: UserWithImagesUserGender(
+            percentFemale: (_percentFemale! * 100).toInt(),
+            percentMale: (_percentMale! * 100).toInt()),
+        preference: UserWithImagesUserPreference(),
+        username: _username!,
+        location: UserWithImagesUserLocation(lat: _lat!, long: _long!),
+      ),
+      password: _password!,
+      images: images
+          .map((e) => UserWithImagesImagesInner(
+              b64Content: base64Encode(e.data),
+              imageType: mimeToType(e.mimeType)))
+          .toList(),
     );
-    input.images = images
-        .map((e) => SignupInputImagesInner(
-            imageB64: base64Encode(e.data), imgType: e.mimeType))
-        .toList();
     var jwt = await DefaultApi(ApiClient(basePath: 'http://localhost:8080'))
         .signupPost(input);
 

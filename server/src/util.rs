@@ -16,7 +16,7 @@ use crate::models::image::ElodateImageFormat;
     :param file_path: &String with the path to the image to convert.
     :return Option<String>: Return the path of the WEBP-image as String when succesfull, returns None if function fails.
 */
-pub async fn save_as_webp(
+pub fn save_as_webp(
     b64_content: &String,
     format: &ElodateImageFormat,
     file_path: &Path,

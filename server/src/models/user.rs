@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, error::Error};
 
 use fake::Dummy;
 use paperclip::actix::Apiv2Schema;
@@ -8,7 +8,9 @@ use serde::{Deserialize, Serialize};
 // A trait that the Validate derive will impl
 use validator::{Validate, ValidationError};
 
-use crate::models::shared::UuidModel;
+use crate::{db::DB, models::shared::UuidModel};
+
+use super::{chat::Chat, image::Image, rating::Rated};
 
 #[derive(Debug, Validate, Serialize, Deserialize, Apiv2Schema, Clone, PartialEq, Eq, Dummy)]
 pub struct Gender {
@@ -30,19 +32,55 @@ pub struct Location {
 
 impl Eq for Location {}
 
-#[derive(Debug, Serialize, Deserialize, Apiv2Schema, Clone, PartialEq, Eq, Dummy)]
-pub enum Rating {
-    LikedBy(UuidModel),
-    PassedBy(UuidModel),
+#[derive(Debug, Validate, Serialize, Deserialize, Apiv2Schema, Clone, PartialEq, Eq, Dummy)]
+pub struct UserWithImagesAndElo {
+    pub user: UserPublicFields,
+    pub images: Vec<Image>,
+    pub elo: String,
 }
 
 #[derive(Debug, Validate, Serialize, Deserialize, Apiv2Schema, Clone, PartialEq, Eq, Dummy)]
+pub struct UserWithImages {
+    pub user: UserPublicFields,
+    pub images: Vec<Image>,
+}
+
+#[derive(Debug, Validate, Serialize, Deserialize, Apiv2Schema, Clone, PartialEq, Eq, Dummy)]
+pub struct UserWithImagesAndPassword {
+    pub user: UserPublicFields,
+    pub images: Vec<Image>,
+    pub password: String,
+}
+
+#[derive(Debug, Validate, Serialize, Deserialize, Clone, PartialEq, Eq, Dummy)]
 pub struct User {
     pub uuid: UuidModel,
+    pub hashed_password: String,
+    #[dummy(faker = "800..2000")]
+    pub elo: usize,
+    pub ratings: Vec<Rated>,
+    pub seen: HashSet<UuidModel>,
+    pub chats: Vec<UuidModel>,
+    pub images: Vec<UuidModel>,
+    pub public: UserPublicFields,
+}
+
+impl User {
+    pub fn get_chats(&self, db: &mut DB) -> Result<Vec<Chat>, Box<dyn Error>> {
+        let mut chats = vec![];
+        for chat_uuid in self.chats.iter() {
+            let chat = db.get_chat(chat_uuid)?;
+            chats.push(chat);
+        }
+        Ok(chats)
+    }
+}
+
+#[derive(Debug, Validate, Serialize, Deserialize, Apiv2Schema, Clone, PartialEq, Eq, Dummy)]
+pub struct UserPublicFields {
     #[validate(length(min = 1, message = "Username must not be empty"))]
     #[dummy(faker = "fake::faker::phone_number::en::CellNumber()")]
     pub username: String,
-    pub password: String,
     #[validate(length(min = 1, message = "Username must not be empty"))]
     #[dummy(faker = "fake::faker::name::en::Name()")]
     pub display_name: String,
@@ -50,15 +88,10 @@ pub struct User {
     #[dummy(faker = "rand_age_between_18_and_99()")]
     pub birthdate: i64,
     pub gender: Gender,
-    pub elo: usize,
     pub location: Location,
-    pub ratings: Vec<Rating>,
-    pub seen: HashSet<UuidModel>,
     pub preference: Preference,
-    pub chats: Vec<UuidModel>,
     #[dummy(faker = "true")]
     pub published: Option<bool>,
-    pub images: Vec<UuidModel>,
 }
 
 fn rand_date_between(min: i64, max: i64) -> i64 {

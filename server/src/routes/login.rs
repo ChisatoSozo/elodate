@@ -25,13 +25,13 @@ pub struct LoginRequest {
 #[post("/login")]
 async fn login(db: web::Data<Mutex<DB>>, body: Json<LoginRequest>) -> Result<Json<Jwt>, Error> {
     let mut db = db.lock().unwrap();
-    let user = body.into_inner();
-    let user = db.get_user_by_username(&user.username).map_err(|e| {
+    let login_req = body.into_inner();
+    let user = db.get_user_by_username(&login_req.username).map_err(|e| {
         println!("Failed to get user by username {:?}", e);
         actix_web::error::ErrorInternalServerError("Failed to get user by username")
     })?;
-    let hashed_password = user.password.clone();
-    let password_matches = verify_password(&user.password, &hashed_password).map_err(|e| {
+    let hashed_password = user.hashed_password.clone();
+    let password_matches = verify_password(&login_req.password, &hashed_password).map_err(|e| {
         println!("Failed to verify password {:?}", e);
         actix_web::error::ErrorInternalServerError("Failed to verify password")
     })?;

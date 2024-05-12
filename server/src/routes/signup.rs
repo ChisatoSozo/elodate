@@ -1,39 +1,69 @@
-use std::sync::Mutex;
+use std::{collections::HashSet, sync::Mutex};
 
 use actix_web::Error;
 
+use bcrypt::hash;
 use paperclip::actix::{
     api_v2_operation, post,
     web::{self, Json},
-    Apiv2Schema,
 };
-use serde::{Deserialize, Serialize};
 
 use crate::{
+    constants::STARTING_ELO,
     db::DB,
     middleware::jwt::make_jwt,
-    models::{image::Image, user::User},
+    models::{
+        shared::UuidModel,
+        user::{User, UserWithImagesAndPassword},
+    },
     procedures::upsert_user::upsert_user,
     routes::common::Jwt,
 };
 
-#[derive(Debug, Serialize, Deserialize, Apiv2Schema, Clone, PartialEq, Eq)]
-struct SignupInput {
-    user: User,
-    images: Vec<Image>,
+fn hash_password(password: &str) -> Result<String, bcrypt::BcryptError> {
+    hash(password, 4)
 }
 
 #[api_v2_operation]
 #[post("/signup")]
-async fn signup(db: web::Data<Mutex<DB>>, body: Json<SignupInput>) -> Result<Json<Jwt>, Error> {
+async fn signup(
+    db: web::Data<Mutex<DB>>,
+    body: Json<UserWithImagesAndPassword>,
+) -> Result<Json<Jwt>, Error> {
     let mut db = db.lock().unwrap();
     let inner = body.into_inner();
     let user = inner.user;
     let images = inner.images;
+    let password = inner.password;
 
-    upsert_user(&user, images, &mut db).await?;
+    let hashed_password = hash_password(&password).map_err(|e| {
+        println!("Failed to hash password {:?}", e);
+        actix_web::error::ErrorInternalServerError("Failed to hash password")
+    })?;
 
-    make_jwt(&user.uuid)
+    let user_exists = db.user_with_username_exists(&user.username).map_err(|e| {
+        println!("Failed to check if user exists {:?}", e);
+        actix_web::error::ErrorInternalServerError("Failed to check if user exists")
+    })?;
+
+    if user_exists {
+        Err(actix_web::error::ErrorBadRequest("Username already taken"))?;
+    }
+
+    let user_with_uuid = User {
+        uuid: UuidModel::new(),
+        elo: STARTING_ELO,
+        public: user,
+        hashed_password,
+        ratings: vec![],
+        chats: vec![],
+        images: vec![],
+        seen: HashSet::new(),
+    };
+
+    upsert_user(&user_with_uuid, images, &mut db).await?;
+
+    make_jwt(&user_with_uuid.uuid)
         .map(|jwt| Json(Jwt { jwt }))
         .map_err(|e| {
             println!("Failed to make jwt {:?}", e);

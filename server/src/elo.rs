@@ -2,10 +2,7 @@ use std::error::Error;
 
 use crate::{
     db::DB,
-    models::{
-        shared::UuidModel,
-        user::{Rating, User},
-    },
+    models::{rating::Rated, shared::UuidModel, user::User},
 };
 
 const ELO_SCALE: f64 = 500.0;
@@ -88,7 +85,7 @@ pub fn update_elo(user: User, db: &mut DB) -> Result<(), Box<dyn Error>> {
         .ratings
         .iter()
         .filter_map(|r| match r {
-            Rating::LikedBy(user) => Some(user.clone()),
+            Rated::LikedBy(user) => Some(user.clone()),
             _ => None,
         })
         .collect::<Vec<UuidModel>>();
@@ -96,7 +93,7 @@ pub fn update_elo(user: User, db: &mut DB) -> Result<(), Box<dyn Error>> {
         .ratings
         .iter()
         .filter_map(|r| match r {
-            Rating::PassedBy(user) => Some(user.clone()),
+            Rated::PassedBy(user) => Some(user.clone()),
             _ => None,
         })
         .collect::<Vec<UuidModel>>();

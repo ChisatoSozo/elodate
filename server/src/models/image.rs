@@ -1,7 +1,14 @@
+use image::EncodableLayout;
+use std::io::Write;
+use std::{error::Error, fs::File, path::Path};
+
+use fake::Dummy;
+use image::{io::Reader, DynamicImage};
 use paperclip::actix::Apiv2Schema;
 use serde::{Deserialize, Serialize};
+use webp::{Encoder, WebPMemory};
 
-#[derive(Debug, Serialize, Deserialize, Apiv2Schema, Clone, PartialEq, Eq)]
+#[derive(Debug, Serialize, Deserialize, Apiv2Schema, Clone, PartialEq, Eq, Dummy)]
 pub enum ElodateImageFormat {
     PNG,
     JPEG,
@@ -16,9 +23,17 @@ impl ElodateImageFormat {
             ElodateImageFormat::WEBP => "webp",
         }
     }
+    pub fn from_ext(ext: &str) -> Option<Self> {
+        match ext {
+            "png" => Some(ElodateImageFormat::PNG),
+            "jpeg" => Some(ElodateImageFormat::JPEG),
+            "webp" => Some(ElodateImageFormat::WEBP),
+            _ => None,
+        }
+    }
 }
 
-#[derive(Debug, Serialize, Deserialize, Apiv2Schema, Clone, PartialEq, Eq)]
+#[derive(Debug, Serialize, Deserialize, Apiv2Schema, Clone, PartialEq, Eq, Dummy)]
 pub struct Image {
     pub b64_content: String,
     pub image_type: ElodateImageFormat,
@@ -30,6 +45,45 @@ impl Default for Image {
             b64_content: TEST_IMG_B64.to_string(),
             image_type: ElodateImageFormat::PNG,
         }
+    }
+}
+impl Image {
+    pub fn load<P: AsRef<Path>>(path: P) -> Result<Self, Box<dyn Error>> {
+        let image = Image {
+            #[allow(deprecated)]
+            b64_content: base64::encode(std::fs::read(path)?),
+            image_type: ElodateImageFormat::WEBP,
+        };
+        Ok(image)
+    }
+
+    pub fn save_as_webp(
+        b64_content: &String,
+        format: &ElodateImageFormat,
+        file_path: &Path,
+    ) -> Result<(), Box<dyn Error>> {
+        // Decode base64 content
+        #[allow(deprecated)]
+        let decoded = base64::decode(b64_content)?;
+
+        let format = match format {
+            ElodateImageFormat::PNG => image::ImageFormat::Png,
+            ElodateImageFormat::JPEG => image::ImageFormat::Jpeg,
+            ElodateImageFormat::WEBP => image::ImageFormat::WebP,
+        };
+        // Open path as DynamicImage
+        let image: DynamicImage =
+            Reader::with_format(std::io::Cursor::new(decoded), format).decode()?;
+        // Make webp::Encoder from DynamicImage
+        let encoder: Encoder = Encoder::from_image(&image)?;
+
+        // Encode image into WebPMemory
+        let encoded_webp: WebPMemory = encoder.encode(65f32);
+
+        // Write WebPMemory to file
+        let mut file = File::create(file_path)?;
+        file.write_all(encoded_webp.as_bytes())?;
+        Ok(())
     }
 }
 

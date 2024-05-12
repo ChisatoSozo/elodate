@@ -1,5 +1,5 @@
 import 'package:client/models/register_model.dart';
-import 'package:client/pages/login.dart';
+import 'package:client/pages/home.dart';
 import 'package:flutter/material.dart';
 import 'package:localstorage/localstorage.dart';
 import 'package:provider/provider.dart';
@@ -24,7 +24,7 @@ class MainApp extends StatelessWidget {
           primarySwatch: Colors.blue,
           useMaterial3: true,
         ),
-        home: const LoginPage(),
+        home: const HomePage(),
       ),
     );
   }

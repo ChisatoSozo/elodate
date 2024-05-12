@@ -8,7 +8,8 @@ use middleware::jwt::Jwt;
 use paperclip::actix::{web, OpenApiExt};
 
 use routes::{
-    check_username::check_username, generate_access_codes::generate_access_codes, signup::signup,
+    check_username::check_username, generate_access_codes::generate_access_codes,
+    get_next_users::get_next_users, signup::signup, update_user::update_user,
 };
 
 pub mod constants;
@@ -37,6 +38,8 @@ async fn main() -> std::io::Result<()> {
             .service(signup)
             .service(generate_access_codes)
             .service(check_username)
+            .service(get_next_users)
+            .service(update_user)
             .with_json_spec_at(JSON_SPEC_PATH)
             .build()
     })

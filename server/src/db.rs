@@ -1,8 +1,14 @@
 use std::{collections::HashSet, path::Path};
 
+use std::io::Read;
+
 use crate::{
     models::{
-        access_code::AccessCode, chat::Chat, image::Image, message::Message, shared::UuidModel,
+        access_code::AccessCode,
+        chat::Chat,
+        image::{ElodateImageFormat, Image},
+        message::Message,
+        shared::UuidModel,
         user::User,
     },
     mokuroku::{
@@ -168,6 +174,11 @@ impl DB {
         Ok(())
     }
 
+    pub fn get_chat(&mut self, chat_uuid: &UuidModel) -> Result<Chat, Error> {
+        let result = get_single_from_key("uuid", chat_uuid.0.as_bytes(), &mut self.db)?;
+        Ok(result)
+    }
+
     pub fn insert_message(&mut self, message: &Message) -> Result<(), Error> {
         let key = &message.uuid.0;
         //prepend "message/" to the key
@@ -175,6 +186,11 @@ impl DB {
         self.db.put(key, message)?;
 
         Ok(())
+    }
+
+    pub fn get_message(&mut self, message_uuid: &UuidModel) -> Result<Message, Error> {
+        let result = get_single_from_key("uuid", message_uuid.0.as_bytes(), &mut self.db)?;
+        Ok(result)
     }
 
     pub fn get_user_by_username(&mut self, username: &str) -> Result<User, Error> {
@@ -211,7 +227,70 @@ impl DB {
         Ok(messages)
     }
 
-    pub async fn add_image_to_user(
+    pub fn add_image_to_message(
+        &mut self,
+        sender: &User,
+        chat: &Chat,
+        message: &Message,
+        image: &Image,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let image_path = match message.get_path_for_image(chat, sender) {
+            Some(path) => path,
+            None => return Err("No path found".into()),
+        };
+
+        //create directory recursively if it doesn't exist
+        std::fs::create_dir_all(&image_path)?;
+
+        save_as_webp(
+            &image.b64_content,
+            &image.image_type,
+            Path::new(&image_path),
+        )?;
+
+        let new_message = Message {
+            image: None,
+            image_type: Some(image.image_type.clone()),
+            ..message.clone()
+        };
+
+        self.insert_message(&new_message)?;
+        Ok(())
+    }
+
+    pub fn get_images_from_message(
+        &mut self,
+        sender: &User,
+        chat: &Chat,
+        message: &Message,
+    ) -> Result<Vec<Image>, Box<dyn std::error::Error>> {
+        let user_image_path = "images/".to_owned() + &sender.uuid.0;
+        let chat_id = chat.uuid.0.clone();
+        let message_id = message.uuid.0.clone();
+        let message_image_path = user_image_path.clone() + "/" + &chat_id + "/" + &message_id;
+        let mut images = Vec::new();
+        for entry in std::fs::read_dir(&message_image_path)? {
+            let entry = entry?;
+            let path = entry.path();
+            let ext = path.extension().unwrap().to_str().unwrap();
+
+            //read path to bytes and convert bytes to base64
+            let mut file = std::fs::File::open(&path)?;
+            let mut buffer = Vec::new();
+            file.read_to_end(&mut buffer)?;
+            #[allow(deprecated)]
+            let b64_content = base64::encode(&buffer);
+
+            let image = Image {
+                image_type: ElodateImageFormat::from_ext(ext).unwrap(),
+                b64_content: b64_content,
+            };
+            images.push(image);
+        }
+        Ok(images)
+    }
+
+    pub fn add_image_to_user(
         &mut self,
         user: &User,
         image: &Image,
@@ -228,34 +307,64 @@ impl DB {
             &image.b64_content,
             &image.image_type,
             Path::new(&image_path),
-        )
-        .await?;
+        )?;
 
         Ok(image_id)
     }
 
+    pub fn get_images_from_user(
+        &mut self,
+        user: &User,
+    ) -> Result<Vec<Image>, Box<dyn std::error::Error>> {
+        let user_image_path = "images/".to_owned() + &user.uuid.0;
+        let mut images = Vec::new();
+        for entry in std::fs::read_dir(&user_image_path)? {
+            let entry = entry?;
+            let path = entry.path();
+            let ext = path.extension().unwrap().to_str().unwrap();
+
+            //read path to bytes and convert bytes to base64
+            let mut file = std::fs::File::open(&path)?;
+            let mut buffer = Vec::new();
+            file.read_to_end(&mut buffer)?;
+            #[allow(deprecated)]
+            let b64_content = base64::encode(&buffer);
+
+            let image = Image {
+                image_type: ElodateImageFormat::from_ext(ext).unwrap(),
+                b64_content: b64_content,
+            };
+            images.push(image);
+        }
+        Ok(images)
+    }
+
     pub fn get_mutual_preference_users(&mut self, user: &User) -> Result<Vec<User>, Error> {
-        let min_age = user.preference.with_defaults().min_age.unwrap();
-        let max_age = user.preference.with_defaults().max_age.unwrap();
+        let min_age = user.public.preference.with_defaults().min_age.unwrap();
+        let max_age = user.public.preference.with_defaults().max_age.unwrap();
         let min_gender_male = user
+            .public
             .preference
             .with_defaults()
             .min_gender
             .unwrap()
             .percent_male;
         let min_gender_female = user
+            .public
             .preference
             .with_defaults()
             .min_gender
             .unwrap()
             .percent_female;
         let max_gender_male = user
+            .public
             .preference
             .with_defaults()
             .max_gender
             .unwrap()
             .percent_male;
         let max_gender_female = user
+            .public
             .preference
             .with_defaults()
             .max_gender
@@ -306,27 +415,31 @@ impl DB {
         let users_who_prefer_me = all_users
             .iter()
             .filter(|user| {
-                let min_age = user.preference.with_defaults().min_age.unwrap();
-                let max_age = user.preference.with_defaults().max_age.unwrap();
+                let min_age = user.public.preference.with_defaults().min_age.unwrap();
+                let max_age = user.public.preference.with_defaults().max_age.unwrap();
                 let min_gender_male = user
+                    .public
                     .preference
                     .with_defaults()
                     .min_gender
                     .unwrap()
                     .percent_male;
                 let min_gender_female = user
+                    .public
                     .preference
                     .with_defaults()
                     .min_gender
                     .unwrap()
                     .percent_female;
                 let max_gender_male = user
+                    .public
                     .preference
                     .with_defaults()
                     .max_gender
                     .unwrap()
                     .percent_male;
                 let max_gender_female = user
+                    .public
                     .preference
                     .with_defaults()
                     .max_gender
@@ -336,9 +449,9 @@ impl DB {
                 let min_date = chrono::Utc::now() - chrono::Duration::weeks(max_age as i64 * 52);
                 let max_date = chrono::Utc::now() - chrono::Duration::weeks(min_age as i64 * 52);
 
-                let my_age = user.birthdate;
-                let my_gender_male = user.gender.percent_male;
-                let my_gender_female = user.gender.percent_female;
+                let my_age = user.public.birthdate;
+                let my_gender_male = user.public.gender.percent_male;
+                let my_gender_female = user.public.gender.percent_female;
 
                 let perfered = min_date.timestamp() <= my_age
                     && my_age <= max_date.timestamp()
@@ -422,12 +535,13 @@ impl Document for User {
                 emitter.emit(bytes, None)?;
             }
             "username" => {
-                let bytes = self.username.as_bytes();
+                let bytes = self.public.username.as_bytes();
 
                 emitter.emit(bytes, None)?;
             }
             "preference.min_age" => {
                 let bytes = self
+                    .public
                     .preference
                     .with_defaults()
                     .min_age
@@ -438,6 +552,7 @@ impl Document for User {
             }
             "preference.max_age" => {
                 let bytes = self
+                    .public
                     .preference
                     .with_defaults()
                     .max_age
@@ -448,6 +563,7 @@ impl Document for User {
             }
             "preference.max_gender.percent_male" => {
                 let bytes = self
+                    .public
                     .preference
                     .with_defaults()
                     .max_gender
@@ -459,6 +575,7 @@ impl Document for User {
             }
             "preference.max_gender.percent_female" => {
                 let bytes = self
+                    .public
                     .preference
                     .with_defaults()
                     .max_gender
@@ -470,6 +587,7 @@ impl Document for User {
             }
             "preference.min_gender.percent_male" => {
                 let bytes = self
+                    .public
                     .preference
                     .with_defaults()
                     .min_gender
@@ -481,6 +599,7 @@ impl Document for User {
             }
             "preference.min_gender.percent_female" => {
                 let bytes = self
+                    .public
                     .preference
                     .with_defaults()
                     .min_gender
@@ -491,17 +610,17 @@ impl Document for User {
                 emitter.emit(&base32::encode(&bytes), None)?;
             }
             "birthdate" => {
-                let bytes = ((self.birthdate + 10000000000) as usize).to_be_bytes();
+                let bytes = ((self.public.birthdate + 10000000000) as usize).to_be_bytes();
 
                 emitter.emit(&base32::encode(&bytes), None)?;
             }
             "gender.percent_male" => {
-                let bytes = self.gender.percent_male.to_be_bytes();
+                let bytes = self.public.gender.percent_male.to_be_bytes();
 
                 emitter.emit(&base32::encode(&bytes), None)?;
             }
             "gender.percent_female" => {
-                let bytes = self.gender.percent_female.to_be_bytes();
+                let bytes = self.public.gender.percent_female.to_be_bytes();
 
                 emitter.emit(&base32::encode(&bytes), None)?;
             }
