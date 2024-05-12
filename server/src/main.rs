@@ -11,18 +11,22 @@ use routes::{
     check_username::check_username, generate_access_codes::generate_access_codes, signup::signup,
 };
 
+pub mod constants;
 pub mod db;
 pub mod elo;
 pub mod middleware;
 pub mod models;
 pub mod mokuroku;
+pub mod procedures;
 pub mod routes;
+pub mod test;
+pub mod util;
 
 const JSON_SPEC_PATH: &str = "/api/spec/v2.json";
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    let db = web::Data::new(Mutex::new(DB::new("prod")));
+    let db = web::Data::new(Mutex::new(DB::new("test")));
 
     HttpServer::new(move || {
         App::new()

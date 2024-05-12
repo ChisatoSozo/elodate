@@ -1,3 +1,5 @@
+use fake::uuid::UUIDv4;
+use fake::Dummy;
 use paperclip::actix::Apiv2Schema;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -6,8 +8,8 @@ use std::{
 };
 use uuid::Uuid;
 
-#[derive(Debug, Serialize, Deserialize, Apiv2Schema, Clone)]
-pub struct UuidModel(pub String);
+#[derive(Debug, Serialize, Deserialize, Apiv2Schema, Clone, Dummy)]
+pub struct UuidModel(#[dummy(faker = "UUIDv4{}")] pub String);
 
 impl UuidModel {
     pub fn new() -> Self {

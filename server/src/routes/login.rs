@@ -26,17 +26,23 @@ pub struct LoginRequest {
 async fn login(db: web::Data<Mutex<DB>>, body: Json<LoginRequest>) -> Result<Json<Jwt>, Error> {
     let mut db = db.lock().unwrap();
     let user = body.into_inner();
-    let user = db.get_user_by_username(&user.username).map_err(|_| {
+    let user = db.get_user_by_username(&user.username).map_err(|e| {
+        println!("Failed to get user by username {:?}", e);
         actix_web::error::ErrorInternalServerError("Failed to get user by username")
     })?;
     let hashed_password = user.password.clone();
-    let password_matches = verify_password(&user.password, &hashed_password)
-        .map_err(|_| actix_web::error::ErrorInternalServerError("Failed to verify password"))?;
+    let password_matches = verify_password(&user.password, &hashed_password).map_err(|e| {
+        println!("Failed to verify password {:?}", e);
+        actix_web::error::ErrorInternalServerError("Failed to verify password")
+    })?;
     if !password_matches {
         return Err(actix_web::error::ErrorBadRequest("Invalid password"));
     }
 
     make_jwt(&user.uuid)
         .map(|jwt| Json(Jwt { jwt }))
-        .map_err(|_| actix_web::error::ErrorInternalServerError("Failed to create JWT"))
+        .map_err(|e| {
+            println!("Failed to make jwt {:?}", e);
+            actix_web::error::ErrorInternalServerError("Failed to make jwt")
+        })
 }

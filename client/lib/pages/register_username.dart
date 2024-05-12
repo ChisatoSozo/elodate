@@ -1,6 +1,6 @@
 import 'package:client/api/pkg/lib/api.dart';
+import 'package:client/components/responseive_scaffold.dart';
 import 'package:client/models/register_model.dart';
-import 'package:client/pages/register_password.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -17,44 +17,36 @@ class RegisterUsernamePageState extends State<RegisterUsernamePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Center(
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          constraints: const BoxConstraints(maxWidth: 400),
-          child: Form(
-            key: formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                Text(
-                    "Hello ${Provider.of<RegisterModel>(context).displayName}, pick a username",
-                    style: Theme.of(context).textTheme.headlineMedium),
-                const SizedBox(height: 20),
-                TextFormField(
-                  controller: usernameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Name',
-                    border: OutlineInputBorder(),
-                  ),
-                  onFieldSubmitted: (value) => _goNext(),
-                  validator: (value) =>
-                      value!.isEmpty ? 'Name cannot be empty' : null,
-                ),
-                const SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: _goNext,
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text('Next'),
-                      Icon(Icons.arrow_forward),
-                    ],
-                  ),
-                ),
-              ],
+    return ResponsiveScaffold(
+      title:
+          "Hello ${Provider.of<RegisterModel>(context).displayName}, pick a username for logging in.",
+      child: Form(
+        key: formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextFormField(
+              controller: usernameController,
+              decoration: const InputDecoration(
+                labelText: 'Username',
+                border: OutlineInputBorder(),
+              ),
+              onFieldSubmitted: (value) => _goNext(),
+              validator: (value) =>
+                  value!.isEmpty ? 'Username cannot be empty' : null,
             ),
-          ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: _goNext,
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('Next'),
+                  Icon(Icons.arrow_forward),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -62,39 +54,30 @@ class RegisterUsernamePageState extends State<RegisterUsernamePage> {
 
   Future<void> _goNext() async {
     if (!formKey.currentState!.validate()) return;
+
     late bool valid;
     try {
       valid = await _validateUsername(usernameController.text);
     } catch (e) {
       if (!mounted) return;
 
+      String errorMessage = 'An error occurred, please try again later.';
       if (e is ApiException) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('An error occurred: ${e.message}'),
-          ),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('An error occurred, please try again later.'),
-          ),
-        );
+        errorMessage = 'An error occurred: ${e.message}';
       }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(errorMessage)),
+      );
       return;
     }
 
     if (!mounted) return;
 
     if (valid) {
-      // Proceed to the next step
-      Navigator.push(
-          context,
-          MaterialPageRoute(
-              builder: (_) =>
-                  const RegisterPasswordPage())); // Update with actual next page
+      Provider.of<RegisterModel>(context, listen: false)
+          .setUsername(usernameController.text);
+      nextPage(context, widget);
     } else {
-      // Show error if username validation fails
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
             content:
@@ -108,9 +91,6 @@ class RegisterUsernamePageState extends State<RegisterUsernamePage> {
         await DefaultApi(ApiClient(basePath: 'http://localhost:8080'))
             .checkUsernamePost(CheckUsernameInput(username: username));
 
-    if (response != null && response.available) {
-      return true;
-    }
-    return false;
+    return response != null && response.available;
   }
 }

@@ -1,10 +1,14 @@
 import 'package:client/models/register_model.dart';
 import 'package:client/pages/login.dart';
 import 'package:flutter/material.dart';
+import 'package:localstorage/localstorage.dart';
 import 'package:provider/provider.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await initLocalStorage();
   runApp(const MainApp());
+  return;
 }
 
 class MainApp extends StatelessWidget {

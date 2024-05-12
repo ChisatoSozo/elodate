@@ -4,7 +4,7 @@ use crate::{
     db::DB,
     models::{
         shared::UuidModel,
-        user::{Rating, User},
+        user::{Location, Rating, User},
     },
 };
 
@@ -135,111 +135,4 @@ pub fn update_elo(user: User, db: &mut DB) -> Result<(), Box<dyn Error>> {
     db.insert_user(&new_user)?;
 
     Ok(())
-}
-
-#[test]
-fn test_update_elo() {
-    use crate::models::user::{Gender, Preference};
-    use rand::prelude::SliceRandom;
-    use rand::Rng;
-    use std::collections::{HashMap, HashSet};
-    let usernames = (0..1000)
-        .map(|_| UuidModel::new())
-        .collect::<Vec<UuidModel>>();
-    //delete db/test
-    let _ = std::fs::remove_dir_all("db/test");
-
-    let mut db = DB::new("test");
-    println!("done upserting");
-
-    fn pick_n_random_users(n: usize, usernames: &Vec<UuidModel>) -> Vec<UuidModel> {
-        let mut rng = rand::thread_rng();
-        let mut usernames = usernames.clone();
-        usernames.shuffle(&mut rng);
-        usernames.truncate(n);
-        usernames
-    }
-
-    fn rand_usize_between(min: usize, max: usize) -> usize {
-        let mut rng = rand::thread_rng();
-        rng.gen_range(min..max)
-    }
-
-    for username in usernames.iter() {
-        let users: Vec<_> = pick_n_random_users(rand_usize_between(0, 99), &usernames)
-            .into_iter()
-            .collect();
-
-        fn rand_bool() -> bool {
-            let mut rng = rand::thread_rng();
-            rng.gen()
-        }
-
-        let ratings: Vec<Rating> = users
-            .iter()
-            .map(|username| {
-                if rand_bool() {
-                    Rating::LikedBy(username.clone())
-                } else {
-                    Rating::PassedBy(username.clone())
-                }
-            })
-            .collect();
-
-        let user = User {
-            display_name: username.to_string(),
-            username: username.to_string(),
-            password: "password".to_string(),
-            birthdate: 0,
-            gender: Gender {
-                percent_male: 50,
-                percent_female: 50,
-            },
-            seen: HashSet::new(),
-            elo: 1000,
-            preference: Preference {
-                min_age: None,
-                max_age: None,
-                max_gender: None,
-                min_gender: None,
-            },
-            uuid: username.clone(),
-
-            ratings,
-            chats: vec![],
-        };
-
-        db.insert_user(&user).unwrap();
-    }
-    for _ in 0..10 {
-        for username in usernames.iter() {
-            let user = db.get_user_by_uuid(username).unwrap().clone();
-            update_elo(user, &mut db).unwrap();
-        }
-    }
-
-    let labels = usernames
-        .iter()
-        .map(|username| {
-            let user = db.get_user_by_uuid(username).unwrap();
-            elo_to_label(user.elo)
-        })
-        .collect::<Vec<String>>();
-
-    let labels_count = labels.iter().fold(HashMap::new(), |mut acc, label| {
-        *acc.entry(label.clone()).or_insert(0) += 1;
-        acc
-    });
-
-    //for every ELO_LABEL, print the count
-    for label in ELO_LABELS.iter() {
-        println!("{}: {}", label, labels_count.get(*label).unwrap_or(&0));
-    }
-}
-
-#[test]
-fn run_test_100_times() {
-    for _ in 0..100 {
-        test_update_elo();
-    }
 }

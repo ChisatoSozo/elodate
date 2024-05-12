@@ -1,1 +1,3 @@
-jwt.json
+jwk.pem.pub
+jwk.pem.priv
+jwk.json

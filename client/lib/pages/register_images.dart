@@ -1,3 +1,7 @@
+import 'dart:typed_data';
+
+import 'package:client/components/file_picker.dart';
+import 'package:client/components/responseive_scaffold.dart';
 import 'package:client/models/register_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dropzone/flutter_dropzone.dart';
@@ -15,15 +19,25 @@ class RegisterImagesPageState extends State<RegisterImagesPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Drop Images Here'),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: GridView.count(
-          crossAxisCount: 3,
-          children: List.generate(6, buildDropzone),
+    return ResponsiveScaffold(
+      title: "Upload your images:",
+      child: SingleChildScrollView(
+        child: Column(
+          children: [
+            SizedBox(
+              height: 500, // Provide a specific height for the GridView
+              child: GridView.count(
+                crossAxisCount: 3,
+                children: List.generate(6, buildDropzone),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                nextPage(context, widget);
+              },
+              child: const Text('Register'),
+            ),
+          ],
         ),
       ),
     );
@@ -39,13 +53,9 @@ class RegisterImagesPageState extends State<RegisterImagesPage> {
       child: Stack(
         alignment: Alignment.center,
         children: [
-          DropzoneView(
-            onCreated: (controller) => controllers.add(controller),
-            onDrop: (ev) =>
-                _flushImageToProvider(controllers[index], ev, index),
-            onError: (ev) => print('Drop error on zone $index: $ev'),
-            mime: const ['image/jpeg', 'image/png', 'image/webp'],
-            operation: DragOperation.copy,
+          AdaptiveFilePicker(
+            onFileChanged: (byteData, mimeType) =>
+                _flushImageToProvider(byteData, mimeType, index),
           ),
           Text('Drop Zone ${index + 1}',
               style: const TextStyle(color: Colors.white)),
@@ -54,17 +64,8 @@ class RegisterImagesPageState extends State<RegisterImagesPage> {
     );
   }
 
-  //event, index
-  // This function is called when an image is dropped onto a dropzone.
-// It retrieves the image file, converts it to a Uint8List, and updates the provider.
-  _flushImageToProvider(
-      DropzoneViewController controller, dynamic event, int index) async {
+  _flushImageToProvider(Uint8List byteData, String mimeType, int index) async {
     try {
-      // Retrieve the last file dropped into the dropzone
-      final mimeType = await controller.getFileMIME(event);
-      final byteData = await controller.getFileData(event);
-
-      // If file data was retrieved successfully, update the provider
       Provider.of<RegisterModel>(context, listen: false)
           .setImage(byteData, mimeType, index);
     } catch (e) {

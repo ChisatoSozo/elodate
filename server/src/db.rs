@@ -2,12 +2,14 @@ use std::{collections::HashSet, path::Path};
 
 use crate::{
     models::{
-        access_code::AccessCode, chat::Chat, message::Message, shared::UuidModel, user::User,
+        access_code::AccessCode, chat::Chat, image::Image, message::Message, shared::UuidModel,
+        user::User,
     },
     mokuroku::{
         base32,
         lib::{Database, Document, Emitter, Error},
     },
+    util::save_as_webp,
 };
 
 pub struct DB {
@@ -109,7 +111,20 @@ impl DB {
         DB { db: dbase }
     }
 
+    pub fn destroy_database_for_real_dangerous(path: &str) {
+        //does the path exist?
+        if !Path::new(&("db/".to_owned() + path)).exists() {
+            return;
+        }
+        std::fs::remove_dir_all("db/".to_owned() + path).unwrap();
+    }
+
     pub fn get_flag(&self, key: &str) -> bool {
+        let key = b"flag/"
+            .to_vec()
+            .into_iter()
+            .chain(key.as_bytes().to_vec().into_iter())
+            .collect::<Vec<u8>>();
         let result = self.db.db.get(key);
         match result {
             Ok(Some(_)) => true,
@@ -118,37 +133,47 @@ impl DB {
         }
     }
 
-    pub fn set_flag(&mut self, key: &str, value: bool) {
+    pub fn set_flag(&mut self, key_in: &str, value: bool) {
+        let key = b"flag/"
+            .to_vec()
+            .into_iter()
+            .chain(key_in.as_bytes().to_vec().into_iter())
+            .collect::<Vec<u8>>();
         if value {
             self.db.db.put(key, "t").unwrap();
         } else {
-            if self.get_flag(key) {
+            if self.get_flag(key_in) {
                 self.db.db.delete(key).unwrap();
             }
         }
     }
 
     pub fn insert_user(&mut self, user: &User) -> Result<(), Error> {
-        let key = user.uuid.0.as_bytes();
+        let key = &user.uuid.0;
         //prepend "user/" to the key
-        let key = ["user/".as_bytes(), key].concat();
-        self.db.put(key.as_slice(), user)?;
+        let key = b"user/"
+            .to_vec()
+            .into_iter()
+            .chain(key.as_bytes().to_vec().into_iter())
+            .collect::<Vec<u8>>();
+        self.db.put(key, user)?;
         Ok(())
     }
 
     pub fn insert_chat(&mut self, chat: &Chat) -> Result<(), Error> {
-        let key = chat.uuid.0.as_bytes();
+        let key = &chat.uuid.0;
         //prepend "chat/" to the key
-        let key = ["chat/".as_bytes(), key].concat();
-        self.db.put(key.as_slice(), chat)?;
+        let key = "chat/".to_string() + key;
+        self.db.put(key, chat)?;
         Ok(())
     }
 
     pub fn insert_message(&mut self, message: &Message) -> Result<(), Error> {
-        let key = message.uuid.0.as_bytes();
+        let key = &message.uuid.0;
         //prepend "message/" to the key
-        let key = ["message/".as_bytes(), key].concat();
-        self.db.put(key.as_slice(), message)?;
+        let key = "message/".to_string() + key;
+        self.db.put(key, message)?;
+
         Ok(())
     }
 
@@ -184,6 +209,29 @@ impl DB {
             messages.push(message);
         }
         Ok(messages)
+    }
+
+    pub async fn add_image_to_user(
+        &mut self,
+        user: &User,
+        image: &Image,
+    ) -> Result<UuidModel, Box<dyn std::error::Error>> {
+        let user_image_path = "images/".to_owned() + &user.uuid.0;
+        let image_id = UuidModel::new();
+        let image_path =
+            user_image_path.clone() + "/" + &image_id.0 + "." + image.image_type.to_ext();
+
+        //create directory recursively if it doesn't exist
+        std::fs::create_dir_all(&user_image_path)?;
+
+        save_as_webp(
+            &image.b64_content,
+            &image.image_type,
+            Path::new(&image_path),
+        )
+        .await?;
+
+        Ok(image_id)
     }
 
     pub fn get_mutual_preference_users(&mut self, user: &User) -> Result<Vec<User>, Error> {
@@ -309,20 +357,27 @@ impl DB {
 }
 
 fn mapper(key: &[u8], value: &[u8], view: &str, emitter: &Emitter) -> Result<(), Error> {
-    if key.starts_with(b"user/") {
+    if &key[..5] == b"user/".as_ref() {
         let user = User::from_bytes(key, value)?;
         user.map(view, emitter)?;
         Ok(())
-    } else if key.starts_with(b"chat/") {
+    } else if &key[..5] == b"chat/".as_ref() {
         let chat = Chat::from_bytes(key, value)?;
         chat.map(view, emitter)?;
         Ok(())
-    } else if key.starts_with(b"message/") {
+    } else if &key[..8] == b"message/".as_ref() {
         let message = Message::from_bytes(key, value)?;
         message.map(view, emitter)?;
         Ok(())
+    } else if &key[..5] == b"flag/".as_ref() {
+        Ok(())
     } else {
-        Err(Error::Serde("Invalid key".to_owned()))
+        let key_string = std::str::from_utf8(key).unwrap();
+        let value_string = std::str::from_utf8(value).unwrap();
+        Err(Error::Serde(format!(
+            "Unknown key: {:?}\n value: {:?}\n view: {:?}",
+            key_string, value_string, view
+        )))
     }
 }
 
@@ -541,50 +596,5 @@ impl Document for AccessCode {
             _ => {}
         };
         Ok(())
-    }
-}
-
-#[test]
-fn test_with_fake_data() {
-    let mut users = vec![];
-    let mut chats = vec![];
-    let mut messages = vec![];
-
-    for _ in 0..1000 {
-        let (ruser, rchats, rmessages) = User::random_user();
-        users.push(ruser);
-        chats.extend(rchats);
-        messages.extend(rmessages);
-    }
-
-    //delete db/test
-    let _ = std::fs::remove_dir_all("db/test");
-
-    let usernames = users
-        .iter()
-        .map(|user| user.username.clone())
-        .collect::<Vec<String>>();
-
-    let mut db = DB::new("test");
-    for user in users.iter() {
-        db.insert_user(user).unwrap();
-    }
-    for chat in chats.iter() {
-        db.insert_chat(chat).unwrap();
-    }
-    for message in messages.iter() {
-        db.insert_message(message).unwrap();
-    }
-
-    println!("done upserting");
-
-    for username in usernames.iter() {
-        let user = db.get_user_by_username(username).unwrap();
-        let uuid = user.uuid.clone();
-        let user2 = db.get_user_by_uuid(&uuid).unwrap();
-        assert_eq!(user, user2);
-
-        let mutual_connections = db.get_mutual_preference_users(&user).unwrap();
-        println!("mutual connections: {}", mutual_connections.len());
     }
 }

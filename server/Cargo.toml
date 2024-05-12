@@ -23,6 +23,9 @@ jsonwebtoken = "9.3.0"
 futures-util = "0.3.30"
 base64 = "0.22.0"
 actix-cors = "0.7.0"
+image = "0.25.1"
+webp = "0.3.0"
+fake = {version = "2.9.2", features = ["derive", "uuid"]}
 
 [dev-dependencies]
 chrono = { version = "0.4.20", features = ["serde"] }

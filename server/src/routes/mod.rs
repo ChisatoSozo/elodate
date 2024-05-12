@@ -3,4 +3,3 @@ pub mod common;
 pub mod generate_access_codes;
 pub mod login;
 pub mod signup;
-pub mod upload_img;

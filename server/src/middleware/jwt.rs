@@ -140,8 +140,8 @@ pub fn make_jwt(uuid: &UuidModel) -> Result<String, jsonwebtoken::errors::Error>
         exp: (chrono::Utc::now() + chrono::Duration::hours(2)).timestamp() as usize,
     };
 
-    let jwk = include_str!("key/jwk.json"); // Load your key here
-    let encoding_key = EncodingKey::from_rsa_pem(jwk.as_bytes()).unwrap();
+    let pem_data = include_str!("key/jwk.pem.priv"); // Load your key here
+    let encoding_key = EncodingKey::from_rsa_pem(pem_data.as_bytes())?;
     jsonwebtoken::encode(
         &jsonwebtoken::Header::new(Algorithm::RS256),
         &claims,
