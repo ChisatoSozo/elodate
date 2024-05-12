@@ -4,6 +4,8 @@ use serde::{Deserialize, Serialize};
 // A trait that the Validate derive will impl
 use validator::Validate;
 
+use crate::db::DB;
+
 use super::{
     chat::Chat,
     image::{ElodateImageFormat, Image},
@@ -23,11 +25,16 @@ pub struct Message {
 }
 
 impl Message {
-    pub fn get_path_for_image(&self, chat: &Chat, sender: &User) -> Option<String> {
-        let user_image_path = "images/".to_owned() + &sender.uuid.0;
+    pub fn get_path_for_image(
+        &self,
+        chat: &Chat,
+        sender: &User,
+        image_type: &ElodateImageFormat,
+        db: &DB,
+    ) -> String {
+        let user_image_path = db.path.clone() + "/images/" + &sender.uuid.0;
         let chat_id = chat.uuid.0.clone();
         let message_id = self.uuid.0.clone();
-        let image_type = self.image_type.clone()?;
         let image_path = user_image_path.clone()
             + "/"
             + &chat_id
@@ -36,21 +43,20 @@ impl Message {
             + "."
             + image_type.to_ext();
 
-        Some(image_path)
+        image_path
     }
 
     pub fn fill_image(
         &mut self,
         chat: &Chat,
         user: &User,
+        db: &DB,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        let path = self.get_path_for_image(chat, user);
-
-        let path = match path {
-            Some(path) => path,
+        let image_type = match &self.image_type {
+            Some(image_type) => image_type,
             None => return Ok(()),
         };
-        //path exists
+        let path = self.get_path_for_image(chat, user, image_type, db);
 
         let exists = std::path::Path::new(&path).exists();
         if !exists {

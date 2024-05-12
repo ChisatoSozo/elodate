@@ -149,13 +149,21 @@ class RegisterModel extends ChangeNotifier {
       ),
       password: _password!,
       images: images
-          .map((e) => UserWithImagesImagesInner(
+          .map((e) => ChatAndLastMessageLastMessageImage(
               b64Content: base64Encode(e.data),
               imageType: mimeToType(e.mimeType)))
           .toList(),
     );
     var jwt = await DefaultApi(ApiClient(basePath: 'http://localhost:8080'))
         .signupPost(input);
+
+    return jwt;
+  }
+
+  Future<Jwt?> login(String username, String password) async {
+    var input = LoginRequest(username: username, password: password);
+    var jwt = await DefaultApi(ApiClient(basePath: 'http://localhost:8080'))
+        .loginPost(input);
 
     return jwt;
   }

@@ -9,7 +9,9 @@ use paperclip::actix::{web, OpenApiExt};
 
 use routes::{
     check_username::check_username, generate_access_codes::generate_access_codes,
-    get_next_users::get_next_users, signup::signup, update_user::update_user,
+    get_chat_messages::get_chat_messages, get_me::get_me, get_my_chats::get_my_chats,
+    get_next_users::get_next_users, get_user_with_single_image::get_user_with_single_image,
+    login::login, signup::signup, update_user::update_user,
 };
 
 pub mod constants;
@@ -36,10 +38,15 @@ async fn main() -> std::io::Result<()> {
             .wrap_api()
             .wrap(Jwt)
             .service(signup)
+            .service(login)
             .service(generate_access_codes)
             .service(check_username)
             .service(get_next_users)
             .service(update_user)
+            .service(get_my_chats)
+            .service(get_chat_messages)
+            .service(get_user_with_single_image)
+            .service(get_me)
             .with_json_spec_at(JSON_SPEC_PATH)
             .build()
     })

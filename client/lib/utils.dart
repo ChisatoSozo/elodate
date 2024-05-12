@@ -1,23 +1,23 @@
 import 'package:client/api/pkg/lib/api.dart';
 
-UserWithImagesImagesInnerImageTypeEnum mimeToType(String mimeType) {
+ChatAndLastMessageLastMessageImageImageTypeEnum mimeToType(String mimeType) {
   switch (mimeType) {
     case "image/jpeg":
-      return UserWithImagesImagesInnerImageTypeEnum.JPEG;
+      return ChatAndLastMessageLastMessageImageImageTypeEnum.JPEG;
     case "jpeg":
-      return UserWithImagesImagesInnerImageTypeEnum.JPEG;
+      return ChatAndLastMessageLastMessageImageImageTypeEnum.JPEG;
     case "image/jpg":
-      return UserWithImagesImagesInnerImageTypeEnum.JPEG;
+      return ChatAndLastMessageLastMessageImageImageTypeEnum.JPEG;
     case "jpg":
-      return UserWithImagesImagesInnerImageTypeEnum.JPEG;
+      return ChatAndLastMessageLastMessageImageImageTypeEnum.JPEG;
     case "image/png":
-      return UserWithImagesImagesInnerImageTypeEnum.PNG;
+      return ChatAndLastMessageLastMessageImageImageTypeEnum.PNG;
     case "png":
-      return UserWithImagesImagesInnerImageTypeEnum.PNG;
+      return ChatAndLastMessageLastMessageImageImageTypeEnum.PNG;
     case "image/webp":
-      return UserWithImagesImagesInnerImageTypeEnum.WEBP;
+      return ChatAndLastMessageLastMessageImageImageTypeEnum.WEBP;
     case "webp":
-      return UserWithImagesImagesInnerImageTypeEnum.WEBP;
+      return ChatAndLastMessageLastMessageImageImageTypeEnum.WEBP;
     default:
       throw Exception("Unknown mime type: $mimeType");
   }

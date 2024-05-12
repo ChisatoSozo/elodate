@@ -18,6 +18,12 @@ pub struct Chat {
     pub messages: Vec<UuidModel>,
 }
 
+#[derive(Debug, Validate, Serialize, Deserialize, Apiv2Schema, Clone)]
+pub struct ChatAndLastMessage {
+    pub chat: Chat,
+    pub last_message: Message,
+}
+
 impl Chat {
     pub fn get_messages(&self, db: &mut DB) -> Result<Vec<Message>, Box<dyn Error>> {
         let mut messages = vec![];
@@ -27,5 +33,15 @@ impl Chat {
         }
 
         Ok(messages)
+    }
+
+    pub fn get_last_message(&self, db: &mut DB) -> Result<Message, Box<dyn Error>> {
+        let last_message_uuid = match self.messages.last() {
+            Some(uuid) => uuid,
+            None => return Err("No messages in chat".into()),
+        };
+        let last_message = db.get_message(last_message_uuid)?;
+
+        Ok(last_message)
     }
 }

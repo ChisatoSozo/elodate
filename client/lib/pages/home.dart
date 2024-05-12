@@ -1,7 +1,9 @@
+import 'package:client/models/home_model.dart';
 import 'package:client/pages/home_chat.dart';
 import 'package:client/pages/home_settings.dart';
 import 'package:client/pages/home_swipe.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -27,28 +29,31 @@ class HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Center(
-        child: _widgetOptions.elementAt(_selectedIndex),
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
-            label: 'Settings',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.favorite),
-            label: 'Swipe',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.chat),
-            label: 'Chats',
-          ),
-        ],
-        currentIndex: _selectedIndex,
-        selectedItemColor: Colors.red[800],
-        onTap: _onItemTapped,
+    return ChangeNotifierProvider<HomeModel>(
+      create: (context) => HomeModel(),
+      child: Scaffold(
+        body: Center(
+          child: _widgetOptions.elementAt(_selectedIndex),
+        ),
+        bottomNavigationBar: BottomNavigationBar(
+          items: const <BottomNavigationBarItem>[
+            BottomNavigationBarItem(
+              icon: Icon(Icons.settings),
+              label: 'Settings',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.favorite),
+              label: 'Swipe',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.chat),
+              label: 'Chats',
+            ),
+          ],
+          currentIndex: _selectedIndex,
+          selectedItemColor: Colors.red[800],
+          onTap: _onItemTapped,
+        ),
       ),
     );
   }

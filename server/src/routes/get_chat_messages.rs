@@ -6,7 +6,6 @@ use paperclip::actix::{
     api_v2_operation, post,
     web::{self, Json},
 };
-use uuid::Uuid;
 
 use crate::{
     db::DB,
@@ -29,7 +28,7 @@ pub async fn get_chat_messages(
         actix_web::error::ErrorInternalServerError("Failed to get user by uuid")
     })?;
 
-    if (user.chats.iter().find(|chat| chat == &&chat_uuid).is_none()) {
+    if user.chats.iter().find(|chat| chat == &&chat_uuid).is_none() {
         return Err(actix_web::error::ErrorBadRequest("Chat not found"));
     }
 

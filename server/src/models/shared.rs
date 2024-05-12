@@ -8,8 +8,16 @@ use std::{
 };
 use uuid::Uuid;
 
+use super::image::ElodateImageFormat;
+
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema, Clone, Dummy)]
 pub struct UuidModel(#[dummy(faker = "UUIDv4{}")] pub String);
+
+#[derive(Debug, Serialize, Deserialize, Apiv2Schema, Clone, Dummy, PartialEq, Eq)]
+pub struct ImageUuidModel {
+    pub uuid: UuidModel,
+    pub image_type: ElodateImageFormat,
+}
 
 impl UuidModel {
     pub fn new() -> Self {

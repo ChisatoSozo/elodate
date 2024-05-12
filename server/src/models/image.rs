@@ -8,6 +8,10 @@ use paperclip::actix::Apiv2Schema;
 use serde::{Deserialize, Serialize};
 use webp::{Encoder, WebPMemory};
 
+use crate::db::DB;
+
+use super::shared::{ImageUuidModel, UuidModel};
+
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema, Clone, PartialEq, Eq, Dummy)]
 pub enum ElodateImageFormat {
     PNG,
@@ -48,6 +52,13 @@ impl Default for Image {
     }
 }
 impl Image {
+    pub fn get_user_image_path(user_id: &UuidModel, image_id: &ImageUuidModel, db: &DB) -> String {
+        let user_image_path = db.path.clone() + "/images/" + &user_id.0;
+        let id = image_id.uuid.0.clone();
+        let image_path = user_image_path.clone() + "/" + &id + "." + image_id.image_type.to_ext();
+        image_path
+    }
+
     pub fn load<P: AsRef<Path>>(path: P) -> Result<Self, Box<dyn Error>> {
         let image = Image {
             #[allow(deprecated)]

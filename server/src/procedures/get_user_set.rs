@@ -28,7 +28,7 @@ pub async fn get_user_set(
     let users_with_images = users
         .into_iter()
         .map(|u| {
-            db.get_images_from_user(&u)
+            db.get_images_from_user(&u.uuid)
                 .map(|images| UserWithImagesAndElo {
                     user: u.public,
                     images: images,

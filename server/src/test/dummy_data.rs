@@ -1,10 +1,9 @@
-use bcrypt::hash;
-use fake::faker;
-
-use crate::models::{chat::Chat, message::Message, shared::UuidModel};
-
 #[actix_web::test]
 async fn insert_dummy_data() -> Result<(), Box<dyn std::error::Error>> {
+    use bcrypt::hash;
+    use fake::faker;
+
+    use crate::models::{chat::Chat, message::Message, shared::UuidModel};
     use fake::{Fake, Faker};
 
     use crate::{
@@ -72,7 +71,7 @@ async fn insert_dummy_data() -> Result<(), Box<dyn std::error::Error>> {
         }
 
         user.chats.push(chat.uuid.clone());
-
+        println!("Adding image to message");
         db.add_image_to_message(&user, &chat, &messages[0], &Image::default())?;
     }
 

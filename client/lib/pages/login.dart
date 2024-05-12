@@ -1,61 +1,108 @@
+import 'package:client/models/register_model.dart';
+import 'package:client/pages/home.dart';
 import 'package:client/pages/register_start.dart';
 import 'package:flutter/material.dart';
+import 'package:localstorage/localstorage.dart';
+import 'package:provider/provider.dart';
 
-class LoginPage extends StatelessWidget {
+class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
   @override
+  LoginPageState createState() => LoginPageState();
+}
+
+class LoginPageState extends State<LoginPage> {
+  bool loggingIn = false;
+  String? loginError;
+  TextEditingController usernameController = TextEditingController();
+  TextEditingController passwordController = TextEditingController();
+  final formKey = GlobalKey<FormState>();
+
+  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Center(
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          constraints: const BoxConstraints(maxWidth: 400),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              Text("Login", style: Theme.of(context).textTheme.headlineMedium),
-              const SizedBox(height: 20),
-              const TextField(
-                decoration: InputDecoration(
-                  labelText: 'Username',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 20),
-              const TextField(
-                obscureText: true,
-                decoration: InputDecoration(
-                  labelText: 'Password',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: <Widget>[
-                  ElevatedButton(
-                    onPressed: () {
-                      // Add login logic here
-                    },
-                    child: const Text('Login'),
+    return Form(
+      key: formKey,
+      child: Scaffold(
+        body: Center(
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            constraints: const BoxConstraints(maxWidth: 400),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Text("Login",
+                    style: Theme.of(context).textTheme.headlineMedium),
+                const SizedBox(height: 20),
+                TextFormField(
+                  controller: usernameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Username',
+                    border: OutlineInputBorder(),
                   ),
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => const RegisterStartPage()),
-                      );
-                    },
-                    child: const Text('Register'),
+                ),
+                const SizedBox(height: 20),
+                TextFormField(
+                  controller: passwordController,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Password',
+                    border: OutlineInputBorder(),
                   ),
-                ],
-              ),
-            ],
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: <Widget>[
+                    ElevatedButton(
+                      onPressed: () {
+                        login(context);
+                      },
+                      child: const Text('Login'),
+                    ),
+                    ElevatedButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => const RegisterStartPage()),
+                        );
+                      },
+                      child: const Text('Register'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
+  }
+
+  Future<void> login(BuildContext context) async {
+    if (!mounted) return;
+    try {
+      setState(() {
+        loggingIn = true;
+      });
+      var jwt = await Provider.of<RegisterModel>(context, listen: false).login(
+        usernameController.text,
+        passwordController.text,
+      );
+      if (jwt == null) {
+        throw Exception('Failed to register');
+      }
+      localStorage.setItem("jwt", jwt.jwt);
+      if (!context.mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const HomePage()),
+      );
+    } catch (e) {
+      setState(() {
+        loginError = e.toString();
+      });
+    }
   }
 }

@@ -10,7 +10,7 @@ use validator::{Validate, ValidationError};
 
 use crate::{db::DB, models::shared::UuidModel};
 
-use super::{chat::Chat, image::Image, rating::Rated};
+use super::{chat::Chat, image::Image, rating::Rated, shared::ImageUuidModel};
 
 #[derive(Debug, Validate, Serialize, Deserialize, Apiv2Schema, Clone, PartialEq, Eq, Dummy)]
 pub struct Gender {
@@ -40,6 +40,14 @@ pub struct UserWithImagesAndElo {
 }
 
 #[derive(Debug, Validate, Serialize, Deserialize, Apiv2Schema, Clone, PartialEq, Eq, Dummy)]
+pub struct UserWithImagesAndEloAndUuid {
+    pub user: UserPublicFields,
+    pub images: Vec<Image>,
+    pub elo: String,
+    pub uuid: UuidModel,
+}
+
+#[derive(Debug, Validate, Serialize, Deserialize, Apiv2Schema, Clone, PartialEq, Eq, Dummy)]
 pub struct UserWithImages {
     pub user: UserPublicFields,
     pub images: Vec<Image>,
@@ -61,7 +69,7 @@ pub struct User {
     pub ratings: Vec<Rated>,
     pub seen: HashSet<UuidModel>,
     pub chats: Vec<UuidModel>,
-    pub images: Vec<UuidModel>,
+    pub images: Vec<ImageUuidModel>,
     pub public: UserPublicFields,
 }
 

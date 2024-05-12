@@ -2,6 +2,7 @@ use std::{collections::HashSet, path::Path};
 
 use std::io::Read;
 
+use crate::models::shared::ImageUuidModel;
 use crate::{
     models::{
         access_code::AccessCode,
@@ -20,6 +21,7 @@ use crate::{
 
 pub struct DB {
     db: Database,
+    pub path: String,
 }
 
 pub fn get_single_from_key<T: Document>(
@@ -114,7 +116,10 @@ impl DB {
         let db_path = "db/".to_owned() + path;
         let views: Vec<String> = VIEWS.to_vec().into_iter().map(|s| s.to_owned()).collect();
         let dbase = Database::open_default(Path::new(&db_path), views, Box::new(mapper)).unwrap();
-        DB { db: dbase }
+        DB {
+            db: dbase,
+            path: db_path,
+        }
     }
 
     pub fn destroy_database_for_real_dangerous(path: &str) {
@@ -234,14 +239,11 @@ impl DB {
         message: &Message,
         image: &Image,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        let image_path = match message.get_path_for_image(chat, sender) {
-            Some(path) => path,
-            None => return Err("No path found".into()),
-        };
+        let image_path = message.get_path_for_image(chat, sender, &image.image_type, &self);
 
-        //create directory recursively if it doesn't exist
-        std::fs::create_dir_all(&image_path)?;
+        let parent_dir = Path::new(&image_path).parent().unwrap();
 
+        std::fs::create_dir_all(&parent_dir)?;
         save_as_webp(
             &image.b64_content,
             &image.image_type,
@@ -264,7 +266,7 @@ impl DB {
         chat: &Chat,
         message: &Message,
     ) -> Result<Vec<Image>, Box<dyn std::error::Error>> {
-        let user_image_path = "images/".to_owned() + &sender.uuid.0;
+        let user_image_path = self.path.clone() + "/images/" + &sender.uuid.0;
         let chat_id = chat.uuid.0.clone();
         let message_id = message.uuid.0.clone();
         let message_image_path = user_image_path.clone() + "/" + &chat_id + "/" + &message_id;
@@ -290,53 +292,53 @@ impl DB {
         Ok(images)
     }
 
-    pub fn add_image_to_user(
+    pub fn add_images_to_user(
         &mut self,
-        user: &User,
-        image: &Image,
-    ) -> Result<UuidModel, Box<dyn std::error::Error>> {
-        let user_image_path = "images/".to_owned() + &user.uuid.0;
-        let image_id = UuidModel::new();
-        let image_path =
-            user_image_path.clone() + "/" + &image_id.0 + "." + image.image_type.to_ext();
+        user_id: &UuidModel,
+        images: &Vec<Image>,
+    ) -> Result<Vec<ImageUuidModel>, Box<dyn std::error::Error>> {
+        let uuids = Vec::new();
+        for image in images {
+            let image_uuid = ImageUuidModel {
+                uuid: UuidModel::new(),
+                image_type: image.image_type.clone(),
+            };
+            let path_str = Image::get_user_image_path(user_id, &image_uuid, &self);
+            let path = Path::new(&path_str);
+            let path_dir_without_image = path.parent().unwrap();
+            //create directory recursively if it doesn't exist
+            std::fs::create_dir_all(&path_dir_without_image)?;
 
-        //create directory recursively if it doesn't exist
-        std::fs::create_dir_all(&user_image_path)?;
+            save_as_webp(&image.b64_content, &image.image_type, Path::new(&path))?;
+        }
 
-        save_as_webp(
-            &image.b64_content,
-            &image.image_type,
-            Path::new(&image_path),
-        )?;
-
-        Ok(image_id)
+        Ok(uuids)
     }
 
     pub fn get_images_from_user(
         &mut self,
-        user: &User,
+        user: &UuidModel,
     ) -> Result<Vec<Image>, Box<dyn std::error::Error>> {
-        let user_image_path = "images/".to_owned() + &user.uuid.0;
-        let mut images = Vec::new();
-        for entry in std::fs::read_dir(&user_image_path)? {
-            let entry = entry?;
-            let path = entry.path();
-            let ext = path.extension().unwrap().to_str().unwrap();
-
-            //read path to bytes and convert bytes to base64
-            let mut file = std::fs::File::open(&path)?;
-            let mut buffer = Vec::new();
-            file.read_to_end(&mut buffer)?;
-            #[allow(deprecated)]
-            let b64_content = base64::encode(&buffer);
-
-            let image = Image {
-                image_type: ElodateImageFormat::from_ext(ext).unwrap(),
-                b64_content: b64_content,
-            };
-            images.push(image);
+        let user = self.get_user_by_uuid(user)?;
+        let images = user.images;
+        let mut images_out = Vec::new();
+        for image_id in images {
+            let path = Image::get_user_image_path(&user.uuid, &image_id, &self);
+            let image = Image::load(path)?;
+            images_out.push(image);
         }
-        Ok(images)
+        Ok(images_out)
+    }
+
+    pub fn get_image_from_user(
+        &mut self,
+        user: &UuidModel,
+    ) -> Result<Image, Box<dyn std::error::Error>> {
+        let user = self.get_user_by_uuid(user)?;
+        let first_image = user.images.first().unwrap();
+        let path = Image::get_user_image_path(&user.uuid, first_image, &self);
+        let image = Image::load(path)?;
+        Ok(image)
     }
 
     pub fn get_mutual_preference_users(&mut self, user: &User) -> Result<Vec<User>, Error> {
