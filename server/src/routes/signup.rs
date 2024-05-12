@@ -1,14 +1,13 @@
 use std::sync::Mutex;
 
 use actix_web::Error;
-use bcrypt::{hash, DEFAULT_COST};
+
 use paperclip::actix::{
     api_v2_operation, post,
     web::{self, Json},
     Apiv2Schema,
 };
 use serde::{Deserialize, Serialize};
-use validator::Validate;
 
 use crate::{
     db::DB,

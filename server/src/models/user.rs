@@ -2,15 +2,13 @@ use std::collections::HashSet;
 
 use fake::Dummy;
 use paperclip::actix::Apiv2Schema;
-use rand::{distributions::Alphanumeric, thread_rng, Rng};
+use rand::Rng;
 use serde::{Deserialize, Serialize};
 
 // A trait that the Validate derive will impl
 use validator::{Validate, ValidationError};
 
 use crate::models::shared::UuidModel;
-
-use super::{chat::Chat, message::Message};
 
 #[derive(Debug, Validate, Serialize, Deserialize, Apiv2Schema, Clone, PartialEq, Eq, Dummy)]
 pub struct Gender {
@@ -61,12 +59,6 @@ pub struct User {
     #[dummy(faker = "true")]
     pub published: Option<bool>,
     pub images: Vec<UuidModel>,
-}
-
-fn rand_published() -> Option<bool> {
-    let mut rng = rand::thread_rng();
-    let published = rng.gen_bool(0.5);
-    Some(published)
 }
 
 fn rand_date_between(min: i64, max: i64) -> i64 {

@@ -4,7 +4,7 @@ use crate::{
     db::DB,
     models::{
         shared::UuidModel,
-        user::{Location, Rating, User},
+        user::{Rating, User},
     },
 };
 

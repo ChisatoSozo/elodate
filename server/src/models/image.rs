@@ -1,4 +1,3 @@
-use fake::Dummy;
 use paperclip::actix::Apiv2Schema;
 use serde::{Deserialize, Serialize};
 
