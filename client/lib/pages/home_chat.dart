@@ -1,8 +1,10 @@
 import 'dart:convert';
 
 import 'package:client/api/pkg/lib/api.dart';
+import 'package:client/models/home_model.dart';
 import 'package:client/pages/home_chat_single.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class ChatPage extends StatefulWidget {
   const ChatPage({super.key});
@@ -15,10 +17,25 @@ class ChatPageState extends State<ChatPage> {
   List<(ChatAndLastMessage, UserWithImagesAndElo)>? chats;
 
   @override
+  void initState() {
+    super.initState();
+    Future.delayed(Duration.zero, () {
+      Provider.of<HomeModel>(context, listen: false)
+          .getChats()
+          .then((value) => {
+                setState(() {
+                  chats = value;
+                })
+              });
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Chats"),
+        automaticallyImplyLeading: false,
       ),
       body: chats == null
           ? const Center(child: CircularProgressIndicator())
@@ -36,7 +53,7 @@ class ChatPageState extends State<ChatPage> {
                   leading: CircleAvatar(
                     backgroundImage: MemoryImage(imageData),
                   ),
-                  title: Text(user.user.username,
+                  title: Text(user.user.displayName,
                       style: const TextStyle(
                           fontSize: 16, fontWeight: FontWeight.bold)),
                   subtitle: Text(chat.lastMessage.content,
@@ -45,8 +62,9 @@ class ChatPageState extends State<ChatPage> {
                     Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) =>
-                              const ChatScreen(chatName: "chat lol"),
+                          builder: (context) => ChatScreen(
+                              chatId: chat.chat.uuid,
+                              displayName: user.user.displayName),
                         ));
                   },
                 );

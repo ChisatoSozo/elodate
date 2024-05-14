@@ -1,4 +1,4 @@
-use std::sync::Mutex;
+use async_mutex::Mutex;
 
 use actix_web::{Error, HttpMessage, HttpRequest};
 
@@ -26,7 +26,7 @@ async fn update_user(
 ) -> Result<Json<Success>, Error> {
     let ext = req.extensions();
     let uuid = ext.get::<UuidModel>().unwrap();
-    let mut db = db.lock().unwrap();
+    let mut db = db.lock().await;
     let inner = body.into_inner();
 
     let user = inner.user;

@@ -1,3 +1,4 @@
+import 'package:client/models/home_model.dart';
 import 'package:client/models/register_model.dart';
 import 'package:client/pages/login.dart';
 import 'package:flutter/material.dart';
@@ -16,15 +17,18 @@ class MainApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider<RegisterModel>(
-      create: (context) => RegisterModel(),
-      child: MaterialApp(
-        title: 'Flutter Demo',
-        theme: ThemeData(
-          primarySwatch: Colors.blue,
-          useMaterial3: true,
+    return ChangeNotifierProvider<HomeModel>(
+      create: (context) => HomeModel(),
+      child: ChangeNotifierProvider<RegisterModel>(
+        create: (context) => RegisterModel(),
+        child: MaterialApp(
+          title: 'Flutter Demo',
+          theme: ThemeData(
+            primarySwatch: Colors.blue,
+            useMaterial3: true,
+          ),
+          home: const LoginPage(),
         ),
-        home: const LoginPage(),
       ),
     );
   }

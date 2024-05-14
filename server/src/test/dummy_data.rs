@@ -1,5 +1,6 @@
 #[actix_web::test]
 async fn insert_dummy_data() -> Result<(), Box<dyn std::error::Error>> {
+    use crate::models::user::Preference;
     use bcrypt::hash;
     use fake::faker;
 
@@ -20,10 +21,13 @@ async fn insert_dummy_data() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut uuids = vec![];
 
-    let count = 1000;
+    let count = 10;
     for n in 0..count {
         println!("Inserting dummy data {}/{}", n, count);
-        let user: User = Faker.fake();
+        let mut user: User = Faker.fake();
+        user.public.preference = Preference::default();
+        println!("User: {:?}", user.public.description);
+
         let mut images = vec![];
         for _ in 0..5 {
             images.push(Image::default());
@@ -36,6 +40,11 @@ async fn insert_dummy_data() -> Result<(), Box<dyn std::error::Error>> {
     let mut user: User = Faker.fake();
     user.hashed_password = hash("asdfasdf", 4)?;
     user.public.username = "asdf".to_string();
+    user.chats = vec![];
+    user.seen = std::collections::HashSet::new();
+    user.ratings = vec![];
+    user.elo = 1000;
+    user.public.preference = Preference::default();
     let mut images = vec![];
     for _ in 0..5 {
         images.push(Image::default());
@@ -71,7 +80,6 @@ async fn insert_dummy_data() -> Result<(), Box<dyn std::error::Error>> {
         }
 
         user.chats.push(chat.uuid.clone());
-        println!("Adding image to message");
         db.add_image_to_message(&user, &chat, &messages[0], &Image::default())?;
     }
 

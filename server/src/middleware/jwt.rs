@@ -67,21 +67,26 @@ where
             return Box::pin(self.service.call(req));
         }
 
+        if req.method() == "OPTIONS" {
+            return Box::pin(self.service.call(req));
+        }
+
         let auth_header = req.headers().get("Authorization");
 
         match auth_header {
             Some(header_value) => match header_value.to_str() {
                 Ok(auth_str) if auth_str.starts_with("Bearer ") => {
                     let token = &auth_str[7..]; // Extract the actual token
-                    let jwk = include_str!("key/jwk.json"); // Load your key here
+                    let jwk = include_str!("key/jwk.pem.pub"); // Load your key here
                     let decoding_key = match DecodingKey::from_rsa_pem(jwk.as_bytes()) {
                         Ok(key) => key,
-                        Err(_) => {
+                        Err(e) => {
+                            println!("Failed to decode key {:?}", e);
                             return Box::pin(async {
                                 Err(Error::from(actix_web::error::ErrorUnauthorized(
                                     "Invalid key format",
                                 )))
-                            })
+                            });
                         }
                     };
                     let validation = Validation::new(Algorithm::RS256);
@@ -89,6 +94,7 @@ where
                     match decode::<Claims>(token, &decoding_key, &validation) {
                         Ok(claims) => {
                             if claims.claims.exp < chrono::Utc::now().timestamp() as usize {
+                                println!("Token expired");
                                 return Box::pin(async {
                                     Err(Error::from(actix_web::error::ErrorUnauthorized(
                                         "Token expired",
@@ -104,31 +110,43 @@ where
                                     }
                                     Box::pin(self.service.call(req))
                                 }
-                                Err(_) => Box::pin(async move {
-                                    Err(Error::from(actix_web::error::ErrorUnauthorized(
-                                        "Invalid token format, uuid invalid",
-                                    )))
-                                }),
+                                Err(e) => {
+                                    println!("Failed to parse uuid {:?}", e);
+                                    Box::pin(async move {
+                                        Err(Error::from(actix_web::error::ErrorUnauthorized(
+                                            "Invalid token format, uuid invalid",
+                                        )))
+                                    })
+                                }
                             }
                         }
-                        Err(err) => Box::pin(async move {
-                            Err(Error::from(actix_web::error::ErrorUnauthorized(
-                                err.to_string(),
-                            )))
-                        }),
+                        Err(err) => {
+                            println!("Failed to decode token {:?}", err);
+                            Box::pin(async move {
+                                Err(Error::from(actix_web::error::ErrorUnauthorized(
+                                    err.to_string(),
+                                )))
+                            })
+                        }
                     }
                 }
-                _ => Box::pin(async {
-                    Err(Error::from(actix_web::error::ErrorUnauthorized(
-                        "Invalid token format",
-                    )))
-                }),
+                e => {
+                    println!("Failed to parse auth header {:?}", e);
+                    Box::pin(async {
+                        Err(Error::from(actix_web::error::ErrorUnauthorized(
+                            "Invalid token format",
+                        )))
+                    })
+                }
             },
-            None => Box::pin(async {
-                Err(Error::from(actix_web::error::ErrorUnauthorized(
-                    "Missing token",
-                )))
-            }),
+            None => {
+                println!("Missing token");
+                Box::pin(async {
+                    Err(Error::from(actix_web::error::ErrorUnauthorized(
+                        "Missing token",
+                    )))
+                })
+            }
         }
     }
 }

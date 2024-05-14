@@ -8,15 +8,15 @@ import 'package:client/pages/register_finish.dart';
 import 'package:client/pages/register_gender.dart';
 import 'package:client/pages/register_images.dart';
 import 'package:client/pages/register_location.dart';
+import 'package:client/pages/register_name.dart';
 import 'package:client/pages/register_password.dart';
 import 'package:client/pages/register_start.dart';
-import 'package:client/pages/register_username.dart';
 import 'package:client/utils.dart';
 import 'package:flutter/material.dart';
 
 const pages = [
   RegisterStartPage(),
-  RegisterUsernamePage(),
+  RegisterNamePage(),
   RegisterPasswordPage(),
   RegisterBirthdatePage(),
   RegisterLocationPage(),
@@ -143,9 +143,16 @@ class RegisterModel extends ChangeNotifier {
         gender: UserWithImagesUserGender(
             percentFemale: (_percentFemale! * 100).toInt(),
             percentMale: (_percentMale! * 100).toInt()),
-        preference: UserWithImagesUserPreference(),
+        preference: UserWithImagesUserPreference(
+          age: UserWithImagesUserPreferenceAge(max: 100, min: 18),
+          latitude: UserWithImagesUserPreferenceAge(max: 65535, min: 0),
+          longitude: UserWithImagesUserPreferenceAge(max: 65535, min: 0),
+          percentFemale: UserWithImagesUserPreferenceAge(max: 100, min: 0),
+          percentMale: UserWithImagesUserPreferenceAge(max: 100, min: 0),
+        ),
         username: _username!,
         location: UserWithImagesUserLocation(lat: _lat!, long: _long!),
+        description: '',
       ),
       password: _password!,
       images: images

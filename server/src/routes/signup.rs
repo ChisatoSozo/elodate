@@ -1,7 +1,8 @@
-use std::{collections::HashSet, sync::Mutex};
+use std::collections::HashSet;
 
 use actix_web::Error;
 
+use async_mutex::Mutex;
 use bcrypt::hash;
 use paperclip::actix::{
     api_v2_operation, post,
@@ -30,7 +31,7 @@ async fn signup(
     db: web::Data<Mutex<DB>>,
     body: Json<UserWithImagesAndPassword>,
 ) -> Result<Json<Jwt>, Error> {
-    let mut db = db.lock().unwrap();
+    let mut db = db.lock().await;
     let inner = body.into_inner();
     let user = inner.user;
     let images = inner.images;

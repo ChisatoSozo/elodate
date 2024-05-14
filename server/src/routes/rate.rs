@@ -1,4 +1,4 @@
-use std::sync::Mutex;
+use async_mutex::Mutex;
 
 use actix_web::{Error, HttpMessage, HttpRequest};
 
@@ -21,7 +21,7 @@ pub async fn rate(
     rate: web::Json<RatingWithTarget>,
 ) -> Result<Json<Success>, Error> {
     let db_inner = db.into_inner();
-    let mut db = db_inner.lock().unwrap();
+    let mut db = db_inner.lock().await;
     let ext = req.extensions();
     let source = ext.get::<UuidModel>().unwrap();
     let rating_with_target = rate.into_inner();

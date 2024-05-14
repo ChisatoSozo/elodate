@@ -26,6 +26,7 @@ actix-cors = "0.7.0"
 image = "0.25.1"
 webp = "0.3.0"
 fake = {version = "2.9.2", features = ["derive", "uuid"]}
+async-mutex = "1.4.0"
 
 [dev-dependencies]
 chrono = { version = "0.4.20", features = ["serde"] }

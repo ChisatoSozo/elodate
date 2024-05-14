@@ -1,4 +1,4 @@
-use std::sync::Mutex;
+use async_mutex::Mutex;
 
 use actix_web::{Error, HttpMessage, HttpRequest};
 
@@ -9,7 +9,7 @@ use paperclip::actix::{
 
 use crate::{
     db::DB,
-    models::{shared::UuidModel, user::UserWithImagesAndElo},
+    models::{shared::UuidModel, user::UserWithImagesAndEloAndUuid},
     procedures::get_user_set::get_user_set,
 };
 
@@ -18,12 +18,12 @@ use crate::{
 pub async fn get_next_users(
     db: web::Data<Mutex<DB>>,
     req: HttpRequest,
-    rate: web::Json<Vec<UuidModel>>,
-) -> Result<Json<Vec<UserWithImagesAndElo>>, Error> {
+    body: web::Json<Vec<UuidModel>>,
+) -> Result<Json<Vec<UserWithImagesAndEloAndUuid>>, Error> {
     let ext = req.extensions();
     let user = ext.get::<UuidModel>().unwrap();
-    let mut db = db.lock().unwrap();
-    let skip = rate.into_inner();
+    let mut db = db.lock().await;
+    let skip = body.into_inner();
     let user_set = get_user_set(&mut db, &user, skip).await?;
     Ok(Json(user_set))
 }

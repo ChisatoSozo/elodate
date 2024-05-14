@@ -1,4 +1,4 @@
-use std::sync::Mutex;
+use async_mutex::Mutex;
 
 use actix_web::Error;
 use bcrypt::verify;
@@ -24,7 +24,7 @@ pub struct LoginRequest {
 #[api_v2_operation]
 #[post("/login")]
 async fn login(db: web::Data<Mutex<DB>>, body: Json<LoginRequest>) -> Result<Json<Jwt>, Error> {
-    let mut db = db.lock().unwrap();
+    let mut db = db.lock().await;
     let login_req = body.into_inner();
     let user = db.get_user_by_username(&login_req.username).map_err(|e| {
         println!("Failed to get user by username {:?}", e);

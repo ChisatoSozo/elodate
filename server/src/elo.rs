@@ -71,7 +71,7 @@ pub fn elo_to_label(elo: usize) -> String {
     let elo = elo as f32;
     let elo_perc = (elo - ELO_MIN) / (ELO_MAX - ELO_MIN);
     let mut i = 0;
-    while i < NUM_ELOS {
+    while i < (NUM_ELOS - 1) {
         if elo_perc.powf(0.8) < ELO_THRESHOLDS[i] {
             break;
         }

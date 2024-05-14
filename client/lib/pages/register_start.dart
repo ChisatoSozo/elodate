@@ -1,3 +1,4 @@
+import 'package:client/api/pkg/lib/api.dart';
 import 'package:client/components/responseive_scaffold.dart';
 import 'package:client/models/register_model.dart';
 import 'package:flutter/material.dart';
@@ -12,34 +13,30 @@ class RegisterStartPage extends StatefulWidget {
 
 class RegisterStartPageState extends State<RegisterStartPage> {
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
-  final TextEditingController nameController = TextEditingController();
+  final TextEditingController usernameController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
     return ResponsiveScaffold(
-      title: "What should we call you?",
+      title: "Hello! Pick a username for logging in.",
       child: Form(
         key: formKey,
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
+          children: [
             TextFormField(
-              controller: nameController,
+              controller: usernameController,
               decoration: const InputDecoration(
-                labelText: 'Name',
+                labelText: 'Username',
                 border: OutlineInputBorder(),
               ),
-              onFieldSubmitted: (_) => _saveNameAndProceed(
-                nameController.text,
-              ),
+              onFieldSubmitted: (value) => _goNext(),
               validator: (value) =>
-                  value!.isEmpty ? 'Name cannot be empty' : null,
+                  value!.isEmpty ? 'Username cannot be empty' : null,
             ),
             const SizedBox(height: 20),
             ElevatedButton(
-              onPressed: () => _saveNameAndProceed(
-                nameController.text,
-              ),
+              onPressed: _goNext,
               child: const Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -54,10 +51,45 @@ class RegisterStartPageState extends State<RegisterStartPage> {
     );
   }
 
-  _saveNameAndProceed(String name) {
+  Future<void> _goNext() async {
     if (!formKey.currentState!.validate()) return;
 
-    Provider.of<RegisterModel>(context, listen: false).setDisplayName(name);
-    nextPage(context, widget);
+    late bool valid;
+    try {
+      valid = await _validateUsername(usernameController.text);
+    } catch (e) {
+      if (!mounted) return;
+
+      String errorMessage = 'An error occurred, please try again later.';
+      if (e is ApiException) {
+        errorMessage = 'An error occurred: ${e.message}';
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(errorMessage)),
+      );
+      return;
+    }
+
+    if (!mounted) return;
+
+    if (valid) {
+      Provider.of<RegisterModel>(context, listen: false)
+          .setUsername(usernameController.text);
+      nextPage(context, widget);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content:
+                Text('Username is already taken, please choose another one.')),
+      );
+    }
+  }
+
+  Future<bool> _validateUsername(String username) async {
+    var response =
+        await DefaultApi(ApiClient(basePath: 'http://localhost:8080'))
+            .checkUsernamePost(CheckUsernameInput(username: username));
+
+    return response != null && response.available;
   }
 }

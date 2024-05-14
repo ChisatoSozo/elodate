@@ -1,4 +1,4 @@
-use std::sync::Mutex;
+use async_mutex::Mutex;
 
 use actix_web::Error;
 
@@ -20,7 +20,7 @@ pub async fn get_user_with_single_image(
     body: Json<UuidModel>,
 ) -> Result<Json<UserWithImagesAndElo>, Error> {
     let user_uuid = body.into_inner();
-    let mut db = db.lock().unwrap();
+    let mut db = db.lock().await;
     let user = db.get_user_by_uuid(&user_uuid).map_err(|e| {
         println!("Failed to get user by uuid {:?}", e);
         actix_web::error::ErrorInternalServerError("Failed to get user by uuid")

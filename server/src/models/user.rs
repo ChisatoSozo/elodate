@@ -92,6 +92,8 @@ pub struct UserPublicFields {
     #[validate(length(min = 1, message = "Username must not be empty"))]
     #[dummy(faker = "fake::faker::name::en::Name()")]
     pub display_name: String,
+    #[dummy(faker = "fake::faker::lorem::en::Paragraph(3..4)")]
+    pub description: String,
     #[validate(custom(function = "validate_birthdate"))]
     #[dummy(faker = "rand_age_between_18_and_99()")]
     pub birthdate: i64,
@@ -100,6 +102,38 @@ pub struct UserPublicFields {
     pub preference: Preference,
     #[dummy(faker = "true")]
     pub published: Option<bool>,
+}
+impl UserPublicFields {
+    pub fn get_age(&self) -> Option<i64> {
+        let birthdate = chrono::DateTime::from_timestamp(self.birthdate, 0)?;
+        let now = chrono::Utc::now();
+        let age = now - birthdate;
+        Some(age.num_days() / 365)
+    }
+
+    pub fn get_preference_min_vector(&self) -> Vec<u16> {
+        vec![
+            self.preference.age.min,
+            self.preference.percent_female.min,
+            self.preference.percent_male.min,
+        ]
+    }
+
+    pub fn get_preference_max_vector(&self) -> Vec<u16> {
+        vec![
+            self.preference.age.max,
+            self.preference.percent_female.max,
+            self.preference.percent_female.max,
+        ]
+    }
+
+    pub fn get_my_vector(&self) -> Vec<u16> {
+        vec![
+            self.get_age().unwrap() as u16,
+            self.gender.percent_female as u16,
+            self.gender.percent_male as u16,
+        ]
+    }
 }
 
 fn rand_date_between(min: i64, max: i64) -> i64 {
@@ -135,39 +169,26 @@ fn validate_birthdate(birthdate: i64) -> Result<(), ValidationError> {
 }
 
 #[derive(Debug, Validate, Serialize, Deserialize, Apiv2Schema, Clone, PartialEq, Eq, Dummy)]
-pub struct Preference {
-    pub min_age: Option<u8>,
-    pub max_age: Option<u8>,
-    pub max_gender: Option<Gender>,
-    pub min_gender: Option<Gender>,
-    pub distance_km: Option<u8>,
+pub struct PreferenceRange {
+    #[dummy(faker = "0")]
+    pub min: u16,
+    #[dummy(faker = "65536")]
+    pub max: u16,
 }
 
-impl Preference {
-    pub fn with_defaults(&self) -> Preference {
-        let mut preference = self.clone();
-
-        if preference.min_age.is_none() {
-            preference.min_age = Some(0);
-        }
-
-        if preference.max_age.is_none() {
-            preference.max_age = Some(255);
-        }
-
-        if preference.max_gender.is_none() {
-            preference.max_gender = Some(Gender {
-                percent_male: 100,
-                percent_female: 100,
-            });
-        }
-        if preference.min_gender.is_none() {
-            preference.min_gender = Some(Gender {
-                percent_female: 0,
-                percent_male: 0,
-            });
-        }
-
-        preference
+impl Default for PreferenceRange {
+    fn default() -> Self {
+        Self { min: 0, max: 65535 }
     }
+}
+
+#[derive(
+    Debug, Validate, Serialize, Deserialize, Apiv2Schema, Clone, PartialEq, Eq, Dummy, Default,
+)]
+pub struct Preference {
+    pub age: PreferenceRange,
+    pub percent_male: PreferenceRange,
+    pub percent_female: PreferenceRange,
+    pub latitude: PreferenceRange,
+    pub longitude: PreferenceRange,
 }

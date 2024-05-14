@@ -5,98 +5,151 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_dropzone/flutter_dropzone.dart';
 
-class AdaptiveFilePicker extends StatefulWidget {
-  final Function(Uint8List, String)? onFileChanged;
+class AdaptiveFilePickerController extends ValueNotifier<(Uint8List, String)?> {
+  AdaptiveFilePickerController() : super(null);
 
-  const AdaptiveFilePicker({super.key, this.onFileChanged});
+  void pickFile(Function(Uint8List, String)? onFileChanged) async {
+    if (kIsWeb) {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['jpg', 'png', 'webp'],
+        withData: true,
+      );
+
+      if (result != null && result.files.single.bytes != null) {
+        value = (result.files.single.bytes!, result.files.single.extension!);
+        if (onFileChanged != null) {
+          onFileChanged(
+              result.files.single.bytes!, result.files.single.extension!);
+        }
+      }
+    } else {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.image,
+        allowedExtensions: ['jpg', 'png', 'webp'],
+        withData: true,
+      );
+
+      if (result != null && result.files.single.bytes != null) {
+        value = (result.files.single.bytes!, result.files.single.extension!);
+        if (onFileChanged != null) {
+          onFileChanged(
+              result.files.single.bytes!, result.files.single.extension!);
+        }
+      }
+    }
+  }
+}
+
+class AdaptiveFilePicker extends StatefulWidget {
+  final Uint8List? imageData;
+  final String? mimeType;
+  final Function(Uint8List, String)? onFileChanged;
+  final AdaptiveFilePickerController controller;
+
+  const AdaptiveFilePicker({
+    super.key,
+    this.imageData,
+    this.mimeType,
+    this.onFileChanged,
+    required this.controller,
+  });
 
   @override
   AdaptiveFilePickerState createState() => AdaptiveFilePickerState();
 }
 
 class AdaptiveFilePickerState extends State<AdaptiveFilePicker> {
-  Uint8List? imageData;
   late DropzoneViewController dropzoneController;
-  String? mimeType;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(_handleFileChange);
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_handleFileChange);
+    super.dispose();
+  }
+
+  void _handleFileChange() {
+    setState(() {});
+  }
 
   @override
   Widget build(BuildContext context) {
-    return kIsWeb ? buildWebDropzone() : buildMobilePicker();
+    return kIsWeb ? buildWebPicker() : buildMobilePicker();
   }
 
   Widget buildMobilePicker() {
     return Column(
       children: [
         ElevatedButton(
-          onPressed: () async {
-            FilePickerResult? result = await FilePicker.platform.pickFiles(
-              type: FileType.image,
-              allowedExtensions: ['jpg', 'png', 'webp'],
-              withData: true,
-            );
-
-            if (result != null && result.files.single.bytes != null) {
-              setState(() {
-                imageData = result.files.single.bytes;
-                mimeType = result.files.single.extension;
-              });
-              widget.onFileChanged?.call(imageData!, mimeType!);
-            }
-          },
+          onPressed: () => widget.controller.pickFile(widget.onFileChanged),
           child: const Text('Pick Image'),
         ),
-        if (imageData != null) Image.memory(imageData!),
+        const SizedBox(height: 8),
+        buildContent(),
       ],
     );
   }
 
-  Widget buildWebDropzone() {
+  Widget buildWebPicker() {
     return GestureDetector(
-      onTap: () async {
-        FilePickerResult? result = await FilePicker.platform.pickFiles(
-          type: FileType.custom,
-          allowedExtensions: ['jpg', 'png', 'webp'],
-          withData: true,
-        );
-
-        if (result != null && result.files.single.bytes != null) {
-          setState(() {
-            imageData = result.files.single.bytes;
-            mimeType = result.files.single.extension;
-          });
-          widget.onFileChanged?.call(imageData!, mimeType!);
-        }
-      },
-      child: Stack(
-        children: [
-          DropzoneView(
-            operation: DragOperation.copy,
-            onCreated: (controller) => dropzoneController = controller,
-            onDrop: (ev) async {
-              final bytes = await dropzoneController.getFileData(ev);
-              final mime = await dropzoneController.getFileMIME(ev);
-              setState(() {
-                imageData = bytes;
-                mimeType = mime;
-              });
-              widget.onFileChanged?.call(bytes, mime);
-            },
-          ),
-          if (imageData != null)
-            Image.memory(imageData!)
-          else
-            Container(
-              alignment: Alignment.center,
-              height: 200,
-              width: 200,
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                border: Border.all(color: Colors.blueAccent),
-              ),
-              child: const Text('Click or Drop image here',
-                  style: TextStyle(color: Colors.blueAccent)),
+      onTap: () => widget.controller.pickFile(widget.onFileChanged),
+      child: AspectRatio(
+        aspectRatio: 9 / 16,
+        child: Stack(
+          children: [
+            DropzoneView(
+              operation: DragOperation.copy,
+              onCreated: (controller) => dropzoneController = controller,
+              onDrop: (ev) async {
+                final bytes = await dropzoneController.getFileData(ev);
+                final mime = await dropzoneController.getFileMIME(ev);
+                widget.controller.value = (bytes, mime);
+                if (widget.onFileChanged != null) {
+                  widget.onFileChanged!(bytes, mime);
+                }
+              },
             ),
-        ],
+            buildContent(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget buildContent() {
+    Uint8List? imageData = widget.controller.value?.$1;
+    return AspectRatio(
+      aspectRatio: 9 / 16,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border.all(color: Colors.grey, width: 2),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: imageData != null
+            ? ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.memory(imageData, fit: BoxFit.cover),
+              )
+            : const Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.add, size: 50, color: Colors.grey),
+                    SizedBox(height: 8),
+                    Text(
+                      'Add Image',
+                      style: TextStyle(color: Colors.grey, fontSize: 16),
+                    ),
+                  ],
+                ),
+              ),
       ),
     );
   }

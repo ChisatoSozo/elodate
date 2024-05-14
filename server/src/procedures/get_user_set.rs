@@ -6,7 +6,7 @@ use crate::{
     elo::elo_to_label,
     models::{
         shared::UuidModel,
-        user::{User, UserWithImagesAndElo},
+        user::{User, UserWithImagesAndEloAndUuid},
     },
 };
 
@@ -14,7 +14,7 @@ pub async fn get_user_set(
     db: &mut DB,
     user_uuid: &UuidModel,
     skip: Vec<UuidModel>,
-) -> Result<Vec<UserWithImagesAndElo>, Box<dyn Error>> {
+) -> Result<Vec<UserWithImagesAndEloAndUuid>, Box<dyn Error>> {
     let user = db.get_user_by_uuid(&user_uuid)?;
     let users = db.get_mutual_preference_users(&user)?;
 
@@ -29,13 +29,14 @@ pub async fn get_user_set(
         .into_iter()
         .map(|u| {
             db.get_images_from_user(&u.uuid)
-                .map(|images| UserWithImagesAndElo {
+                .map(|images| UserWithImagesAndEloAndUuid {
                     user: u.public,
                     images: images,
                     elo: elo_to_label(u.elo),
+                    uuid: u.uuid,
                 })
         })
-        .collect::<Result<Vec<UserWithImagesAndElo>, Box<dyn Error>>>()?;
+        .collect::<Result<Vec<UserWithImagesAndEloAndUuid>, Box<dyn Error>>>()?;
 
     Ok(users_with_images)
 }

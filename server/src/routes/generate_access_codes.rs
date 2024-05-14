@@ -1,4 +1,4 @@
-use std::sync::Mutex;
+use async_mutex::Mutex;
 
 use actix_web::Error;
 
@@ -9,7 +9,7 @@ use paperclip::actix::{api_v2_operation, get, web};
 #[api_v2_operation]
 #[get("/generate_access_codes")]
 async fn generate_access_codes(db: web::Data<Mutex<DB>>) -> Result<String, Error> {
-    let mut db = db.lock().unwrap();
+    let mut db = db.lock().await;
     let generated = db.get_flag("access_codes_generated");
 
     if generated {

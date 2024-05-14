@@ -1,4 +1,4 @@
-use std::sync::Mutex;
+use async_mutex::Mutex;
 
 use actix_web::Error;
 use paperclip::actix::{
@@ -27,7 +27,7 @@ async fn check_username(
     body: Json<CheckUsernameInput>,
 ) -> Result<Json<CheckUsernameOutput>, Error> {
     let user = body.into_inner();
-    let mut db = db.lock().unwrap();
+    let mut db = db.lock().await;
 
     let available = !db.user_with_username_exists(&user.username).map_err(|e| {
         println!("Failed to check username availability: {:?}", e);

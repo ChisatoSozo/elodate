@@ -1,8 +1,7 @@
-use std::sync::Mutex;
-
 use actix_cors::Cors;
-use actix_web::{App, HttpServer};
+use actix_web::{http::header, App, HttpServer};
 
+use async_mutex::Mutex;
 use db::DB;
 use middleware::jwt::Jwt;
 use paperclip::actix::{web, OpenApiExt};
@@ -33,7 +32,14 @@ async fn main() -> std::io::Result<()> {
 
     HttpServer::new(move || {
         App::new()
-            .wrap(Cors::permissive())
+            .wrap(
+                Cors::default()
+                    .allow_any_origin()
+                    .allowed_methods(vec!["GET", "POST"])
+                    .allowed_headers(vec![header::AUTHORIZATION, header::ACCEPT])
+                    .allowed_header(header::CONTENT_TYPE)
+                    .max_age(3600),
+            )
             .app_data(db.clone())
             .wrap_api()
             .wrap(Jwt)

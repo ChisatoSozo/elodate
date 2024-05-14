@@ -24,6 +24,8 @@ pub async fn upsert_user(
         ..user.clone()
     };
 
+    println!("images: {:?}", user.images);
+
     db.insert_user(&user).map_err(|e| {
         println!("Failed to insert user into database {:?}", e);
         actix_web::error::ErrorInternalServerError("Failed to insert user into database")

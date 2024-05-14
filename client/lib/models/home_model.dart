@@ -5,6 +5,7 @@ import 'package:localstorage/localstorage.dart';
 class HomeModel extends ChangeNotifier {
   DefaultApi? _client;
   UserWithImagesAndEloAndUuid? _me;
+  final List<UserWithImagesAndEloAndUuid> _potentialMatches = [];
 
   Future<DefaultApi> getClient() async {
     _client ??= await initClient();
@@ -15,9 +16,42 @@ class HomeModel extends ChangeNotifier {
     return await initChats();
   }
 
-  Future<UserWithImagesAndEloAndUuid?> getMe() async {
+  Future<UserWithImagesAndEloAndUuid> getMe() async {
     _me ??= await initMe();
-    return _me;
+    return _me!;
+  }
+
+  Future<UserWithImagesAndEloAndUuid> getPotentialMatch() async {
+    if (_potentialMatches.length < 5) {
+      _fetchPotentialMatches()
+          .then((matches) => _potentialMatches.addAll(matches));
+    }
+    if (_potentialMatches.isEmpty) {
+      var matches = await _fetchPotentialMatches();
+      _potentialMatches.addAll(matches);
+      return _potentialMatches[0];
+    }
+    return _potentialMatches[0];
+  }
+
+  Future<List<UserWithImagesAndEloAndUuid>> _fetchPotentialMatches() async {
+    var client = await getClient();
+    var matches = await client
+        .getNextUsersPost(_potentialMatches.map((e) => e.uuid).toList());
+    if (matches == null) {
+      throw Exception('Failed to get matches');
+    }
+
+    return matches.toList();
+  }
+
+  Future<List<Message>> getMessages(String chatId) async {
+    var client = await getClient();
+    var messages = await client.getChatMessagesPost(chatId);
+    if (messages == null) {
+      throw Exception('Failed to get messages');
+    }
+    return messages;
   }
 
   Future<DefaultApi?> initClient() async {
@@ -40,10 +74,6 @@ class HomeModel extends ChangeNotifier {
     var client = await getClient();
     var me = await getMe();
     var result = await client.getMyChatsPost();
-
-    if (me == null) {
-      throw Exception('Failed to get user');
-    }
 
     if (result == null) {
       throw Exception('Failed to get chat messages');

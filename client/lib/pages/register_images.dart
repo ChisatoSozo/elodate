@@ -1,10 +1,9 @@
 import 'dart:typed_data';
 
-import 'package:client/components/file_picker.dart';
+import 'package:client/components/image_grid.dart';
 import 'package:client/components/responseive_scaffold.dart';
 import 'package:client/models/register_model.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_dropzone/flutter_dropzone.dart';
 import 'package:provider/provider.dart';
 
 class RegisterImagesPage extends StatefulWidget {
@@ -15,7 +14,22 @@ class RegisterImagesPage extends StatefulWidget {
 }
 
 class RegisterImagesPageState extends State<RegisterImagesPage> {
-  List<DropzoneViewController> controllers = List.empty(growable: true);
+  late ImageGridFormFieldController _imageGridController;
+
+  @override
+  void initState() {
+    super.initState();
+    _imageGridController = ImageGridFormFieldController();
+    // Initialize with empty values or existing values if any
+    _imageGridController.value =
+        List<(Uint8List?, String?)>.filled(6, (null, null));
+  }
+
+  @override
+  void dispose() {
+    _imageGridController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -24,16 +38,27 @@ class RegisterImagesPageState extends State<RegisterImagesPage> {
       child: SingleChildScrollView(
         child: Column(
           children: [
-            SizedBox(
-              height: 500, // Provide a specific height for the GridView
-              child: GridView.count(
-                crossAxisCount: 3,
-                children: List.generate(6, buildDropzone),
-              ),
+            ImageGridFormField(
+              controller: _imageGridController,
+              onSaved: (images) {
+                if (images == null) return;
+                for (int i = 0; i < images.length; i++) {
+                  final image = images[i];
+                  if (image.$1 != null && image.$2 != null) {
+                    Provider.of<RegisterModel>(context, listen: false)
+                        .setImage(image.$1!, image.$2!, i);
+                  }
+                }
+              },
+              validator: (images) {
+                // Add validation logic if needed
+                return null;
+              },
             ),
+            const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () {
-                nextPage(context, widget);
+                _saveImagesAndProceed();
               },
               child: const Text('Register'),
             ),
@@ -43,33 +68,11 @@ class RegisterImagesPageState extends State<RegisterImagesPage> {
     );
   }
 
-  Widget buildDropzone(int index) {
-    return Container(
-      margin: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.blueAccent),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          AdaptiveFilePicker(
-            onFileChanged: (byteData, mimeType) =>
-                _flushImageToProvider(byteData, mimeType, index),
-          ),
-          Text('Drop Zone ${index + 1}',
-              style: const TextStyle(color: Colors.white)),
-        ],
-      ),
-    );
-  }
-
-  _flushImageToProvider(Uint8List byteData, String mimeType, int index) async {
-    try {
-      Provider.of<RegisterModel>(context, listen: false)
-          .setImage(byteData, mimeType, index);
-    } catch (e) {
-      print('Error retrieving file data: $e');
+  void _saveImagesAndProceed() {
+    final form = Form.of(context);
+    if (form.validate()) {
+      form.save();
+      nextPage(context, widget);
     }
   }
 }

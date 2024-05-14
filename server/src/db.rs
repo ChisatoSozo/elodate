@@ -297,7 +297,7 @@ impl DB {
         user_id: &UuidModel,
         images: &Vec<Image>,
     ) -> Result<Vec<ImageUuidModel>, Box<dyn std::error::Error>> {
-        let uuids = Vec::new();
+        let mut uuids = Vec::new();
         for image in images {
             let image_uuid = ImageUuidModel {
                 uuid: UuidModel::new(),
@@ -310,6 +310,8 @@ impl DB {
             std::fs::create_dir_all(&path_dir_without_image)?;
 
             save_as_webp(&image.b64_content, &image.image_type, Path::new(&path))?;
+
+            uuids.push(image_uuid);
         }
 
         Ok(uuids)
@@ -342,36 +344,12 @@ impl DB {
     }
 
     pub fn get_mutual_preference_users(&mut self, user: &User) -> Result<Vec<User>, Error> {
-        let min_age = user.public.preference.with_defaults().min_age.unwrap();
-        let max_age = user.public.preference.with_defaults().max_age.unwrap();
-        let min_gender_male = user
-            .public
-            .preference
-            .with_defaults()
-            .min_gender
-            .unwrap()
-            .percent_male;
-        let min_gender_female = user
-            .public
-            .preference
-            .with_defaults()
-            .min_gender
-            .unwrap()
-            .percent_female;
-        let max_gender_male = user
-            .public
-            .preference
-            .with_defaults()
-            .max_gender
-            .unwrap()
-            .percent_male;
-        let max_gender_female = user
-            .public
-            .preference
-            .with_defaults()
-            .max_gender
-            .unwrap()
-            .percent_female;
+        let min_age = user.public.preference.age.min;
+        let max_age = user.public.preference.age.max;
+        let min_gender_male = user.public.preference.percent_male.min;
+        let min_gender_female = user.public.preference.percent_female.min;
+        let max_gender_male = user.public.preference.percent_male.max;
+        let max_gender_female = user.public.preference.percent_female.max;
 
         let min_date = chrono::Utc::now() - chrono::Duration::weeks(max_age as i64 * 52);
         let max_date = chrono::Utc::now() - chrono::Duration::weeks(min_age as i64 * 52);
@@ -417,36 +395,12 @@ impl DB {
         let users_who_prefer_me = all_users
             .iter()
             .filter(|user| {
-                let min_age = user.public.preference.with_defaults().min_age.unwrap();
-                let max_age = user.public.preference.with_defaults().max_age.unwrap();
-                let min_gender_male = user
-                    .public
-                    .preference
-                    .with_defaults()
-                    .min_gender
-                    .unwrap()
-                    .percent_male;
-                let min_gender_female = user
-                    .public
-                    .preference
-                    .with_defaults()
-                    .min_gender
-                    .unwrap()
-                    .percent_female;
-                let max_gender_male = user
-                    .public
-                    .preference
-                    .with_defaults()
-                    .max_gender
-                    .unwrap()
-                    .percent_male;
-                let max_gender_female = user
-                    .public
-                    .preference
-                    .with_defaults()
-                    .max_gender
-                    .unwrap()
-                    .percent_female;
+                let min_age = user.public.preference.age.min;
+                let max_age = user.public.preference.age.max;
+                let min_gender_male = user.public.preference.percent_male.min;
+                let min_gender_female = user.public.preference.percent_female.min;
+                let max_gender_male = user.public.preference.percent_male.max;
+                let max_gender_female = user.public.preference.percent_female.max;
 
                 let min_date = chrono::Utc::now() - chrono::Duration::weeks(max_age as i64 * 52);
                 let max_date = chrono::Utc::now() - chrono::Duration::weeks(min_age as i64 * 52);
@@ -457,10 +411,10 @@ impl DB {
 
                 let perfered = min_date.timestamp() <= my_age
                     && my_age <= max_date.timestamp()
-                    && min_gender_male <= my_gender_male
-                    && my_gender_male <= max_gender_male
-                    && min_gender_female <= my_gender_female
-                    && my_gender_female <= max_gender_female;
+                    && min_gender_male <= my_gender_male as u16
+                    && my_gender_male as u16 <= max_gender_male
+                    && min_gender_female <= my_gender_female as u16
+                    && my_gender_female as u16 <= max_gender_female;
 
                 perfered
             })
@@ -542,72 +496,30 @@ impl Document for User {
                 emitter.emit(bytes, None)?;
             }
             "preference.min_age" => {
-                let bytes = self
-                    .public
-                    .preference
-                    .with_defaults()
-                    .min_age
-                    .unwrap()
-                    .to_be_bytes();
-
+                let bytes = self.public.preference.age.min.to_be_bytes();
                 emitter.emit(&base32::encode(&bytes), None)?;
             }
             "preference.max_age" => {
-                let bytes = self
-                    .public
-                    .preference
-                    .with_defaults()
-                    .max_age
-                    .unwrap()
-                    .to_be_bytes();
+                let bytes = self.public.preference.age.max.to_be_bytes();
 
                 emitter.emit(&base32::encode(&bytes), None)?;
             }
             "preference.max_gender.percent_male" => {
-                let bytes = self
-                    .public
-                    .preference
-                    .with_defaults()
-                    .max_gender
-                    .unwrap()
-                    .percent_male
-                    .to_be_bytes();
+                let bytes = self.public.preference.percent_male.max.to_be_bytes();
 
                 emitter.emit(&base32::encode(&bytes), None)?;
             }
             "preference.max_gender.percent_female" => {
-                let bytes = self
-                    .public
-                    .preference
-                    .with_defaults()
-                    .max_gender
-                    .unwrap()
-                    .percent_female
-                    .to_be_bytes();
-
+                let bytes = self.public.preference.percent_female.max.to_be_bytes();
                 emitter.emit(&base32::encode(&bytes), None)?;
             }
             "preference.min_gender.percent_male" => {
-                let bytes = self
-                    .public
-                    .preference
-                    .with_defaults()
-                    .min_gender
-                    .unwrap()
-                    .percent_male
-                    .to_be_bytes();
+                let bytes = self.public.preference.percent_male.min.to_be_bytes();
 
                 emitter.emit(&base32::encode(&bytes), None)?;
             }
             "preference.min_gender.percent_female" => {
-                let bytes = self
-                    .public
-                    .preference
-                    .with_defaults()
-                    .min_gender
-                    .unwrap()
-                    .percent_female
-                    .to_be_bytes();
+                let bytes = self.public.preference.percent_female.min.to_be_bytes();
 
                 emitter.emit(&base32::encode(&bytes), None)?;
             }
@@ -673,6 +585,8 @@ impl Document for Chat {
         match view {
             "uuid" => {
                 let bytes = self.uuid.0.as_bytes();
+                println!("emitting chat uuid");
+                println!("{:?}", self.uuid.0);
                 emitter.emit(bytes, None)?;
             }
             "user1" => {
