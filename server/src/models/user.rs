@@ -1,33 +1,37 @@
-use std::{collections::HashSet, error::Error};
+use crate::{
+    db::{get_any_from_key, get_single_from_key},
+    mokuroku::lib::{Document, Emitter, Error as MkrkError},
+    util::save_as_webp,
+    vec::shared::VectorSearch,
+};
+use std::{collections::HashSet, error::Error, path::Path};
 
 use fake::Dummy;
 use paperclip::actix::Apiv2Schema;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
-
-// A trait that the Validate derive will impl
 use validator::{Validate, ValidationError};
 
-use crate::{db::DB, models::shared::UuidModel};
-
 use super::{chat::Chat, image::Image, rating::Rated, shared::ImageUuidModel};
+use crate::models::preference::{Preference, PREFERENCE_LENGTH};
+use crate::{db::DB, models::shared::UuidModel};
 
 #[derive(Debug, Validate, Serialize, Deserialize, Apiv2Schema, Clone, PartialEq, Eq, Dummy)]
 pub struct Gender {
     #[validate(range(min = 0, max = 100))]
     #[dummy(faker = "0..100")]
-    pub percent_male: u8,
+    pub percent_male: i16,
     #[validate(range(min = 0, max = 100))]
     #[dummy(faker = "0..100")]
-    pub percent_female: u8,
+    pub percent_female: i16,
 }
 
 #[derive(Debug, Validate, Serialize, Deserialize, Apiv2Schema, Clone, PartialEq, Dummy)]
 pub struct Location {
-    #[dummy(faker = "45.508888")]
-    pub lat: f64,
-    #[dummy(faker = "-73.561668")]
-    pub long: f64,
+    #[dummy(faker = "16569")]
+    pub lat: i16,
+    #[dummy(faker = "-13392")]
+    pub long: i16,
 }
 
 impl Eq for Location {}
@@ -103,6 +107,7 @@ pub struct UserPublicFields {
     #[dummy(faker = "true")]
     pub published: Option<bool>,
 }
+
 impl UserPublicFields {
     pub fn get_age(&self) -> Option<i64> {
         let birthdate = chrono::DateTime::from_timestamp(self.birthdate, 0)?;
@@ -111,27 +116,13 @@ impl UserPublicFields {
         Some(age.num_days() / 365)
     }
 
-    pub fn get_preference_min_vector(&self) -> Vec<u16> {
-        vec![
-            self.preference.age.min,
-            self.preference.percent_female.min,
-            self.preference.percent_male.min,
-        ]
-    }
-
-    pub fn get_preference_max_vector(&self) -> Vec<u16> {
-        vec![
-            self.preference.age.max,
-            self.preference.percent_female.max,
-            self.preference.percent_female.max,
-        ]
-    }
-
-    pub fn get_my_vector(&self) -> Vec<u16> {
-        vec![
-            self.get_age().unwrap() as u16,
-            self.gender.percent_female as u16,
-            self.gender.percent_male as u16,
+    pub fn get_my_vector(&self) -> [i16; PREFERENCE_LENGTH] {
+        [
+            self.get_age().unwrap() as i16,
+            self.gender.percent_female,
+            self.gender.percent_male,
+            self.location.lat,
+            self.location.long,
         ]
     }
 }
@@ -149,8 +140,6 @@ fn rand_age_between_18_and_99() -> i64 {
 }
 
 fn validate_birthdate(birthdate: i64) -> Result<(), ValidationError> {
-    //use chrono to validate the birthdate as over 18 years old
-
     let birthdate = chrono::DateTime::from_timestamp(birthdate, 0);
 
     let birthdate = match birthdate {
@@ -168,27 +157,114 @@ fn validate_birthdate(birthdate: i64) -> Result<(), ValidationError> {
     Ok(())
 }
 
-#[derive(Debug, Validate, Serialize, Deserialize, Apiv2Schema, Clone, PartialEq, Eq, Dummy)]
-pub struct PreferenceRange {
-    #[dummy(faker = "0")]
-    pub min: u16,
-    #[dummy(faker = "65536")]
-    pub max: u16,
-}
+impl Document for User {
+    fn from_bytes(_key: &[u8], value: &[u8]) -> Result<Self, MkrkError> {
+        let serde_result: User =
+            serde_cbor::from_slice(value).map_err(|err| MkrkError::Serde(format!("{}", err)))?;
+        Ok(serde_result)
+    }
 
-impl Default for PreferenceRange {
-    fn default() -> Self {
-        Self { min: 0, max: 65535 }
+    fn to_bytes(&self) -> Result<Vec<u8>, MkrkError> {
+        let encoded: Vec<u8> =
+            serde_cbor::to_vec(self).map_err(|err| MkrkError::Serde(format!("{}", err)))?;
+        Ok(encoded)
+    }
+
+    fn map(&self, view: &str, emitter: &Emitter) -> Result<(), MkrkError> {
+        match view {
+            "uuid" => {
+                let bytes = self.uuid.0.as_bytes();
+                emitter.emit(bytes, None)?;
+            }
+            "username" => {
+                let bytes = self.public.username.as_bytes();
+                emitter.emit(bytes, None)?;
+            }
+            _ => {}
+        }
+        Ok(())
     }
 }
 
-#[derive(
-    Debug, Validate, Serialize, Deserialize, Apiv2Schema, Clone, PartialEq, Eq, Dummy, Default,
-)]
-pub struct Preference {
-    pub age: PreferenceRange,
-    pub percent_male: PreferenceRange,
-    pub percent_female: PreferenceRange,
-    pub latitude: PreferenceRange,
-    pub longitude: PreferenceRange,
+impl DB {
+    pub fn insert_user(&mut self, user: &User) -> Result<(), MkrkError> {
+        let key = &user.uuid.0;
+        let key = b"user/"
+            .to_vec()
+            .into_iter()
+            .chain(key.as_bytes().to_vec().into_iter())
+            .collect::<Vec<u8>>();
+        self.db.put(key, user)?;
+        self.vec_index
+            .add(&user.public.get_my_vector(), &user.uuid.0);
+        self.vec_index
+            .add_bbox(&user.public.preference.get_bbox(), &user.uuid.0);
+        Ok(())
+    }
+
+    pub fn get_user_by_uuid(&mut self, uuid: &UuidModel) -> Result<User, MkrkError> {
+        let result = get_single_from_key("uuid", uuid.0.as_bytes(), &mut self.db)?;
+        Ok(result)
+    }
+
+    pub fn user_with_username_exists(&mut self, username: &str) -> Result<bool, MkrkError> {
+        let result: Vec<User> = get_any_from_key("username", username.as_bytes(), &mut self.db)?;
+        Ok(!result.is_empty())
+    }
+
+    pub fn get_images_from_user(
+        &mut self,
+        user: &UuidModel,
+    ) -> Result<Vec<Image>, Box<dyn std::error::Error>> {
+        let user = self.get_user_by_uuid(user)?;
+        let images = user.images;
+        let mut images_out = Vec::new();
+        for image_id in images {
+            let path = Image::get_user_image_path(&user.uuid, &image_id, &self);
+            let image = Image::load(path)?;
+            images_out.push(image);
+        }
+        Ok(images_out)
+    }
+
+    pub fn get_image_from_user(
+        &mut self,
+        user: &UuidModel,
+    ) -> Result<Image, Box<dyn std::error::Error>> {
+        let user = self.get_user_by_uuid(user)?;
+        let first_image = user.images.first().unwrap();
+        let path = Image::get_user_image_path(&user.uuid, first_image, &self);
+        let image = Image::load(path)?;
+        Ok(image)
+    }
+
+    pub fn add_images_to_user(
+        &mut self,
+        user_id: &UuidModel,
+        images: &Vec<Image>,
+    ) -> Result<Vec<ImageUuidModel>, Box<dyn std::error::Error>> {
+        let mut uuids = Vec::new();
+        for image in images {
+            let image_uuid = ImageUuidModel {
+                uuid: UuidModel::new(),
+                image_type: image.image_type.clone(),
+            };
+            let path_str = Image::get_user_image_path(user_id, &image_uuid, &self);
+            let path = Path::new(&path_str);
+            let path_dir_without_image = path.parent().unwrap();
+            //create directory recursively if it doesn't exist
+            std::fs::create_dir_all(&path_dir_without_image)?;
+
+            save_as_webp(&image.b64_content, &image.image_type, Path::new(&path))?;
+
+            uuids.push(image_uuid);
+        }
+
+        Ok(uuids)
+    }
+
+    pub fn get_user_by_username(&mut self, username: &str) -> Result<User, MkrkError> {
+        let result = get_single_from_key("username", username.as_bytes(), &mut self.db)?;
+        Ok(result)
+    }
 }

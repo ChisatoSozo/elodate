@@ -1,8 +1,11 @@
 use std::error::Error;
 
+use crate::{
+    db::get_single_from_key,
+    mokuroku::lib::{Document, Emitter, Error as MkrkError},
+};
 use paperclip::actix::Apiv2Schema;
 use serde::{Deserialize, Serialize};
-
 // A trait that the Validate derive will impl
 use validator::Validate;
 
@@ -43,5 +46,56 @@ impl Chat {
         let last_message = db.get_message(last_message_uuid)?;
 
         Ok(last_message)
+    }
+}
+
+impl Document for Chat {
+    fn from_bytes(_key: &[u8], value: &[u8]) -> Result<Self, MkrkError> {
+        let serde_result: Chat =
+            serde_cbor::from_slice(value).map_err(|err| MkrkError::Serde(format!("{}", err)))?;
+        Ok(serde_result)
+    }
+
+    fn to_bytes(&self) -> Result<Vec<u8>, MkrkError> {
+        let encoded =
+            serde_cbor::to_vec(self).map_err(|err| MkrkError::Serde(format!("{}", err)))?;
+        Ok(encoded)
+    }
+
+    fn map(&self, view: &str, emitter: &Emitter) -> Result<(), MkrkError> {
+        match view {
+            "uuid" => {
+                let bytes = self.uuid.0.as_bytes();
+                println!("emitting chat uuid");
+                println!("{:?}", self.uuid.0);
+                emitter.emit(bytes, None)?;
+            }
+            "user1" => {
+                let bytes = self.user1.0.as_bytes();
+
+                emitter.emit(bytes, None)?;
+            }
+            "user2" => {
+                let bytes = self.user2.0.as_bytes();
+
+                emitter.emit(bytes, None)?;
+            }
+            _ => {}
+        };
+        Ok(())
+    }
+}
+
+impl DB {
+    pub fn insert_chat(&mut self, chat: &Chat) -> Result<(), MkrkError> {
+        let key = &chat.uuid.0;
+        let key = "chat/".to_string() + key;
+        self.db.put(key, chat)?;
+        Ok(())
+    }
+
+    pub fn get_chat(&mut self, chat_uuid: &UuidModel) -> Result<Chat, MkrkError> {
+        let result = get_single_from_key("uuid", chat_uuid.0.as_bytes(), &mut self.db)?;
+        Ok(result)
     }
 }

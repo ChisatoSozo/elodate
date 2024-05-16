@@ -1,5 +1,5 @@
 import 'package:client/api/pkg/lib/api.dart';
-import 'package:client/components/swipable_user_card.dart';
+import 'package:client/components/swipeable_user_card/swipeable_user_card.dart';
 import 'package:client/models/home_model.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -26,11 +26,13 @@ class SwipePageState extends State<SwipePage> {
     return user;
   }
 
-  void handleSwipe(UserWithImagesAndEloAndUuid user, bool isLiked) {
-    // Implement like/dislike functionality here
-    // e.g., send the like/dislike to the backend
-
-    // Fetch the next user
+  Future<void> handleSwipe(
+      UserWithImagesAndEloAndUuid user, bool isLiked) async {
+    if (isLiked) {
+      await Provider.of<HomeModel>(context, listen: false).likeUser(user);
+    } else {
+      await Provider.of<HomeModel>(context, listen: false).dislikeUser(user);
+    }
     setState(() {
       _nextUserFuture = getNextUser(context);
     });

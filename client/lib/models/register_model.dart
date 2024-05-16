@@ -136,6 +136,8 @@ class RegisterModel extends ChangeNotifier {
       throw Exception('Images are required');
     }
 
+    var (lat, long) = encodeLatLongToI16(_lat!, _long!);
+
     var input = UserWithImagesAndPassword(
       user: UserWithImagesUser(
         birthdate: _birthdate!.millisecondsSinceEpoch ~/ 1000,
@@ -144,14 +146,14 @@ class RegisterModel extends ChangeNotifier {
             percentFemale: (_percentFemale! * 100).toInt(),
             percentMale: (_percentMale! * 100).toInt()),
         preference: UserWithImagesUserPreference(
-          age: UserWithImagesUserPreferenceAge(max: 100, min: 18),
-          latitude: UserWithImagesUserPreferenceAge(max: 65535, min: 0),
-          longitude: UserWithImagesUserPreferenceAge(max: 65535, min: 0),
-          percentFemale: UserWithImagesUserPreferenceAge(max: 100, min: 0),
-          percentMale: UserWithImagesUserPreferenceAge(max: 100, min: 0),
+          age: PreferenceAge(max: 100, min: 18),
+          latitude: PreferenceAge(max: 32767, min: -32768),
+          longitude: PreferenceAge(max: 32767, min: -32768),
+          percentFemale: PreferenceAge(max: 100, min: 0),
+          percentMale: PreferenceAge(max: 100, min: 0),
         ),
         username: _username!,
-        location: UserWithImagesUserLocation(lat: _lat!, long: _long!),
+        location: UserWithImagesUserLocation(lat: lat, long: long),
         description: '',
       ),
       password: _password!,

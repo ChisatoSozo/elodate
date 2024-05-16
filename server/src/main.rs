@@ -10,7 +10,11 @@ use routes::{
     check_username::check_username, generate_access_codes::generate_access_codes,
     get_chat_messages::get_chat_messages, get_me::get_me, get_my_chats::get_my_chats,
     get_next_users::get_next_users, get_user_with_single_image::get_user_with_single_image,
-    login::login, signup::signup, update_user::update_user,
+    get_users_i_perfer_count::get_users_i_perfer_count,
+    get_users_i_perfer_count_dry_run::get_users_i_perfer_count_dry_run,
+    get_users_mutual_perfer_count::get_users_mutual_perfer_count,
+    get_users_mutual_perfer_count_dry_run::get_users_mutual_perfer_count_dry_run, login::login,
+    rate::rate, signup::signup, update_user::update_user,
 };
 
 pub mod constants;
@@ -23,6 +27,7 @@ pub mod procedures;
 pub mod routes;
 pub mod test;
 pub mod util;
+pub mod vec;
 
 const JSON_SPEC_PATH: &str = "/api/spec/v2.json";
 
@@ -53,6 +58,11 @@ async fn main() -> std::io::Result<()> {
             .service(get_chat_messages)
             .service(get_user_with_single_image)
             .service(get_me)
+            .service(get_users_i_perfer_count)
+            .service(get_users_i_perfer_count_dry_run)
+            .service(get_users_mutual_perfer_count)
+            .service(get_users_mutual_perfer_count_dry_run)
+            .service(rate)
             .with_json_spec_at(JSON_SPEC_PATH)
             .build()
     })

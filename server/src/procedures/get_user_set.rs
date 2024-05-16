@@ -16,7 +16,7 @@ pub async fn get_user_set(
     skip: Vec<UuidModel>,
 ) -> Result<Vec<UserWithImagesAndEloAndUuid>, Box<dyn Error>> {
     let user = db.get_user_by_uuid(&user_uuid)?;
-    let users = db.get_mutual_preference_users(&user)?;
+    let users = db.get_mutual_preference_users(&user);
 
     let seen = &user.seen;
     let users = users

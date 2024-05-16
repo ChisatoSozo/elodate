@@ -27,6 +27,11 @@ class MainApp extends StatelessWidget {
             primarySwatch: Colors.blue,
             useMaterial3: true,
           ),
+          darkTheme: ThemeData(
+            primarySwatch: Colors.blue,
+            useMaterial3: true,
+            brightness: Brightness.dark,
+          ),
           home: const LoginPage(),
         ),
       ),

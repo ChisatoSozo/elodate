@@ -1,6 +1,7 @@
 #[actix_web::test]
 async fn insert_dummy_data() -> Result<(), Box<dyn std::error::Error>> {
-    use crate::models::user::Preference;
+    use crate::models::preference::Preference;
+
     use bcrypt::hash;
     use fake::faker;
 
@@ -21,7 +22,7 @@ async fn insert_dummy_data() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut uuids = vec![];
 
-    let count = 10;
+    let count = 1000;
     for n in 0..count {
         println!("Inserting dummy data {}/{}", n, count);
         let mut user: User = Faker.fake();
@@ -84,6 +85,7 @@ async fn insert_dummy_data() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     upsert_user(&user, images, &mut db).await?;
+    db.persist();
 
     return Ok(());
 }

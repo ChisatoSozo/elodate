@@ -101,4 +101,44 @@ class HomeModel extends ChangeNotifier {
     _me = me;
     return me;
   }
+
+  Future<int> getNumUsersIPreferDryRun(Preference preference) async {
+    var client = await getClient();
+    var result = await client.getUsersIPerferCountDryRunPost(preference);
+    if (result == null) {
+      throw Exception('Failed to get number of users');
+    }
+    return result;
+  }
+
+  Future<int> getNumUsersMutuallyPreferDryRun(Preference preference) async {
+    var client = await getClient();
+    var result = await client.getUsersMutualPerferCountDryRunPost(preference);
+    if (result == null) {
+      throw Exception('Failed to get number of users');
+    }
+    return result;
+  }
+
+  Future<void> likeUser(UserWithImagesAndEloAndUuid user) async {
+    //pop the user from the potential matches
+    _potentialMatches.remove(user);
+    var client = await getClient();
+    var result = await client.ratePost(RatingWithTarget(
+        rating: RatingWithTargetRatingEnum.like, target: user.uuid));
+    if (result == null) {
+      throw Exception('Failed to like user');
+    }
+  }
+
+  Future<void> dislikeUser(UserWithImagesAndEloAndUuid user) async {
+    //pop the user from the potential matches
+    _potentialMatches.remove(user);
+    var client = await getClient();
+    var result = await client.ratePost(RatingWithTarget(
+        rating: RatingWithTargetRatingEnum.pass, target: user.uuid));
+    if (result == null) {
+      throw Exception('Failed to dislike user');
+    }
+  }
 }

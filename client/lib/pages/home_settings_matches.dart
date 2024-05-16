@@ -1,5 +1,7 @@
 import 'package:client/api/pkg/lib/api.dart';
+import 'package:client/models/home_model.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class UserPreferenceForm extends StatefulWidget {
   const UserPreferenceForm({super.key});
@@ -10,10 +12,13 @@ class UserPreferenceForm extends StatefulWidget {
 
 class UserPreferenceFormState extends State<UserPreferenceForm> {
   RangeValues _ageRange = const RangeValues(18, 100);
-  RangeValues _latitudeRange = const RangeValues(0, 65535);
-  RangeValues _longitudeRange = const RangeValues(0, 65535);
+  RangeValues _latitudeRange = const RangeValues(-32768, 32767);
+  RangeValues _longitudeRange = const RangeValues(-32768, 32767);
   RangeValues _percentFemaleRange = const RangeValues(0, 100);
   RangeValues _percentMaleRange = const RangeValues(0, 100);
+
+  int numUsersIPrefer = 0;
+  int numUsersMutuallyPrefer = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -21,6 +26,8 @@ class UserPreferenceFormState extends State<UserPreferenceForm> {
       padding: const EdgeInsets.all(16.0),
       child: Column(
         children: [
+          Text('Number of users I prefer: $numUsersIPrefer'),
+          Text('Number of users that mutually prefer: $numUsersMutuallyPrefer'),
           _buildRangeSlider(
             title: 'Age Range',
             rangeValues: _ageRange,
@@ -35,8 +42,8 @@ class UserPreferenceFormState extends State<UserPreferenceForm> {
           _buildRangeSlider(
             title: 'Latitude Range',
             rangeValues: _latitudeRange,
-            min: 0,
-            max: 65535,
+            min: -32768,
+            max: 32767,
             onChanged: (values) {
               setState(() {
                 _latitudeRange = values;
@@ -46,8 +53,8 @@ class UserPreferenceFormState extends State<UserPreferenceForm> {
           _buildRangeSlider(
             title: 'Longitude Range',
             rangeValues: _longitudeRange,
-            min: 0,
-            max: 65535,
+            min: -32768,
+            max: 32767,
             onChanged: (values) {
               setState(() {
                 _longitudeRange = values;
@@ -78,25 +85,36 @@ class UserPreferenceFormState extends State<UserPreferenceForm> {
           ),
           ElevatedButton(
             onPressed: () {
-              final preferences = UserWithImagesUserPreference(
-                age: UserWithImagesUserPreferenceAge(
+              final preference = Preference(
+                age: PreferenceAge(
                     min: _ageRange.start.toInt(), max: _ageRange.end.toInt()),
-                latitude: UserWithImagesUserPreferenceAge(
+                latitude: PreferenceAge(
                     min: _latitudeRange.start.toInt(),
                     max: _latitudeRange.end.toInt()),
-                longitude: UserWithImagesUserPreferenceAge(
+                longitude: PreferenceAge(
                     min: _longitudeRange.start.toInt(),
                     max: _longitudeRange.end.toInt()),
-                percentFemale: UserWithImagesUserPreferenceAge(
+                percentFemale: PreferenceAge(
                     min: _percentFemaleRange.start.toInt(),
                     max: _percentFemaleRange.end.toInt()),
-                percentMale: UserWithImagesUserPreferenceAge(
+                percentMale: PreferenceAge(
                     min: _percentMaleRange.start.toInt(),
                     max: _percentMaleRange.end.toInt()),
               );
 
-              // Do something with the preferences
-              print('Preferences: $preferences');
+              Provider.of<HomeModel>(context, listen: false)
+                  .getNumUsersIPreferDryRun(preference)
+                  .then((value) => {
+                        setState(() {
+                          numUsersIPrefer = value;
+                        })
+                      });
+
+              Provider.of<HomeModel>(context, listen: false)
+                  .getNumUsersMutuallyPreferDryRun(preference)
+                  .then((value) => setState(() {
+                        numUsersMutuallyPrefer = value;
+                      }));
             },
             child: const Text('Save'),
           ),
