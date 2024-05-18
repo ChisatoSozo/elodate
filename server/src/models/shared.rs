@@ -1,5 +1,3 @@
-use fake::uuid::UUIDv4;
-use fake::Dummy;
 use paperclip::actix::Apiv2Schema;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -10,10 +8,10 @@ use uuid::Uuid;
 
 use super::image::ElodateImageFormat;
 
-#[derive(Debug, Serialize, Deserialize, Apiv2Schema, Clone, Dummy)]
-pub struct UuidModel(#[dummy(faker = "UUIDv4{}")] pub String);
+#[derive(Debug, Serialize, Deserialize, Apiv2Schema, Clone)]
+pub struct UuidModel(pub String);
 
-#[derive(Debug, Serialize, Deserialize, Apiv2Schema, Clone, Dummy, PartialEq, Eq)]
+#[derive(Debug, Serialize, Deserialize, Apiv2Schema, Clone, PartialEq, Eq)]
 pub struct ImageUuidModel {
     pub uuid: UuidModel,
     pub image_type: ElodateImageFormat,

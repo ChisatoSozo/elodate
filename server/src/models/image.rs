@@ -2,7 +2,6 @@ use image::EncodableLayout;
 use std::io::Write;
 use std::{error::Error, fs::File, path::Path};
 
-use fake::Dummy;
 use image::{io::Reader, DynamicImage};
 use paperclip::actix::Apiv2Schema;
 use serde::{Deserialize, Serialize};
@@ -12,7 +11,7 @@ use crate::db::DB;
 
 use super::shared::{ImageUuidModel, UuidModel};
 
-#[derive(Debug, Serialize, Deserialize, Apiv2Schema, Clone, PartialEq, Eq, Dummy)]
+#[derive(Debug, Serialize, Deserialize, Apiv2Schema, Clone, PartialEq, Eq)]
 pub enum ElodateImageFormat {
     PNG,
     JPEG,
@@ -37,7 +36,7 @@ impl ElodateImageFormat {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Apiv2Schema, Clone, PartialEq, Eq, Dummy)]
+#[derive(Debug, Serialize, Deserialize, Apiv2Schema, Clone, PartialEq, Eq)]
 pub struct Image {
     pub b64_content: String,
     pub image_type: ElodateImageFormat,

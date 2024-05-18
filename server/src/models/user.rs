@@ -1,49 +1,83 @@
 use crate::{
     db::{get_any_from_key, get_single_from_key},
+    models::preference::UserProperties,
     mokuroku::lib::{Document, Emitter, Error as MkrkError},
-    util::save_as_webp,
+    test::fake::FakeGen,
+    util::{save_as_webp, to_i16},
     vec::shared::VectorSearch,
 };
-use std::{collections::HashSet, error::Error, path::Path};
+use fake::Fake;
+use std::{
+    collections::{HashMap, HashSet},
+    error::Error,
+    path::Path,
+};
 
-use fake::Dummy;
 use paperclip::actix::Apiv2Schema;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use validator::{Validate, ValidationError};
 
-use super::{chat::Chat, image::Image, rating::Rated, shared::ImageUuidModel};
-use crate::models::preference::{Preference, PREFERENCE_LENGTH};
+use super::{
+    chat::Chat,
+    image::Image,
+    preference::{ADDITIONAL_PREFERENCES, PREFERENCE_CARDINALITY},
+    rating::Rated,
+    shared::ImageUuidModel,
+};
+use crate::models::preference::Preference;
 use crate::{db::DB, models::shared::UuidModel};
 
-#[derive(Debug, Validate, Serialize, Deserialize, Apiv2Schema, Clone, PartialEq, Eq, Dummy)]
+#[derive(Debug, Validate, Serialize, Deserialize, Apiv2Schema, Clone, PartialEq, Eq)]
 pub struct Gender {
     #[validate(range(min = 0, max = 100))]
-    #[dummy(faker = "0..100")]
     pub percent_male: i16,
     #[validate(range(min = 0, max = 100))]
-    #[dummy(faker = "0..100")]
     pub percent_female: i16,
 }
 
-#[derive(Debug, Validate, Serialize, Deserialize, Apiv2Schema, Clone, PartialEq, Dummy)]
+impl FakeGen<bool> for Gender {
+    fn fake_gen(_options: &bool) -> Self {
+        let mut rng = rand::thread_rng();
+        let is_male = rng.gen_bool(0.5);
+        let percent_male = is_male as i16 * 100;
+        let percent_female = (is_male == false) as i16 * 100;
+        Gender {
+            percent_male,
+            percent_female,
+        }
+    }
+}
+
+#[derive(Debug, Validate, Serialize, Deserialize, Apiv2Schema, Clone, PartialEq)]
 pub struct Location {
-    #[dummy(faker = "16569")]
     pub lat: i16,
-    #[dummy(faker = "-13392")]
     pub long: i16,
+}
+
+impl FakeGen<bool> for Location {
+    fn fake_gen(_options: &bool) -> Self {
+        let lat = 45.510197;
+        let long = -73.565600;
+        let lati16 = to_i16(lat, -90.0, 90.0);
+        let longi16 = to_i16(long, -180.0, 180.0);
+        Location {
+            lat: lati16,
+            long: longi16,
+        }
+    }
 }
 
 impl Eq for Location {}
 
-#[derive(Debug, Validate, Serialize, Deserialize, Apiv2Schema, Clone, PartialEq, Eq, Dummy)]
+#[derive(Debug, Validate, Serialize, Deserialize, Apiv2Schema, Clone, PartialEq, Eq)]
 pub struct UserWithImagesAndElo {
     pub user: UserPublicFields,
     pub images: Vec<Image>,
     pub elo: String,
 }
 
-#[derive(Debug, Validate, Serialize, Deserialize, Apiv2Schema, Clone, PartialEq, Eq, Dummy)]
+#[derive(Debug, Validate, Serialize, Deserialize, Apiv2Schema, Clone, PartialEq, Eq)]
 pub struct UserWithImagesAndEloAndUuid {
     pub user: UserPublicFields,
     pub images: Vec<Image>,
@@ -51,30 +85,52 @@ pub struct UserWithImagesAndEloAndUuid {
     pub uuid: UuidModel,
 }
 
-#[derive(Debug, Validate, Serialize, Deserialize, Apiv2Schema, Clone, PartialEq, Eq, Dummy)]
+#[derive(Debug, Validate, Serialize, Deserialize, Apiv2Schema, Clone, PartialEq, Eq)]
 pub struct UserWithImages {
     pub user: UserPublicFields,
     pub images: Vec<Image>,
 }
 
-#[derive(Debug, Validate, Serialize, Deserialize, Apiv2Schema, Clone, PartialEq, Eq, Dummy)]
+#[derive(Debug, Validate, Serialize, Deserialize, Apiv2Schema, Clone, PartialEq, Eq)]
 pub struct UserWithImagesAndPassword {
     pub user: UserPublicFields,
     pub images: Vec<Image>,
     pub password: String,
 }
 
-#[derive(Debug, Validate, Serialize, Deserialize, Clone, PartialEq, Eq, Dummy)]
+#[derive(Debug, Validate, Serialize, Deserialize, Clone, PartialEq, Eq)]
 pub struct User {
     pub uuid: UuidModel,
     pub hashed_password: String,
-    #[dummy(faker = "800..2000")]
     pub elo: usize,
     pub ratings: Vec<Rated>,
     pub seen: HashSet<UuidModel>,
     pub chats: Vec<UuidModel>,
     pub images: Vec<ImageUuidModel>,
     pub public: UserPublicFields,
+}
+
+impl FakeGen<bool> for User {
+    fn fake_gen(_options: &bool) -> Self {
+        let uuid = UuidModel::new();
+        let hashed_password = "asdfasdf".to_string();
+        let elo = 1000;
+        let ratings = vec![];
+        let seen = HashSet::new();
+        let chats = vec![];
+        let images = vec![];
+        let public = UserPublicFields::fake_gen(&true);
+        User {
+            uuid,
+            hashed_password,
+            elo,
+            ratings,
+            seen,
+            chats,
+            images,
+            public,
+        }
+    }
 }
 
 impl User {
@@ -88,42 +144,91 @@ impl User {
     }
 }
 
-#[derive(Debug, Validate, Serialize, Deserialize, Apiv2Schema, Clone, PartialEq, Eq, Dummy)]
+#[derive(Debug, Validate, Serialize, Deserialize, Apiv2Schema, Clone, PartialEq, Eq)]
 pub struct UserPublicFields {
     #[validate(length(min = 1, message = "Username must not be empty"))]
-    #[dummy(faker = "fake::faker::phone_number::en::CellNumber()")]
     pub username: String,
     #[validate(length(min = 1, message = "Username must not be empty"))]
-    #[dummy(faker = "fake::faker::name::en::Name()")]
     pub display_name: String,
-    #[dummy(faker = "fake::faker::lorem::en::Paragraph(3..4)")]
     pub description: String,
     #[validate(custom(function = "validate_birthdate"))]
-    #[dummy(faker = "rand_age_between_18_and_99()")]
     pub birthdate: i64,
     pub gender: Gender,
     pub location: Location,
     pub preference: Preference,
-    #[dummy(faker = "true")]
+    pub additional_properties: HashMap<String, i16>,
     pub published: Option<bool>,
 }
 
+impl FakeGen<bool> for UserPublicFields {
+    fn fake_gen(_options: &bool) -> Self {
+        let mut rng = rand::thread_rng();
+        let username: String = fake::faker::phone_number::en::PhoneNumber().fake();
+        let display_name: String = fake::faker::name::en::Name().fake();
+        let description: String = fake::faker::lorem::en::Paragraph(1..3).fake();
+        let birthdate = rand_age_between_18_and_99();
+        let gender = Gender::fake_gen(&true);
+        let location = Location::fake_gen(&true);
+        let mut additional_properties = HashMap::new();
+
+        let mut index = 5; // Start from the 6th element in the array
+
+        while index < PREFERENCE_CARDINALITY {
+            let property = ADDITIONAL_PREFERENCES[index].sample(&mut rng);
+            additional_properties.insert(ADDITIONAL_PREFERENCES[index].name.to_string(), property);
+            index += 1;
+        }
+
+        let user = UserProperties {
+            age: get_age(birthdate),
+            percent_female: gender.percent_female,
+            percent_male: gender.percent_male,
+            latitude: location.lat,
+            longitude: location.long,
+            additional_preferences: additional_properties.clone(),
+        };
+
+        let preference = Preference::fake_gen(&user);
+        let published = Some(true);
+        UserPublicFields {
+            username,
+            display_name,
+            description,
+            birthdate,
+            gender,
+            location,
+            preference,
+            additional_properties,
+            published,
+        }
+    }
+}
+
+fn get_age(birthdate: i64) -> i16 {
+    let birthdate = chrono::DateTime::from_timestamp(birthdate, 0).unwrap();
+    let now = chrono::Utc::now();
+    let age = now - birthdate;
+    (age.num_days() / 365) as i16
+}
+
 impl UserPublicFields {
-    pub fn get_age(&self) -> Option<i64> {
-        let birthdate = chrono::DateTime::from_timestamp(self.birthdate, 0)?;
-        let now = chrono::Utc::now();
-        let age = now - birthdate;
-        Some(age.num_days() / 365)
+    pub fn get_age(&self) -> i16 {
+        get_age(self.birthdate)
     }
 
-    pub fn get_my_vector(&self) -> [i16; PREFERENCE_LENGTH] {
-        [
-            self.get_age().unwrap() as i16,
-            self.gender.percent_female,
-            self.gender.percent_male,
-            self.location.lat,
-            self.location.long,
-        ]
+    pub fn to_user_properties(&self) -> UserProperties {
+        UserProperties {
+            age: self.get_age(),
+            percent_male: self.gender.percent_female,
+            percent_female: self.gender.percent_male,
+            latitude: self.location.lat,
+            longitude: self.location.long,
+            additional_preferences: self.additional_properties.clone(),
+        }
+    }
+
+    pub fn get_my_vector(&self) -> [i16; PREFERENCE_CARDINALITY] {
+        self.to_user_properties().get_vector()
     }
 }
 

@@ -1,6 +1,6 @@
 use crate::models::chat::Chat;
 use crate::models::message::Message;
-use crate::models::preference::PREFERENCE_LENGTH;
+use crate::models::preference::PREFERENCE_CARDINALITY;
 use crate::models::user::User;
 use crate::mokuroku::lib::{Database, Document, Emitter, Error};
 
@@ -10,7 +10,7 @@ use std::path::Path;
 
 pub struct DB {
     pub db: Database,
-    pub vec_index: LinearSearch<PREFERENCE_LENGTH>,
+    pub vec_index: LinearSearch<PREFERENCE_CARDINALITY>,
     pub path: String,
 }
 

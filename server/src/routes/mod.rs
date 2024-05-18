@@ -1,6 +1,7 @@
 pub mod check_username;
 pub mod common;
 pub mod generate_access_codes;
+pub mod get_additional_preferences;
 pub mod get_chat_messages;
 pub mod get_me;
 pub mod get_my_chats;

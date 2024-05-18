@@ -66,8 +66,6 @@ impl Document for Chat {
         match view {
             "uuid" => {
                 let bytes = self.uuid.0.as_bytes();
-                println!("emitting chat uuid");
-                println!("{:?}", self.uuid.0);
                 emitter.emit(bytes, None)?;
             }
             "user1" => {

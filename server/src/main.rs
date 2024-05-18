@@ -8,8 +8,9 @@ use paperclip::actix::{web, OpenApiExt};
 
 use routes::{
     check_username::check_username, generate_access_codes::generate_access_codes,
-    get_chat_messages::get_chat_messages, get_me::get_me, get_my_chats::get_my_chats,
-    get_next_users::get_next_users, get_user_with_single_image::get_user_with_single_image,
+    get_additional_preferences::get_additional_preferences, get_chat_messages::get_chat_messages,
+    get_me::get_me, get_my_chats::get_my_chats, get_next_users::get_next_users,
+    get_user_with_single_image::get_user_with_single_image,
     get_users_i_perfer_count::get_users_i_perfer_count,
     get_users_i_perfer_count_dry_run::get_users_i_perfer_count_dry_run,
     get_users_mutual_perfer_count::get_users_mutual_perfer_count,
@@ -62,6 +63,7 @@ async fn main() -> std::io::Result<()> {
             .service(get_users_i_perfer_count_dry_run)
             .service(get_users_mutual_perfer_count)
             .service(get_users_mutual_perfer_count_dry_run)
+            .service(get_additional_preferences)
             .service(rate)
             .with_json_spec_at(JSON_SPEC_PATH)
             .build()

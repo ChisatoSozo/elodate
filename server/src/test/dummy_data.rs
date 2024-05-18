@@ -1,12 +1,11 @@
 #[actix_web::test]
 async fn insert_dummy_data() -> Result<(), Box<dyn std::error::Error>> {
-    use crate::models::preference::Preference;
+    use crate::test::fake::FakeGen;
+    use fake::Fake;
 
     use bcrypt::hash;
-    use fake::faker;
 
     use crate::models::{chat::Chat, message::Message, shared::UuidModel};
-    use fake::{Fake, Faker};
 
     use crate::{
         db::DB,
@@ -22,12 +21,9 @@ async fn insert_dummy_data() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut uuids = vec![];
 
-    let count = 1000;
-    for n in 0..count {
-        println!("Inserting dummy data {}/{}", n, count);
-        let mut user: User = Faker.fake();
-        user.public.preference = Preference::default();
-        println!("User: {:?}", user.public.description);
+    let count = 100;
+    for _ in 0..count {
+        let user: User = User::fake_gen(&true);
 
         let mut images = vec![];
         for _ in 0..5 {
@@ -38,14 +34,9 @@ async fn insert_dummy_data() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     //upsert main user
-    let mut user: User = Faker.fake();
-    user.hashed_password = hash("asdfasdf", 4)?;
+    let mut user: User = User::fake_gen(&true);
     user.public.username = "asdf".to_string();
-    user.chats = vec![];
-    user.seen = std::collections::HashSet::new();
-    user.ratings = vec![];
-    user.elo = 1000;
-    user.public.preference = Preference::default();
+    user.hashed_password = hash("asdfasdf", 4)?;
     let mut images = vec![];
     for _ in 0..5 {
         images.push(Image::default());
@@ -62,7 +53,7 @@ async fn insert_dummy_data() -> Result<(), Box<dyn std::error::Error>> {
                 } else {
                     uuids[n].clone()
                 },
-                content: faker::lorem::en::Sentence(1..2).fake(),
+                content: fake::faker::lorem::en::Sentence(1..2).fake(),
                 image: None,
                 image_type: None,
             })
