@@ -14,6 +14,7 @@ class ResponsiveScaffold extends StatelessWidget {
     // Check if the platform is web
     if (kIsWeb) {
       return Scaffold(
+        appBar: AppBar(),
         key: scaffoldKey,
         body: Center(
           child: Container(

@@ -11,7 +11,7 @@ use validator::Validate;
 
 use crate::db::DB;
 
-use super::{message::Message, shared::UuidModel};
+use super::{message::Message, shared::UuidModel, user::User};
 
 #[derive(Debug, Validate, Serialize, Deserialize, Apiv2Schema, Clone)]
 pub struct Chat {
@@ -19,20 +19,17 @@ pub struct Chat {
     pub user1: UuidModel,
     pub user2: UuidModel,
     pub messages: Vec<UuidModel>,
-}
-
-#[derive(Debug, Validate, Serialize, Deserialize, Apiv2Schema, Clone)]
-pub struct ChatAndLastMessage {
-    pub chat: Chat,
-    pub last_message: Message,
+    pub most_recent_message: String,
+    pub user1_unread: i64,
+    pub user2_unread: i64,
 }
 
 impl Chat {
     pub fn get_messages(&self, db: &mut DB) -> Result<Vec<Message>, Box<dyn Error>> {
         let mut messages = vec![];
         for message_uuid in self.messages.iter() {
-            let chat = db.get_message(message_uuid)?;
-            messages.push(chat);
+            let message = db.get_message(message_uuid)?;
+            messages.push(message);
         }
 
         Ok(messages)
@@ -46,6 +43,25 @@ impl Chat {
         let last_message = db.get_message(last_message_uuid)?;
 
         Ok(last_message)
+    }
+
+    pub fn add_message(
+        &mut self,
+        message: Message,
+        user: &User,
+        db: &mut DB,
+    ) -> Result<(), Box<dyn Error>> {
+        println!("Adding message to chat {:?}", message);
+        self.messages.push(message.uuid.clone());
+        self.most_recent_message = message.content.clone();
+        if self.user1 == message.author {
+            self.user1_unread += 1;
+        } else {
+            self.user2_unread += 1;
+        }
+        message.save_message(&self, user, db)?;
+        db.insert_chat(self)?;
+        Ok(())
     }
 }
 

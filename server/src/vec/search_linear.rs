@@ -44,6 +44,10 @@ impl<const N: usize> VectorSearch<N> for LinearSearch<N> {
                 }
                 for i in 0..N {
                     if label_pair.vec[i] < bbox.min[i] || label_pair.vec[i] > bbox.max[i] {
+                        // println!(
+                        //     "[INV] idx: {}, min: {}, max: {}, loc: {}",
+                        //     i, bbox.min[i], bbox.max[i], label_pair.vec[i]
+                        // );
                         return false;
                     }
                 }
@@ -68,6 +72,10 @@ impl<const N: usize> VectorSearch<N> for LinearSearch<N> {
                 for i in 0..N {
                     if label_pair.bbox.min[i] > location[i] || label_pair.bbox.max[i] < location[i]
                     {
+                        // println!(
+                        //     "[INV] idx: {}, min: {}, max: {}, loc: {}",
+                        //     i, label_pair.bbox.min[i], label_pair.bbox.max[i], location[i]
+                        // );
                         return false;
                     }
                 }

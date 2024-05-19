@@ -29,6 +29,28 @@ pub struct Message {
     pub content: String,
     pub image: Option<Image>,
     pub image_type: Option<ElodateImageFormat>,
+    pub reciever_read: bool,
+}
+
+#[derive(Debug, Validate, Serialize, Deserialize, Apiv2Schema, Clone)]
+pub struct PublicMessage {
+    pub content: String,
+    pub image: Option<Image>,
+    pub image_type: Option<ElodateImageFormat>,
+}
+
+impl PublicMessage {
+    pub fn to_message(&self, author: &UuidModel) -> Message {
+        Message {
+            uuid: UuidModel::new(),
+            sent_at: chrono::Utc::now().timestamp_millis() / 1000,
+            author: author.clone(),
+            content: self.content.clone(),
+            image: self.image.clone(),
+            image_type: self.image_type.clone(),
+            reciever_read: false,
+        }
+    }
 }
 
 impl Message {
@@ -77,10 +99,26 @@ impl Message {
         self.image = Some(image);
         Ok(())
     }
+
+    pub fn save_message(
+        &self,
+        chat: &Chat,
+        user: &User,
+        db: &mut DB,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        if self.image.is_some() {
+            db.add_image_to_message_and_insert(user, chat, self)?;
+        } else {
+            db.insert_message(self)?;
+        }
+
+        Ok(())
+    }
 }
 
 impl Document for Message {
     fn from_bytes(_key: &[u8], value: &[u8]) -> Result<Self, MkrkError> {
+        println!("Deserializing message from bytes");
         let serde_result: Message =
             serde_cbor::from_slice(value).map_err(|err| MkrkError::Serde(format!("{}", err)))?;
         Ok(serde_result)
@@ -128,13 +166,18 @@ impl DB {
         Ok(messages)
     }
 
-    pub fn add_image_to_message(
+    pub fn add_image_to_message_and_insert(
         &mut self,
         sender: &User,
         chat: &Chat,
         message: &Message,
-        image: &Image,
     ) -> Result<(), Box<dyn std::error::Error>> {
+        let image = match &message.image {
+            Some(image) => image,
+            None => {
+                return Err("Message does not have an image".into());
+            }
+        };
         let image_path = message.get_path_for_image(chat, sender, &image.image_type, &self);
 
         let parent_dir = Path::new(&image_path).parent().unwrap();
@@ -150,6 +193,11 @@ impl DB {
             image_type: Some(image.image_type.clone()),
             ..message.clone()
         };
+
+        println!(
+            "Adding message to chat with image message.rs {:?}",
+            new_message
+        );
 
         self.insert_message(&new_message)?;
         Ok(())

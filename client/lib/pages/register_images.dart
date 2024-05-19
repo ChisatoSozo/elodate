@@ -15,6 +15,7 @@ class RegisterImagesPage extends StatefulWidget {
 
 class RegisterImagesPageState extends State<RegisterImagesPage> {
   late ImageGridFormFieldController _imageGridController;
+  final GlobalKey<FormState> formKey = GlobalKey<FormState>();
 
   @override
   void initState() {
@@ -33,46 +34,51 @@ class RegisterImagesPageState extends State<RegisterImagesPage> {
 
   @override
   Widget build(BuildContext context) {
-    return ResponsiveScaffold(
-      title: "Upload your images:",
-      child: SingleChildScrollView(
-        child: Column(
-          children: [
-            ImageGridFormField(
-              controller: _imageGridController,
-              onSaved: (images) {
-                if (images == null) return;
-                for (int i = 0; i < images.length; i++) {
-                  final image = images[i];
-                  if (image.$1 != null && image.$2 != null) {
-                    Provider.of<RegisterModel>(context, listen: false)
-                        .setImage(image.$1!, image.$2!, i);
-                  }
-                }
-              },
-              validator: (images) {
-                // Add validation logic if needed
-                return null;
-              },
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                _saveImagesAndProceed();
-              },
-              child: const Text('Register'),
-            ),
-          ],
+    return Form(
+      key: formKey,
+      child: ResponsiveScaffold(
+        title: "Upload your images:",
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              ImageGridFormField(
+                controller: _imageGridController,
+                validator: (images) {
+                  // Add validation logic if needed
+                  return null;
+                },
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () {
+                  _saveImagesAndProceed();
+                },
+                child: const Text('Register'),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
   void _saveImagesAndProceed() {
-    final form = Form.of(context);
-    if (form.validate()) {
-      form.save();
-      nextPage(context, widget);
+    var images = _imageGridController.value;
+
+    if (images.every((image) => image.$1 == null || image.$2 == null) ||
+        images.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please upload at least one image')),
+      );
     }
+
+    for (int i = 0; i < images.length; i++) {
+      final image = images[i];
+      if (image.$1 != null && image.$2 != null) {
+        Provider.of<RegisterModel>(context, listen: false)
+            .setImage(image.$1!, image.$2!, i);
+      }
+    }
+    nextPage(context, widget);
   }
 }

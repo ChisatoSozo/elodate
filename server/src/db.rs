@@ -53,6 +53,7 @@ pub fn get_single_from_key<T: Document>(
             None => Err(Error::Serde("No document found".to_owned())),
         }
     }?;
+
     let document: Option<T> = db.get(doc_id)?;
     match document {
         Some(document) => Ok(document),

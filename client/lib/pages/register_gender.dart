@@ -14,6 +14,8 @@ class RegisterGenderPage extends StatefulWidget {
 class RegisterGenderPageState extends State<RegisterGenderPage> {
   late GenderPickerController _genderPickerController;
 
+  final GlobalKey<FormState> formKey = GlobalKey<FormState>();
+
   @override
   void initState() {
     super.initState();
@@ -28,35 +30,32 @@ class RegisterGenderPageState extends State<RegisterGenderPage> {
     super.dispose();
   }
 
-  void _updateGender(double newPercentMale, double newPercentFemale) {
-    setState(() {
-      _genderPickerController.updateValues(newPercentMale, newPercentFemale);
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
-    return ResponsiveScaffold(
-      title: "Select your gender:",
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          GenderPicker(
-            controller: _genderPickerController,
-            onUpdate: _updateGender,
-          ),
-          const SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: _saveGenderAndProceed,
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text('Next'),
-                Icon(Icons.arrow_forward),
-              ],
+    return Form(
+      key: formKey,
+      child: ResponsiveScaffold(
+        title: "Select your gender:",
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            GenderPicker(
+              controller: _genderPickerController,
+              onUpdate: (_, __) {},
             ),
-          ),
-        ],
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: _saveGenderAndProceed,
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('Next'),
+                  Icon(Icons.arrow_forward),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

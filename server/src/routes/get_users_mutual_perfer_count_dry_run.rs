@@ -7,10 +7,7 @@ use paperclip::actix::{
     web::{self, Json},
 };
 
-use crate::{
-    db::DB,
-    models::{preference, shared::UuidModel},
-};
+use crate::{db::DB, models::shared::UuidModel};
 
 #[api_v2_operation]
 #[post("/get_users_mutual_perfer_count_dry_run")]

@@ -4,6 +4,8 @@ import 'dart:typed_data';
 import 'package:client/api/pkg/lib/api.dart';
 import 'package:client/components/gender_picker.dart';
 import 'package:client/components/image_grid.dart';
+import 'package:client/components/location_getter.dart';
+import 'package:client/utils/utils.dart';
 import 'package:flutter/material.dart';
 
 class SettingsPageMe extends StatefulWidget {
@@ -22,10 +24,14 @@ class SettingsPageMeState extends State<SettingsPageMe> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController usernameController;
   late TextEditingController displayNameController;
+  late TextEditingController descriptionController;
   late GenderPickerController genderController;
   late ImageGridFormFieldController imageGridController;
+  late LocationController locationController;
   bool _isProfileExpanded = false;
   bool _isGenderExpanded = false;
+  bool _isImagesExpanded = false;
+  bool _isLocationExpanded = false;
 
   @override
   void initState() {
@@ -34,6 +40,8 @@ class SettingsPageMeState extends State<SettingsPageMe> {
     usernameController = TextEditingController(text: widget.me.user.username);
     displayNameController =
         TextEditingController(text: widget.me.user.displayName);
+    descriptionController =
+        TextEditingController(text: widget.me.user.description);
     genderController = GenderPickerController(
       percentMale: (widget.me.user.gender.percentMale as double) / 100,
       percentFemale: (widget.me.user.gender.percentFemale as double) / 100,
@@ -45,14 +53,25 @@ class SettingsPageMeState extends State<SettingsPageMe> {
       String? mimeType = widget.me.images[i].imageType.toString();
       imageGridController.updateValue(i, (imageData, mimeType));
     }
+
+    var (lat, long) = decodeLatLongFromI16(
+        widget.me.user.location.lat, widget.me.user.location.long);
+
+    // Initialize location controller
+    locationController = LocationController(
+      latitude: lat, // Provide initial latitude
+      longitude: long, // Provide initial longitude
+    );
   }
 
   @override
   void dispose() {
     usernameController.dispose();
     displayNameController.dispose();
+    descriptionController.dispose();
     genderController.dispose();
     imageGridController.dispose();
+    locationController.dispose();
     super.dispose();
   }
 
@@ -69,11 +88,10 @@ class SettingsPageMeState extends State<SettingsPageMe> {
               expandedHeaderPadding: const EdgeInsets.all(0),
               expansionCallback: (int index, bool isExpanded) {
                 setState(() {
-                  if (index == 0) {
-                    _isProfileExpanded = isExpanded;
-                  } else if (index == 1) {
-                    _isGenderExpanded = isExpanded;
-                  }
+                  _isProfileExpanded = index == 0 ? isExpanded : false;
+                  _isGenderExpanded = index == 1 ? isExpanded : false;
+                  _isImagesExpanded = index == 2 ? isExpanded : false;
+                  _isLocationExpanded = index == 3 ? isExpanded : false;
                 });
               },
               children: <ExpansionPanel>[
@@ -116,25 +134,19 @@ class SettingsPageMeState extends State<SettingsPageMe> {
                               : null,
                         ),
                         const SizedBox(height: 16.0),
-                        ImageGridFormField(
-                          controller: imageGridController,
-                          onSaved: (images) {
-                            //TODO: Handle saving the form data
+                        TextFormField(
+                          controller: descriptionController,
+                          decoration: const InputDecoration(
+                            labelText: 'Description',
+                            border: OutlineInputBorder(),
+                          ),
+                          maxLines:
+                              null, // Allows the text field to expand vertically
+                          minLines: 1, // Starts with a single line
+                          onFieldSubmitted: (value) {
+                            // TODO: autosubmit
                           },
-                          validator: (images) {
-                            if (images == null) {
-                              return 'Please upload at least one image';
-                            }
-                            if (images.isEmpty) {
-                              return 'Please upload at least one image';
-                            }
-                            if (images.every((element) =>
-                                element.$1 == null && element.$2 == null)) {
-                              return 'Please upload at least one image';
-                            }
-                            return null;
-                          },
-                        ),
+                        )
                       ],
                     ),
                   ),
@@ -157,6 +169,52 @@ class SettingsPageMeState extends State<SettingsPageMe> {
                     ),
                   ),
                   isExpanded: _isGenderExpanded,
+                ),
+                ExpansionPanel(
+                  canTapOnHeader: true,
+                  headerBuilder: (BuildContext context, bool isExpanded) {
+                    return const ListTile(
+                      title: Text('Images'),
+                    );
+                  },
+                  body: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: ImageGridFormField(
+                      controller: imageGridController,
+                      validator: (images) {
+                        if (images == null) {
+                          return 'Please upload at least one image';
+                        }
+                        if (images.isEmpty) {
+                          return 'Please upload at least one image';
+                        }
+                        if (images.every((element) =>
+                            element.$1 == null && element.$2 == null)) {
+                          return 'Please upload at least one image';
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                  isExpanded: _isImagesExpanded,
+                ),
+                ExpansionPanel(
+                  canTapOnHeader: true,
+                  headerBuilder: (BuildContext context, bool isExpanded) {
+                    return const ListTile(
+                      title: Text('Location'),
+                    );
+                  },
+                  body: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: LocationPickerFormField(
+                      controller: locationController,
+                      onSaved: (locationValues) {
+                        // TODO: Handle saving the form data
+                      },
+                    ),
+                  ),
+                  isExpanded: _isLocationExpanded,
                 ),
               ],
             ),

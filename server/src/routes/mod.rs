@@ -13,5 +13,6 @@ pub mod get_users_mutual_perfer_count;
 pub mod get_users_mutual_perfer_count_dry_run;
 pub mod login;
 pub mod rate;
+pub mod send_message;
 pub mod signup;
 pub mod update_user;

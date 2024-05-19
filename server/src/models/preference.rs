@@ -247,6 +247,8 @@ impl DB {
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema, Clone, PartialEq)]
 pub struct AdditionalPreference<'a> {
     pub name: &'a str,
+    pub display: &'a str,
+    pub category: &'a str,
     pub min: i16,
     pub max: i16,
     pub mean: f64,
@@ -263,6 +265,8 @@ impl AdditionalPreference<'_> {
     pub fn get_public(&self) -> AdditionalPreferencePublic {
         AdditionalPreferencePublic {
             name: self.name.to_string(),
+            display: self.display.to_string(),
+            category: self.category.to_string(),
             min: self.min,
             max: self.max,
             linear_mapping: self.linear_mapping.clone(),
@@ -281,6 +285,8 @@ impl AdditionalPreference<'_> {
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema, Clone, PartialEq)]
 pub struct AdditionalPreferencePublic {
     pub name: String,
+    pub display: String,
+    pub category: String,
     pub min: i16,
     pub max: i16,
     pub linear_mapping: Option<LinearMapping>,
@@ -424,6 +430,8 @@ const P_NONE: f64 = 1.0;
 pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY] = [
     AdditionalPreference {
         name: "age",
+        display: "Age",
+        category: "mandatory",
         min: 18,
         max: 120,
         mean: 35.0,
@@ -440,6 +448,8 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
     },
     AdditionalPreference {
         name: "percent_male",
+        display: "Percent Male",
+        category: "mandatory",
         min: 0,
         max: 100,
         mean: 50.0,
@@ -456,6 +466,8 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
     },
     AdditionalPreference {
         name: "percent_female",
+        display: "Percent Female",
+        category: "mandatory",
         min: 0,
         max: 100,
         mean: 50.0,
@@ -472,6 +484,8 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
     },
     AdditionalPreference {
         name: "latitude",
+        display: "Latitude",
+        category: "mandatory",
         min: -32767,
         max: 32767,
         mean: 0.0,
@@ -488,6 +502,8 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
     },
     AdditionalPreference {
         name: "longitude",
+        display: "Longitude",
+        category: "mandatory",
         min: -32767,
         max: 32767,
         mean: 0.0,
@@ -504,6 +520,8 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
     },
     AdditionalPreference {
         name: "salary_per_year",
+        display: "Salary per Year",
+        category: "financial",
         min: 0,
         max: 100,
         mean: 50000.0,
@@ -523,6 +541,8 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
     },
     AdditionalPreference {
         name: "height_cm",
+        display: "Height (cm)",
+        category: "physical",
         min: 0,
         max: 250,
         mean: 175.0,
@@ -539,6 +559,8 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
     },
     AdditionalPreference {
         name: "bmi",
+        display: "BMI",
+        category: "physical",
         min: 0,
         max: 100,
         mean: 25.0,
@@ -555,6 +577,8 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
     },
     AdditionalPreference {
         name: "number_of_times_a_week_you_want_to_have_sex",
+        display: "Number of Times a Week You Want to Have Sex",
+        category: "personal",
         min: 0,
         max: 100,
         mean: 2.0,
@@ -571,6 +595,8 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
     },
     AdditionalPreference {
         name: "is_trans",
+        display: "Is Transgender",
+        category: "personal",
         min: 0,
         max: 1,
         mean: 0.0,
@@ -584,8 +610,10 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
     },
     AdditionalPreference {
         name: "political_affiliation",
+        display: "Political Affiliation",
+        category: "beliefs",
         min: 0,
-        max: 5,
+        max: 4,
         mean: 2.0,
         std_dev: 1.0,
         mean_alteration: MeanAlteration::Set,
@@ -606,8 +634,10 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
     },
     AdditionalPreference {
         name: "fitness_level",
+        display: "Fitness Level",
+        category: "physical",
         min: 0,
-        max: 5,
+        max: 4,
         mean: 2.0,
         std_dev: 1.0,
         mean_alteration: MeanAlteration::Set,
@@ -622,6 +652,8 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
     },
     AdditionalPreference {
         name: "number_of_children",
+        display: "Number of Children You Have",
+        category: "personal",
         min: 0,
         max: 10,
         mean: 1.0,
@@ -638,6 +670,8 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
     },
     AdditionalPreference {
         name: "number_of_dogs",
+        display: "Number of Dogs You Have",
+        category: "personal",
         min: 0,
         max: 10,
         mean: 0.0,
@@ -654,6 +688,8 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
     },
     AdditionalPreference {
         name: "number_of_cats",
+        display: "Number of Cats You Have",
+        category: "personal",
         min: 0,
         max: 10,
         mean: 0.0,
@@ -670,8 +706,10 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
     },
     AdditionalPreference {
         name: "vegetarianness",
+        display: "Vegetarianness",
+        category: "diet",
         min: 0,
-        max: 5,
+        max: 4,
         mean: 2.0,
         std_dev: 1.0,
         mean_alteration: MeanAlteration::Set,
@@ -692,8 +730,10 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
     },
     AdditionalPreference {
         name: "gamerness_level",
+        display: "Gamerness Level",
+        category: "hobbies",
         min: 0,
-        max: 5,
+        max: 4,
         mean: 2.0,
         std_dev: 1.0,
         mean_alteration: MeanAlteration::Set,
@@ -714,8 +754,10 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
     },
     AdditionalPreference {
         name: "extroversion_level",
+        display: "Extroversion Level",
+        category: "personality",
         min: 0,
-        max: 5,
+        max: 4,
         mean: 2.0,
         std_dev: 1.0,
         mean_alteration: MeanAlteration::Set,
@@ -736,8 +778,10 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
     },
     AdditionalPreference {
         name: "how_much_you_want_to_go_outside",
+        display: "How Much You Want to Go Outside",
+        category: "hobbies",
         min: 0,
-        max: 5,
+        max: 4,
         mean: 2.0,
         std_dev: 1.0,
         mean_alteration: MeanAlteration::Set,
@@ -758,8 +802,10 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
     },
     AdditionalPreference {
         name: "how_much_you_want_to_travel",
+        display: "How Much You Want to Travel",
+        category: "hobbies",
         min: 0,
-        max: 5,
+        max: 4,
         mean: 2.0,
         std_dev: 1.0,
         mean_alteration: MeanAlteration::Set,
@@ -780,8 +826,10 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
     },
     AdditionalPreference {
         name: "how_cleanly_are_you",
+        display: "How Cleanly Are You",
+        category: "personality",
         min: 0,
-        max: 5,
+        max: 4,
         mean: 2.0,
         std_dev: 1.0,
         mean_alteration: MeanAlteration::Set,
@@ -802,8 +850,10 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
     },
     AdditionalPreference {
         name: "hoarder_level",
+        display: "Hoarder Level",
+        category: "personality",
         min: 0,
-        max: 5,
+        max: 4,
         mean: 2.0,
         std_dev: 1.0,
         mean_alteration: MeanAlteration::Set,
@@ -818,8 +868,10 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
     },
     AdditionalPreference {
         name: "how_much_you_want_to_have_children",
+        display: "How Much You Want to Have Children",
+        category: "personal",
         min: 0,
-        max: 5,
+        max: 4,
         mean: 2.0,
         std_dev: 1.0,
         mean_alteration: MeanAlteration::Set,
@@ -840,8 +892,10 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
     },
     AdditionalPreference {
         name: "how_much_you_want_to_get_married",
+        display: "How Much You Want to Get Married",
+        category: "personal",
         min: 0,
-        max: 5,
+        max: 4,
         mean: 2.0,
         std_dev: 1.0,
         mean_alteration: MeanAlteration::Set,
@@ -862,6 +916,8 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
     },
     AdditionalPreference {
         name: "drinks_consumed_per_week",
+        display: "Drinks Consumed per Week",
+        category: "diet",
         min: 0,
         max: 50,
         mean: 5.0,
@@ -878,6 +934,8 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
     },
     AdditionalPreference {
         name: "smokes_per_day",
+        display: "Smokes per Day",
+        category: "diet",
         min: 0,
         max: 50,
         mean: 5.0,
@@ -894,6 +952,8 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
     },
     AdditionalPreference {
         name: "marajuana_consumed_per_week_joints",
+        display: "Marijuana Consumed per Week (Joints)",
+        category: "diet",
         min: 0,
         max: 50,
         mean: 2.0,
@@ -910,6 +970,8 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
     },
     AdditionalPreference {
         name: "hours_a_day_spent_on_social_media",
+        display: "Hours a Day Spent on Social Media",
+        category: "personal",
         min: 0,
         max: 24,
         mean: 2.0,
@@ -924,6 +986,24 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
         labels: None,
         probability_to_be_none: P_NONE,
     },
+    AdditionalPreference {
+        name: "pubic_hair_length",
+        display: "Pubic Hair Length",
+        category: "physical",
+        min: 0,
+        max: 4,
+        mean: 2.0,
+        std_dev: 1.0,
+        mean_alteration: MeanAlteration::Set,
+        std_dev_alteration: StdDevAlteration::FromMean(Linear {
+            slope: 0.1,
+            intercept: 0.0,
+        }),
+        linear_mapping: None,
+        optional: true,
+        labels: Some(["Shaved", "Trimmed", "Average", "Bushy", "Jungle"]),
+        probability_to_be_none: P_NONE,
+    },
 ];
 
-pub const PREFERENCE_CARDINALITY: usize = 28;
+pub const PREFERENCE_CARDINALITY: usize = 29;

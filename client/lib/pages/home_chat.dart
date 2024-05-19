@@ -14,7 +14,7 @@ class ChatPage extends StatefulWidget {
 }
 
 class ChatPageState extends State<ChatPage> {
-  List<(ChatAndLastMessage, UserWithImagesAndElo)>? chats;
+  List<(Chat, UserWithImagesAndElo)>? chats;
 
   @override
   void initState() {
@@ -56,14 +56,14 @@ class ChatPageState extends State<ChatPage> {
                   title: Text(user.user.displayName,
                       style: const TextStyle(
                           fontSize: 16, fontWeight: FontWeight.bold)),
-                  subtitle: Text(chat.lastMessage.content,
+                  subtitle: Text(chat.mostRecentMessage,
                       style: const TextStyle(fontSize: 14)),
                   onTap: () {
                     Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (context) => ChatScreen(
-                              chatId: chat.chat.uuid,
+                              chatId: chat.uuid,
                               displayName: user.user.displayName),
                         ));
                   },

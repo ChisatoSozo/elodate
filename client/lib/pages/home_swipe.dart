@@ -12,18 +12,30 @@ class SwipePage extends StatefulWidget {
 }
 
 class SwipePageState extends State<SwipePage> {
-  late Future<UserWithImagesAndEloAndUuid> _nextUserFuture;
+  UserWithImagesAndEloAndUuid? _nextUser;
+  bool _isLoading = true;
+  bool _hasError = false;
 
   @override
   void initState() {
     super.initState();
-    _nextUserFuture = getNextUser(context);
+    _loadNextUser();
   }
 
-  Future<UserWithImagesAndEloAndUuid> getNextUser(BuildContext context) async {
-    final user = await Provider.of<HomeModel>(context, listen: false)
-        .getPotentialMatch();
-    return user;
+  Future<void> _loadNextUser() async {
+    try {
+      final user = await Provider.of<HomeModel>(context, listen: false)
+          .getPotentialMatch();
+      setState(() {
+        _nextUser = user;
+        _isLoading = false;
+      });
+    } catch (error) {
+      setState(() {
+        _hasError = true;
+        _isLoading = false;
+      });
+    }
   }
 
   Future<void> handleSwipe(
@@ -33,36 +45,26 @@ class SwipePageState extends State<SwipePage> {
     } else {
       await Provider.of<HomeModel>(context, listen: false).dislikeUser(user);
     }
-    setState(() {
-      _nextUserFuture = getNextUser(context);
-    });
+    _loadNextUser();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Swipe"),
-        automaticallyImplyLeading: false,
-      ),
-      body: FutureBuilder<UserWithImagesAndEloAndUuid>(
-        future: _nextUserFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return const Center(child: Text('Error loading user'));
-          } else if (!snapshot.hasData) {
-            return const Center(child: Text('No user available'));
-          } else {
-            final user = snapshot.data!;
-            return SwipeableUserCard(
-              user: user,
-              onSwipe: handleSwipe,
-            );
-          }
-        },
-      ),
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_hasError) {
+      return const Center(child: Text('Error loading user'));
+    }
+
+    if (_nextUser == null) {
+      return const Center(child: Text('No user available'));
+    }
+
+    return SwipeableUserCard(
+      user: _nextUser!,
+      onSwipe: handleSwipe,
     );
   }
 }

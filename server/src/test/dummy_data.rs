@@ -22,7 +22,8 @@ async fn insert_dummy_data() -> Result<(), Box<dyn std::error::Error>> {
     let mut uuids = vec![];
 
     let count = 100;
-    for _ in 0..count {
+    for n in 0..count {
+        println!("Inserting dummy data {}/{}", n, count);
         let user: User = User::fake_gen(&true);
 
         let mut images = vec![];
@@ -44,7 +45,7 @@ async fn insert_dummy_data() -> Result<(), Box<dyn std::error::Error>> {
 
     //upsert chats
     for n in 0..5 {
-        let messages: Vec<Message> = (0..4)
+        let mut messages: Vec<Message> = (0..4)
             .map(|n| Message {
                 uuid: UuidModel::new(),
                 sent_at: chrono::Utc::now().timestamp_millis() / 1000,
@@ -56,6 +57,7 @@ async fn insert_dummy_data() -> Result<(), Box<dyn std::error::Error>> {
                 content: fake::faker::lorem::en::Sentence(1..2).fake(),
                 image: None,
                 image_type: None,
+                reciever_read: false,
             })
             .collect();
 
@@ -64,6 +66,9 @@ async fn insert_dummy_data() -> Result<(), Box<dyn std::error::Error>> {
             user1: (&user).uuid.clone(),
             user2: uuids[n].clone(),
             messages: messages.iter().map(|m| m.uuid.clone()).collect(),
+            most_recent_message: messages.last().unwrap().content.clone(),
+            user1_unread: 0,
+            user2_unread: 0,
         };
 
         db.insert_chat(&chat)?;
@@ -72,7 +77,8 @@ async fn insert_dummy_data() -> Result<(), Box<dyn std::error::Error>> {
         }
 
         user.chats.push(chat.uuid.clone());
-        db.add_image_to_message(&user, &chat, &messages[0], &Image::default())?;
+        messages[0].image = Some(Image::default());
+        db.add_image_to_message_and_insert(&user, &chat, &messages[0])?;
     }
 
     upsert_user(&user, images, &mut db).await?;

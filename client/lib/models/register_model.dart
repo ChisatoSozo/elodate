@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:client/api/pkg/lib/api.dart';
 import 'package:client/models/image_model.dart';
+import 'package:client/pages/home.dart';
 import 'package:client/pages/register_birthdate.dart';
 import 'package:client/pages/register_finish.dart';
 import 'package:client/pages/register_gender.dart';
@@ -11,7 +12,7 @@ import 'package:client/pages/register_location.dart';
 import 'package:client/pages/register_name.dart';
 import 'package:client/pages/register_password.dart';
 import 'package:client/pages/register_start.dart';
-import 'package:client/utils.dart';
+import 'package:client/utils/utils.dart';
 import 'package:flutter/material.dart';
 
 const pages = [
@@ -37,8 +38,15 @@ void nextPage(BuildContext context, StatefulWidget page) {
       ),
     );
   } else {
-    // Optionally handle what happens if it's the last page or not found
-    print("No next page available or page not found!");
+    Navigator.pushAndRemoveUntil(
+      context,
+      PageRouteBuilder(
+        pageBuilder: (context, anim1, anim2) => const HomePage(),
+        transitionDuration: Duration.zero,
+        reverseTransitionDuration: Duration.zero,
+      ),
+      (route) => false,
+    );
   }
 }
 
@@ -63,7 +71,7 @@ class RegisterModel extends ChangeNotifier {
 
   DateTime? get birthdate => _birthdate;
 
-  List<ImageModel> images = [];
+  final List<ImageModel> _images = [];
 
   void setLocation(double lat, double long) {
     _lat = lat;
@@ -93,10 +101,10 @@ class RegisterModel extends ChangeNotifier {
   }
 
   void setImage(Uint8List data, String mimeType, int index) {
-    if (images.length <= index) {
-      images.add(ImageModel(data: data, mimeType: mimeType));
+    if (_images.length <= index) {
+      _images.add(ImageModel(data: data, mimeType: mimeType));
     } else {
-      images[index] = ImageModel(data: data, mimeType: mimeType);
+      _images[index] = ImageModel(data: data, mimeType: mimeType);
     }
 
     notifyListeners();
@@ -132,7 +140,7 @@ class RegisterModel extends ChangeNotifier {
     if (_birthdate == null) {
       throw Exception('Birthdate is required');
     }
-    if (images.isEmpty) {
+    if (_images.isEmpty) {
       throw Exception('Images are required');
     }
 
@@ -146,19 +154,21 @@ class RegisterModel extends ChangeNotifier {
             percentFemale: (_percentFemale! * 100).toInt(),
             percentMale: (_percentMale! * 100).toInt()),
         preference: UserWithImagesUserPreference(
-          age: PreferenceAge(max: 100, min: 18),
-          latitude: PreferenceAge(max: 32767, min: -32768),
-          longitude: PreferenceAge(max: 32767, min: -32768),
-          percentFemale: PreferenceAge(max: 100, min: 0),
-          percentMale: PreferenceAge(max: 100, min: 0),
+          age: PreferenceAdditionalPreferencesValue(max: 100, min: 18),
+          latitude:
+              PreferenceAdditionalPreferencesValue(max: 32767, min: -32768),
+          longitude:
+              PreferenceAdditionalPreferencesValue(max: 32767, min: -32768),
+          percentFemale: PreferenceAdditionalPreferencesValue(max: 100, min: 0),
+          percentMale: PreferenceAdditionalPreferencesValue(max: 100, min: 0),
         ),
         username: _username!,
         location: UserWithImagesUserLocation(lat: lat, long: long),
         description: '',
       ),
       password: _password!,
-      images: images
-          .map((e) => ChatAndLastMessageLastMessageImage(
+      images: _images
+          .map((e) => MessageImage(
               b64Content: base64Encode(e.data),
               imageType: mimeToType(e.mimeType)))
           .toList(),

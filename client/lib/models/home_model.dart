@@ -6,14 +6,31 @@ class HomeModel extends ChangeNotifier {
   DefaultApi? _client;
   UserWithImagesAndEloAndUuid? _me;
   final List<UserWithImagesAndEloAndUuid> _potentialMatches = [];
+  List<AdditionalPreferencePublic>? _additionalPreferences;
 
   Future<DefaultApi> getClient() async {
     _client ??= await initClient();
     return _client!;
   }
 
-  Future<List<(ChatAndLastMessage, UserWithImagesAndElo)>> getChats() async {
+  Future<List<AdditionalPreferencePublic>> getAdditionalPreferences() async {
+    _additionalPreferences ??= await initAdditionalPreferences();
+    return _additionalPreferences!;
+  }
+
+  Future<List<(Chat, UserWithImagesAndElo)>> getChats() async {
     return await initChats();
+  }
+
+  Future<String> sendChatMessage(
+      String chatUuid, SendMessageInputMessage message) async {
+    var client = await getClient();
+    var result = await client.sendMessagePost(
+        SendMessageInput(chatUuid: chatUuid, message: message));
+    if (result == null) {
+      throw Exception('Failed to send message');
+    }
+    return result;
   }
 
   Future<UserWithImagesAndEloAndUuid> getMe() async {
@@ -70,7 +87,16 @@ class HomeModel extends ChangeNotifier {
     return client;
   }
 
-  Future<List<(ChatAndLastMessage, UserWithImagesAndElo)>> initChats() async {
+  Future<List<AdditionalPreferencePublic>> initAdditionalPreferences() async {
+    var client = await getClient();
+    var result = await client.getAdditionalPreferencesGet();
+    if (result == null) {
+      throw Exception('Failed to get additional preferences');
+    }
+    return result;
+  }
+
+  Future<List<(Chat, UserWithImagesAndElo)>> initChats() async {
     var client = await getClient();
     var me = await getMe();
     var result = await client.getMyChatsPost();
@@ -78,10 +104,10 @@ class HomeModel extends ChangeNotifier {
     if (result == null) {
       throw Exception('Failed to get chat messages');
     }
-    List<(ChatAndLastMessage, UserWithImagesAndElo)> chats = [];
+    List<(Chat, UserWithImagesAndElo)> chats = [];
     for (var chat in result) {
-      var notMe = [chat.chat.user1, chat.chat.user2]
-          .firstWhere((element) => element != me.uuid);
+      var notMe =
+          [chat.user1, chat.user2].firstWhere((element) => element != me.uuid);
       var user = await client.getUserWithSingleImagePost(notMe);
       if (user == null) {
         throw Exception('Failed to get user');

@@ -10,6 +10,7 @@ use paperclip::actix::{
 use crate::{
     db::DB,
     models::{message::Message, shared::UuidModel},
+    procedures::retrieve_chat_messages::retrieve_chat_messages,
 };
 
 #[api_v2_operation]
@@ -32,14 +33,9 @@ pub async fn get_chat_messages(
         return Err(actix_web::error::ErrorBadRequest("Chat not found"));
     }
 
-    let chat = db.get_chat(&chat_uuid).map_err(|e| {
-        println!("Failed to get chat {:?}", e);
-        actix_web::error::ErrorInternalServerError("Failed to get chat")
-    })?;
-
-    let messages = chat.get_messages(&mut db).map_err(|e| {
-        println!("Failed to get messages {:?}", e);
-        actix_web::error::ErrorInternalServerError("Failed to get messages")
+    let messages = retrieve_chat_messages(chat_uuid, user, &mut db).map_err(|e| {
+        println!("Failed to get chat messages {:?}", e);
+        actix_web::error::ErrorInternalServerError("Failed to get chat messages")
     })?;
 
     Ok(Json(messages))

@@ -19,7 +19,6 @@ class ImageGridFormField extends FormField<List<(Uint8List?, String?)>> {
 
   ImageGridFormField({
     super.key,
-    super.onSaved,
     super.validator,
     required this.controller,
     bool autovalidate = false,
