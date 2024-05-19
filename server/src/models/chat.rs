@@ -53,7 +53,15 @@ impl Chat {
     ) -> Result<(), Box<dyn Error>> {
         println!("Adding message to chat {:?}", message);
         self.messages.push(message.uuid.clone());
-        self.most_recent_message = message.content.clone();
+        self.most_recent_message = if message.content.is_empty() {
+            if message.image_type.is_some() {
+                "Image".to_string()
+            } else {
+                return Err("Message content is empty".into());
+            }
+        } else {
+            message.content.clone()
+        };
         if self.user1 == message.author {
             self.user1_unread += 1;
         } else {

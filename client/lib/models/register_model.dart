@@ -150,10 +150,10 @@ class RegisterModel extends ChangeNotifier {
       user: UserWithImagesUser(
         birthdate: _birthdate!.millisecondsSinceEpoch ~/ 1000,
         displayName: _displayName!,
-        gender: UserWithImagesUserGender(
+        gender: UserPublicFieldsGender(
             percentFemale: (_percentFemale! * 100).toInt(),
             percentMale: (_percentMale! * 100).toInt()),
-        preference: UserWithImagesUserPreference(
+        preference: UserPublicFieldsPreference(
           age: PreferenceAdditionalPreferencesValue(max: 100, min: 18),
           latitude:
               PreferenceAdditionalPreferencesValue(max: 32767, min: -32768),
@@ -163,7 +163,7 @@ class RegisterModel extends ChangeNotifier {
           percentMale: PreferenceAdditionalPreferencesValue(max: 100, min: 0),
         ),
         username: _username!,
-        location: UserWithImagesUserLocation(lat: lat, long: long),
+        location: UserPublicFieldsLocation(lat: lat, long: long),
         description: '',
       ),
       password: _password!,

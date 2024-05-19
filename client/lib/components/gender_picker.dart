@@ -14,15 +14,20 @@ class GenderPickerController extends ValueNotifier<(double, double)> {
 }
 
 class GenderPickerFormField extends FormField<(double, double)> {
+  final GenderPickerController controller;
+  final void Function(double, double)? onUpdate;
+
   GenderPickerFormField({
     super.key,
-    required GenderPickerController controller,
+    required this.controller,
     required FormFieldSetter<(double, double)> onSaved,
+    this.onUpdate,
     super.validator,
     AutovalidateMode autovalidateMode = AutovalidateMode.disabled,
   }) : super(
           initialValue: controller.value,
           onSaved: onSaved,
+          autovalidateMode: autovalidateMode,
           builder: (FormFieldState<(double, double)> state) {
             return Column(
               children: <Widget>[
@@ -30,6 +35,9 @@ class GenderPickerFormField extends FormField<(double, double)> {
                   controller: controller,
                   onUpdate: (double newPercentMale, double newPercentFemale) {
                     state.didChange((newPercentMale, newPercentFemale));
+                    if (onUpdate != null) {
+                      onUpdate(newPercentMale, newPercentFemale);
+                    }
                   },
                 ),
                 if (state.hasError)

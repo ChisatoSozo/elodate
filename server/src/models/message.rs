@@ -118,7 +118,6 @@ impl Message {
 
 impl Document for Message {
     fn from_bytes(_key: &[u8], value: &[u8]) -> Result<Self, MkrkError> {
-        println!("Deserializing message from bytes");
         let serde_result: Message =
             serde_cbor::from_slice(value).map_err(|err| MkrkError::Serde(format!("{}", err)))?;
         Ok(serde_result)
@@ -156,16 +155,6 @@ impl DB {
         Ok(result)
     }
 
-    pub fn get_messages_from_chat(&mut self, chat: &Chat) -> Result<Vec<Message>, MkrkError> {
-        let message_uuids = chat.messages.clone();
-        let mut messages = Vec::new();
-        for message_uuid in message_uuids {
-            let message = get_single_from_key("uuid", message_uuid.0.as_bytes(), &mut self.db)?;
-            messages.push(message);
-        }
-        Ok(messages)
-    }
-
     pub fn add_image_to_message_and_insert(
         &mut self,
         sender: &User,
@@ -193,11 +182,6 @@ impl DB {
             image_type: Some(image.image_type.clone()),
             ..message.clone()
         };
-
-        println!(
-            "Adding message to chat with image message.rs {:?}",
-            new_message
-        );
 
         self.insert_message(&new_message)?;
         Ok(())

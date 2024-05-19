@@ -1,36 +1,45 @@
 import 'package:client/api/pkg/lib/api.dart';
 import 'package:client/components/distance_slider.dart';
 import 'package:client/components/range_slider.dart';
-import 'package:client/models/home_model.dart';
 import 'package:client/utils/preference_utils.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 
 class UserPreferenceForm extends StatefulWidget {
   final UserWithImagesAndEloAndUuid me;
+  final List<AdditionalPreferencePublic> additionalPreferences;
+  final UserWithImagesUserPreferenceController preferencesController;
 
-  const UserPreferenceForm({super.key, required this.me});
+  const UserPreferenceForm({
+    super.key,
+    required this.me,
+    required this.additionalPreferences,
+    required this.preferencesController,
+  });
 
   @override
   UserPreferenceFormState createState() => UserPreferenceFormState();
 }
 
 class UserPreferenceFormState extends State<UserPreferenceForm> {
-  static PreferenceAdditionalPreferencesValue defaultAgeRange =
-      PreferenceAdditionalPreferencesValue(max: 120, min: 18);
-  static PreferenceAdditionalPreferencesValue defaultPercentRange =
-      PreferenceAdditionalPreferencesValue(max: 100, min: 0);
-  static const List<int> presetDistances = [1, 2, 5, 10, 20, 50, 100, 250, 500];
+  static const List<int> presetDistances = [
+    1,
+    2,
+    5,
+    10,
+    20,
+    50,
+    100,
+    250,
+    500,
+    25000
+  ];
 
-  late RangeSliderFormFieldController _ageRangeController;
-  late RangeSliderFormFieldController _percentFemaleRangeController;
-  late RangeSliderFormFieldController _percentMaleRangeController;
   late List<RangeSliderFormFieldController> _additionalPreferencesControllers;
+  late List<void Function(PreferenceAdditionalPreferencesValue)>
+      _additionalPreferenceUpdaters;
 
   List<AdditionalPreferencePublic>? _additionalPreferences = [];
   int _distanceIndex = 5;
-  int numUsersIPrefer = 0;
-  int numUsersMutuallyPrefer = 0;
   Map<String, bool> _expandedCategories = {};
   bool _basicIsExpanded = true;
 
@@ -39,11 +48,6 @@ class UserPreferenceFormState extends State<UserPreferenceForm> {
     super.initState();
     _initializeDistanceIndex();
     _loadAdditionalPreferences();
-    _ageRangeController = RangeSliderFormFieldController(defaultAgeRange);
-    _percentFemaleRangeController =
-        RangeSliderFormFieldController(defaultPercentRange);
-    _percentMaleRangeController =
-        RangeSliderFormFieldController(defaultPercentRange);
   }
 
   void _initializeDistanceIndex() {
@@ -51,40 +55,57 @@ class UserPreferenceFormState extends State<UserPreferenceForm> {
     _distanceIndex = findClosestDistanceIndex(initialDistance, presetDistances);
   }
 
-  Future<void> _loadAdditionalPreferences() async {
-    try {
-      final homeModel = Provider.of<HomeModel>(context, listen: false);
-      _additionalPreferences = await homeModel.getAdditionalPreferences();
+  void _loadAdditionalPreferences() {
+    setState(() {
+      _additionalPreferences = widget.additionalPreferences;
       _additionalPreferencesControllers = _additionalPreferences!.map((pref) {
-        return RangeSliderFormFieldController(
-            PreferenceAdditionalPreferencesValue(
-                min: widget.me.user.preference.additionalPreferences[pref.name]
-                        ?.min ??
-                    pref.min,
-                max: widget.me.user.preference.additionalPreferences[pref.name]
-                        ?.max ??
-                    pref.max));
+        late PreferenceAdditionalPreferencesValue prefProc;
+
+        switch (pref.name) {
+          case 'age':
+            prefProc = widget.preferencesController.value.age;
+            break;
+          case 'percent_male':
+            prefProc = widget.preferencesController.value.percentMale;
+            break;
+          case 'percent_female':
+            prefProc = widget.preferencesController.value.percentFemale;
+            break;
+          case 'latitude':
+            prefProc = widget.preferencesController.value.latitude;
+            break;
+          case 'longitude':
+            prefProc = widget.preferencesController.value.longitude;
+            break;
+          default:
+            prefProc = widget.preferencesController.value
+                    .additionalPreferences[pref.name] ??
+                PreferenceAdditionalPreferencesValue(
+                  min: pref.min,
+                  max: pref.max,
+                );
+        }
+
+        return RangeSliderFormFieldController(prefProc);
+      }).toList();
+      _additionalPreferenceUpdaters = _additionalPreferences!.map((pref) {
+        return (PreferenceAdditionalPreferencesValue value) {
+          _handleAdditionalPreferenceUpdate(pref.name, value);
+        };
       }).toList();
       _initializeExpandedCategories();
-      setState(() {});
-    } catch (error) {
-      print(widget.me.user.preference.additionalPreferences);
-      setState(() {
-        _additionalPreferences = null;
-      });
-    }
+    });
   }
 
   void _initializeExpandedCategories() {
-    if (_additionalPreferences != null) {
-      _expandedCategories = {
-        for (var pref in _additionalPreferences!) pref.category: false
-      };
-    }
+    _expandedCategories = {
+      for (var pref in widget.additionalPreferences) pref.category: false
+    };
   }
 
   void _closeAllCategories() {
     setState(() {
+      _basicIsExpanded = false;
       _expandedCategories = {
         for (var key in _expandedCategories.keys) key: false
       };
@@ -93,150 +114,221 @@ class UserPreferenceFormState extends State<UserPreferenceForm> {
 
   void _toggleCategoryExpansion(String category) {
     setState(() {
+      var previousState = _expandedCategories[category]!;
       _closeAllCategories();
-      _expandedCategories[category] = !_expandedCategories[category]!;
+      _expandedCategories[category] = !previousState;
     });
   }
 
   void _toggleBasicExpansion() {
     setState(() {
+      var previousState = _basicIsExpanded;
       _closeAllCategories();
-      _basicIsExpanded = !_basicIsExpanded;
+      _basicIsExpanded = !previousState;
     });
+  }
+
+  void _handleAdditionalPreferenceUpdate(
+      String name, PreferenceAdditionalPreferencesValue value) {
+    widget.preferencesController.updateAdditionalPreference(name, value);
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_additionalPreferences == null) {
-      return const CircularProgressIndicator();
-    } else if (_additionalPreferences!.isEmpty) {
-      return const Text('No additional preferences available');
-    } else {
-      final categorizedPreferences =
-          _additionalPreferences!.skip(5).fold<Map<String, List<int>>>(
-        {},
-        (map, pref) {
-          final index = _additionalPreferences!.indexOf(pref);
-          map.putIfAbsent(pref.category, () => []).add(index);
-          return map;
-        },
-      );
+    final categorizedPreferences =
+        widget.additionalPreferences.skip(5).fold<Map<String, List<int>>>(
+      {},
+      (map, pref) {
+        final index = widget.additionalPreferences.indexOf(pref);
+        map.putIfAbsent(pref.category, () => []).add(index);
+        return map;
+      },
+    );
 
-      return Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              Text('Number of users I prefer: $numUsersIPrefer'),
-              Text(
-                  'Number of users that mutually prefer: $numUsersMutuallyPrefer'),
-              ExpansionPanelList(
-                expansionCallback: (int index, bool isExpanded) {
-                  if (index == 0) {
-                    _toggleBasicExpansion();
-                    return;
-                  }
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: SingleChildScrollView(
+        child: Column(
+          children: [
+            ExpansionPanelList(
+              expansionCallback: (int index, bool isExpanded) {
+                if (index == 0) {
+                  _toggleBasicExpansion();
+                  return;
+                }
 
-                  final category =
-                      categorizedPreferences.keys.elementAt(index - 1);
-                  _toggleCategoryExpansion(category);
-                },
-                children: [
-                  ExpansionPanel(
+                final category =
+                    categorizedPreferences.keys.elementAt(index - 1);
+                _toggleCategoryExpansion(category);
+              },
+              children: [
+                ExpansionPanel(
+                  headerBuilder: (BuildContext context, bool isExpanded) {
+                    return const ListTile(
+                      title: Text('Basic Preferences'),
+                    );
+                  },
+                  body: _basicIsExpanded
+                      ? Column(
+                          children: [
+                            RangeSliderFormField(
+                              title: 'Age Range',
+                              controller: _additionalPreferencesControllers[0],
+                              onUpdate: widget.preferencesController.updateAge,
+                              config: widget.additionalPreferences[0],
+                            ),
+                            DistanceSliderWidget(
+                              title: 'Distance Range (km)',
+                              distanceIndex: _distanceIndex,
+                              presetDistances: presetDistances,
+                              onChanged: (index) =>
+                                  setState(() => _distanceIndex = index),
+                            ),
+                            RangeSliderFormField(
+                              title: 'Percent Male',
+                              controller: _additionalPreferencesControllers[1],
+                              onUpdate: widget
+                                  .preferencesController.updatePercentMale,
+                              config: widget.additionalPreferences[1],
+                            ),
+                            RangeSliderFormField(
+                              title: 'Percent Female',
+                              controller: _additionalPreferencesControllers[2],
+                              onUpdate: widget
+                                  .preferencesController.updatePercentFemale,
+                              config: widget.additionalPreferences[2],
+                            ),
+                          ],
+                        )
+                      : const Text("loading..."),
+                  isExpanded: _basicIsExpanded,
+                  canTapOnHeader: true,
+                ),
+                ...categorizedPreferences.entries.map((entry) {
+                  final category = entry.key;
+                  final indices = entry.value;
+
+                  return ExpansionPanel(
+                    canTapOnHeader: true,
                     headerBuilder: (BuildContext context, bool isExpanded) {
-                      return const ListTile(
-                        title: Text('Basic Preferences'),
+                      return ListTile(
+                        title: Text(
+                          category[0].toUpperCase() + category.substring(1),
+                        ),
                       );
                     },
-                    body: Column(
-                      children: [
-                        RangeSliderFormField(
-                          title: 'Age Range',
-                          controller: _ageRangeController,
-                          config: _additionalPreferences![0],
-                        ),
-                        DistanceSliderWidget(
-                          title: 'Distance Range (km)',
-                          distanceIndex: _distanceIndex,
-                          presetDistances: presetDistances,
-                          onChanged: (index) =>
-                              setState(() => _distanceIndex = index),
-                        ),
-                        RangeSliderFormField(
-                          title: 'Percent Female',
-                          controller: _percentFemaleRangeController,
-                          config: _additionalPreferences![1],
-                        ),
-                        RangeSliderFormField(
-                          title: 'Percent Male',
-                          controller: _percentMaleRangeController,
-                          config: _additionalPreferences![2],
-                        ),
-                      ],
-                    ),
-                    isExpanded: _basicIsExpanded,
-                    canTapOnHeader: true,
-                  ),
-                  ...categorizedPreferences.entries.map((entry) {
-                    final category = entry.key;
-                    final indices = entry.value;
-
-                    return ExpansionPanel(
-                      canTapOnHeader: true,
-                      headerBuilder: (BuildContext context, bool isExpanded) {
-                        return ListTile(
-                          title: Text(
-                            category[0].toUpperCase() + category.substring(1),
-                          ),
-                        );
-                      },
-                      body: Column(
-                        children: indices.map((index) {
-                          final pref = _additionalPreferences![index];
-                          return RangeSliderFormField(
-                            title: pref.display,
-                            controller:
-                                _additionalPreferencesControllers[index],
-                            config: pref,
-                          );
-                        }).toList(),
-                      ),
-                      isExpanded: _expandedCategories[category]!,
-                    );
-                  })
-                ],
-              ),
-              ElevatedButton(
-                onPressed: _savePreferences,
-                child: const Text('Save'),
-              ),
-            ],
-          ),
+                    body: _expandedCategories[category]!
+                        ? Column(
+                            children: indices.map((index) {
+                              final pref = widget.additionalPreferences[index];
+                              return RangeSliderFormField(
+                                title: pref.display,
+                                controller:
+                                    _additionalPreferencesControllers[index],
+                                onUpdate: _additionalPreferenceUpdaters[index],
+                                config: pref,
+                              );
+                            }).toList(),
+                          )
+                        : const Text("loading..."),
+                    isExpanded: _expandedCategories[category]!,
+                  );
+                })
+              ],
+            ),
+          ],
         ),
-      );
-    }
+      ),
+    );
+  }
+}
+
+class UserWithImagesUserPreferenceController {
+  UserPublicFieldsPreference value;
+  void Function(UserPublicFieldsPreference) onUpdate;
+
+  UserWithImagesUserPreferenceController(
+      {required this.value, required this.onUpdate});
+
+  void updateValue(UserPublicFieldsPreference newValue) {
+    value = newValue;
+    onUpdate(newValue);
   }
 
-  Future<void> _savePreferences() async {
-    final preference = Preference(
-        age: _ageRangeController.value,
-        latitude: getLatLngRange(widget.me, presetDistances[_distanceIndex]).$1,
-        longitude:
-            getLatLngRange(widget.me, presetDistances[_distanceIndex]).$2,
-        percentFemale: _percentFemaleRangeController.value,
-        percentMale: _percentMaleRangeController.value,
-        additionalPreferences: {
-          for (int index = 5; index < _additionalPreferences!.length; index++)
-            _additionalPreferences![index].name:
-                _additionalPreferencesControllers[index].value
-        });
+  void updateAge(PreferenceAdditionalPreferencesValue age) {
+    value = UserPublicFieldsPreference(
+      additionalPreferences: value.additionalPreferences,
+      age: age,
+      latitude: value.latitude,
+      longitude: value.longitude,
+      percentFemale: value.percentFemale,
+      percentMale: value.percentMale,
+    );
+    onUpdate(value);
+  }
 
-    final homeModel = Provider.of<HomeModel>(context, listen: false);
-    homeModel
-        .getNumUsersIPreferDryRun(preference)
-        .then((value) => setState(() => numUsersIPrefer = value));
-    homeModel
-        .getNumUsersMutuallyPreferDryRun(preference)
-        .then((value) => setState(() => numUsersMutuallyPrefer = value));
+  void updateLatitude(PreferenceAdditionalPreferencesValue latitude) {
+    value = UserPublicFieldsPreference(
+      additionalPreferences: value.additionalPreferences,
+      age: value.age,
+      latitude: latitude,
+      longitude: value.longitude,
+      percentFemale: value.percentFemale,
+      percentMale: value.percentMale,
+    );
+    onUpdate(value);
+  }
+
+  void updateLongitude(PreferenceAdditionalPreferencesValue longitude) {
+    value = UserPublicFieldsPreference(
+      additionalPreferences: value.additionalPreferences,
+      age: value.age,
+      latitude: value.latitude,
+      longitude: longitude,
+      percentFemale: value.percentFemale,
+      percentMale: value.percentMale,
+    );
+    onUpdate(value);
+  }
+
+  void updatePercentFemale(PreferenceAdditionalPreferencesValue percentFemale) {
+    value = UserPublicFieldsPreference(
+      additionalPreferences: value.additionalPreferences,
+      age: value.age,
+      latitude: value.latitude,
+      longitude: value.longitude,
+      percentFemale: percentFemale,
+      percentMale: value.percentMale,
+    );
+    onUpdate(value);
+  }
+
+  void updatePercentMale(PreferenceAdditionalPreferencesValue percentMale) {
+    value = UserPublicFieldsPreference(
+      additionalPreferences: value.additionalPreferences,
+      age: value.age,
+      latitude: value.latitude,
+      longitude: value.longitude,
+      percentFemale: value.percentFemale,
+      percentMale: percentMale,
+    );
+    onUpdate(value);
+  }
+
+  void updateAdditionalPreference(
+      String name, PreferenceAdditionalPreferencesValue additionalPreference) {
+    final updatedPreferences =
+        Map<String, PreferenceAdditionalPreferencesValue>.from(
+            value.additionalPreferences);
+    updatedPreferences[name] = additionalPreference;
+    value = UserPublicFieldsPreference(
+      additionalPreferences: updatedPreferences,
+      age: value.age,
+      latitude: value.latitude,
+      longitude: value.longitude,
+      percentFemale: value.percentFemale,
+      percentMale: value.percentMale,
+    );
+    onUpdate(value);
   }
 }

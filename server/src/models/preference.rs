@@ -373,7 +373,7 @@ fn sample_range_from_additional_preference_and_prop(
 impl<'a> AdditionalPreference<'a> {
     pub fn sample(&self, rng: &mut ThreadRng) -> i16 {
         //get if none
-        if rng.gen_range(0.0..1.0) < self.probability_to_be_none {
+        if rng.gen_range(0.0..1.0) < P_NONE_PROP {
             return i16::MIN;
         }
 
@@ -425,7 +425,8 @@ pub struct LinearMapping {
     pub real_max: f64,
 }
 
-const P_NONE: f64 = 1.0;
+const P_NONE: f64 = 0.92;
+const P_NONE_PROP: f64 = 0.05;
 
 pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY] = [
     AdditionalPreference {
@@ -438,7 +439,7 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
         std_dev: 20.0,
         mean_alteration: MeanAlteration::Set,
         std_dev_alteration: StdDevAlteration::FromMean(Linear {
-            slope: 0.1,
+            slope: 1.0,
             intercept: 0.0,
         }),
         linear_mapping: None,
@@ -549,7 +550,7 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
         std_dev: 10.0,
         mean_alteration: MeanAlteration::Set,
         std_dev_alteration: StdDevAlteration::FromMean(Linear {
-            slope: 0.1,
+            slope: 1.0,
             intercept: 0.0,
         }),
         linear_mapping: None,
@@ -567,7 +568,7 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
         std_dev: 5.0,
         mean_alteration: MeanAlteration::Set,
         std_dev_alteration: StdDevAlteration::FromMean(Linear {
-            slope: 0.1,
+            slope: 1.0,
             intercept: 0.0,
         }),
         linear_mapping: None,
@@ -584,10 +585,7 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
         mean: 2.0,
         std_dev: 2.0,
         mean_alteration: MeanAlteration::Set,
-        std_dev_alteration: StdDevAlteration::FromMean(Linear {
-            slope: 0.1,
-            intercept: 0.0,
-        }),
+        std_dev_alteration: StdDevAlteration::None,
         linear_mapping: None,
         optional: true,
         labels: None,
@@ -617,10 +615,7 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
         mean: 2.0,
         std_dev: 1.0,
         mean_alteration: MeanAlteration::Set,
-        std_dev_alteration: StdDevAlteration::FromMean(Linear {
-            slope: 0.1,
-            intercept: 0.0,
-        }),
+        std_dev_alteration: StdDevAlteration::None,
         linear_mapping: None,
         optional: true,
         labels: Some([
@@ -641,10 +636,7 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
         mean: 2.0,
         std_dev: 1.0,
         mean_alteration: MeanAlteration::Set,
-        std_dev_alteration: StdDevAlteration::FromMean(Linear {
-            slope: 0.1,
-            intercept: 0.0,
-        }),
+        std_dev_alteration: StdDevAlteration::None,
         linear_mapping: None,
         optional: true,
         labels: Some(["Couch potato", "Sedentary", "Average", "Fit", "Athlete"]),
@@ -659,10 +651,7 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
         mean: 1.0,
         std_dev: 1.0,
         mean_alteration: MeanAlteration::Set,
-        std_dev_alteration: StdDevAlteration::FromMean(Linear {
-            slope: 0.1,
-            intercept: 0.0,
-        }),
+        std_dev_alteration: StdDevAlteration::None,
         linear_mapping: None,
         optional: true,
         labels: None,
@@ -677,10 +666,7 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
         mean: 0.0,
         std_dev: 1.0,
         mean_alteration: MeanAlteration::Set,
-        std_dev_alteration: StdDevAlteration::FromMean(Linear {
-            slope: 0.1,
-            intercept: 0.0,
-        }),
+        std_dev_alteration: StdDevAlteration::None,
         linear_mapping: None,
         optional: true,
         labels: None,
@@ -695,10 +681,7 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
         mean: 0.0,
         std_dev: 1.0,
         mean_alteration: MeanAlteration::Set,
-        std_dev_alteration: StdDevAlteration::FromMean(Linear {
-            slope: 0.1,
-            intercept: 0.0,
-        }),
+        std_dev_alteration: StdDevAlteration::None,
         linear_mapping: None,
         optional: true,
         labels: None,
@@ -713,10 +696,7 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
         mean: 2.0,
         std_dev: 1.0,
         mean_alteration: MeanAlteration::Set,
-        std_dev_alteration: StdDevAlteration::FromMean(Linear {
-            slope: 0.1,
-            intercept: 0.0,
-        }),
+        std_dev_alteration: StdDevAlteration::None,
         linear_mapping: None,
         optional: true,
         labels: Some([
@@ -737,10 +717,7 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
         mean: 2.0,
         std_dev: 1.0,
         mean_alteration: MeanAlteration::Set,
-        std_dev_alteration: StdDevAlteration::FromMean(Linear {
-            slope: 0.1,
-            intercept: 0.0,
-        }),
+        std_dev_alteration: StdDevAlteration::None,
         linear_mapping: None,
         optional: true,
         labels: Some([
@@ -761,10 +738,7 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
         mean: 2.0,
         std_dev: 1.0,
         mean_alteration: MeanAlteration::Set,
-        std_dev_alteration: StdDevAlteration::FromMean(Linear {
-            slope: 0.1,
-            intercept: 0.0,
-        }),
+        std_dev_alteration: StdDevAlteration::None,
         linear_mapping: None,
         optional: true,
         labels: Some([
@@ -785,10 +759,7 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
         mean: 2.0,
         std_dev: 1.0,
         mean_alteration: MeanAlteration::Set,
-        std_dev_alteration: StdDevAlteration::FromMean(Linear {
-            slope: 0.1,
-            intercept: 0.0,
-        }),
+        std_dev_alteration: StdDevAlteration::None,
         linear_mapping: None,
         optional: true,
         labels: Some([
@@ -809,10 +780,7 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
         mean: 2.0,
         std_dev: 1.0,
         mean_alteration: MeanAlteration::Set,
-        std_dev_alteration: StdDevAlteration::FromMean(Linear {
-            slope: 0.1,
-            intercept: 0.0,
-        }),
+        std_dev_alteration: StdDevAlteration::None,
         linear_mapping: None,
         optional: true,
         labels: Some([
@@ -833,10 +801,7 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
         mean: 2.0,
         std_dev: 1.0,
         mean_alteration: MeanAlteration::Set,
-        std_dev_alteration: StdDevAlteration::FromMean(Linear {
-            slope: 0.1,
-            intercept: 0.0,
-        }),
+        std_dev_alteration: StdDevAlteration::None,
         linear_mapping: None,
         optional: true,
         labels: Some([
@@ -857,10 +822,7 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
         mean: 2.0,
         std_dev: 1.0,
         mean_alteration: MeanAlteration::Set,
-        std_dev_alteration: StdDevAlteration::FromMean(Linear {
-            slope: 0.1,
-            intercept: 0.0,
-        }),
+        std_dev_alteration: StdDevAlteration::None,
         linear_mapping: None,
         optional: true,
         labels: Some(["Monk", "Minimalist", "Average", "Collector", "Hoarder"]),
@@ -875,10 +837,7 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
         mean: 2.0,
         std_dev: 1.0,
         mean_alteration: MeanAlteration::Set,
-        std_dev_alteration: StdDevAlteration::FromMean(Linear {
-            slope: 0.1,
-            intercept: 0.0,
-        }),
+        std_dev_alteration: StdDevAlteration::None,
         linear_mapping: None,
         optional: true,
         labels: Some([
@@ -899,10 +858,7 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
         mean: 2.0,
         std_dev: 1.0,
         mean_alteration: MeanAlteration::Set,
-        std_dev_alteration: StdDevAlteration::FromMean(Linear {
-            slope: 0.1,
-            intercept: 0.0,
-        }),
+        std_dev_alteration: StdDevAlteration::None,
         linear_mapping: None,
         optional: true,
         labels: Some([
@@ -924,7 +880,7 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
         std_dev: 5.0,
         mean_alteration: MeanAlteration::Set,
         std_dev_alteration: StdDevAlteration::FromValue(Linear {
-            slope: 0.1,
+            slope: 1.0,
             intercept: 0.0,
         }),
         linear_mapping: None,
@@ -942,7 +898,7 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
         std_dev: 5.0,
         mean_alteration: MeanAlteration::Set,
         std_dev_alteration: StdDevAlteration::FromValue(Linear {
-            slope: 0.1,
+            slope: 1.0,
             intercept: 0.0,
         }),
         linear_mapping: None,
@@ -960,7 +916,7 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
         std_dev: 2.0,
         mean_alteration: MeanAlteration::Set,
         std_dev_alteration: StdDevAlteration::FromValue(Linear {
-            slope: 0.1,
+            slope: 1.0,
             intercept: 0.0,
         }),
         linear_mapping: None,
@@ -978,7 +934,7 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
         std_dev: 2.0,
         mean_alteration: MeanAlteration::Set,
         std_dev_alteration: StdDevAlteration::FromValue(Linear {
-            slope: 0.1,
+            slope: 1.0,
             intercept: 0.0,
         }),
         linear_mapping: None,
@@ -995,10 +951,7 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
         mean: 2.0,
         std_dev: 1.0,
         mean_alteration: MeanAlteration::Set,
-        std_dev_alteration: StdDevAlteration::FromMean(Linear {
-            slope: 0.1,
-            intercept: 0.0,
-        }),
+        std_dev_alteration: StdDevAlteration::None,
         linear_mapping: None,
         optional: true,
         labels: Some(["Shaved", "Trimmed", "Average", "Bushy", "Jungle"]),

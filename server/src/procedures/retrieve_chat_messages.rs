@@ -61,5 +61,16 @@ pub fn retrieve_chat_messages(
         }
     }
 
-    Ok(new_messages)
+    let messages_with_images = new_messages
+        .into_iter()
+        .map(|mut message| {
+            message.fill_image(&chat, &user, db).map_err(|e| {
+                println!("Failed to fill image {:?}", e);
+                actix_web::error::ErrorInternalServerError("Failed to fill image")
+            })?;
+            Ok(message)
+        })
+        .collect::<Result<Vec<Message>, Box<dyn Error>>>()?;
+
+    Ok(messages_with_images)
 }

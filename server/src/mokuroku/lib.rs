@@ -465,9 +465,7 @@ impl Database {
         D: Document,
         K: AsRef<[u8]>,
     {
-        println!("get key: {:?}", key.as_ref());
         let result = self.db.get(key.as_ref())?;
-        println!("get result: {:?}", result);
         match result {
             Some(v) => Ok(Some(D::from_bytes(key.as_ref(), &v)?)),
             None => Ok(None),

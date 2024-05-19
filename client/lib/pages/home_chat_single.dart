@@ -53,7 +53,6 @@ class ChatScreenState extends State<ChatScreen> {
             widget.chatId,
             SendMessageInputMessage(
                 content: _controller.text,
-                uuid: widget.chatId,
                 image: _selectedImage == null
                     ? null
                     : MessageImage(
@@ -233,10 +232,11 @@ class ChatScreenState extends State<ChatScreen> {
             icon: const Icon(Icons.send),
             onPressed: _sendMessage,
           ),
-          IconButton(
-            icon: const Icon(Icons.camera_alt),
-            onPressed: () => _pickImage(ImageSource.camera),
-          ),
+          if (!kIsWeb)
+            IconButton(
+              icon: const Icon(Icons.camera_alt),
+              onPressed: () => _pickImage(ImageSource.camera),
+            ),
           IconButton(
             icon: const Icon(Icons.photo_library),
             onPressed: () => _pickImage(ImageSource.gallery),

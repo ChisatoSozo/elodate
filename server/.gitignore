@@ -1,5 +1,6 @@
 target
 /db
+/db_old
 access_codes.txt
 images
 tmp

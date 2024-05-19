@@ -137,9 +137,9 @@ class HomeModel extends ChangeNotifier {
     return result;
   }
 
-  Future<int> getNumUsersMutuallyPreferDryRun(Preference preference) async {
+  Future<int> getNumUsersMutuallyPreferDryRun(UserPublicFields user) async {
     var client = await getClient();
-    var result = await client.getUsersMutualPerferCountDryRunPost(preference);
+    var result = await client.getUsersMutualPerferCountDryRunPost(user);
     if (result == null) {
       throw Exception('Failed to get number of users');
     }
