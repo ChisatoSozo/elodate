@@ -19,7 +19,7 @@ pub async fn rate(
     db: web::Data<Mutex<DB>>,
     req: HttpRequest,
     rate: web::Json<RatingWithTarget>,
-) -> Result<Json<Success>, Error> {
+) -> Result<Json<bool>, Error> {
     let db_inner = db.into_inner();
     let mut db = db_inner.lock().await;
     let ext = req.extensions();
@@ -28,6 +28,6 @@ pub async fn rate(
     let rating = rating_with_target.rating;
     let target = rating_with_target.target;
 
-    add_rating(rating, source.clone(), target, &mut db).await?;
-    Ok(Json(Success("Rating added".to_string())))
+    let mutual = add_rating(rating, source.clone(), target, &mut db).await?;
+    Ok(Json(mutual))
 }

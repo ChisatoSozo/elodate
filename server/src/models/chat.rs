@@ -25,6 +25,18 @@ pub struct Chat {
 }
 
 impl Chat {
+    pub fn new(user1: UuidModel, user2: UuidModel) -> Chat {
+        Chat {
+            uuid: UuidModel::new(),
+            user1,
+            user2,
+            messages: vec![],
+            most_recent_message: "No messages yet".to_string(),
+            user1_unread: 0,
+            user2_unread: 0,
+        }
+    }
+
     pub fn get_messages(&self, db: &mut DB) -> Result<Vec<Message>, Box<dyn Error>> {
         let mut messages = vec![];
         for message_uuid in self.messages.iter() {
@@ -69,6 +81,7 @@ impl Chat {
         }
         message.save_message(&self, user, db)?;
         db.insert_chat(self)?;
+
         Ok(())
     }
 }

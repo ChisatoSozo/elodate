@@ -1,5 +1,6 @@
 #[actix_web::test]
 async fn insert_dummy_data() -> Result<(), Box<dyn std::error::Error>> {
+    use crate::models::rating::Rated;
     use crate::test::fake::FakeGen;
     use fake::Fake;
 
@@ -21,7 +22,7 @@ async fn insert_dummy_data() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut uuids = vec![];
 
-    let count = 10000;
+    let count = 1000;
     for n in 0..count {
         println!("Inserting dummy data {}/{}", n, count);
         let user: User = User::fake_gen(&true);
@@ -42,6 +43,22 @@ async fn insert_dummy_data() -> Result<(), Box<dyn std::error::Error>> {
     for _ in 0..5 {
         images.push(Image::default());
     }
+
+    let mut ratings = Vec::with_capacity(uuids.len());
+    for uuid in &uuids {
+        //get rand bool
+        let rand = rand::random::<bool>();
+        match rand {
+            true => {
+                ratings.push(Rated::LikedBy(uuid.clone()));
+            }
+            false => {
+                ratings.push(Rated::PassedBy(uuid.clone()));
+            }
+        }
+    }
+
+    user.ratings = ratings;
 
     //upsert chats
     for n in 0..5 {

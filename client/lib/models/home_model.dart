@@ -127,7 +127,7 @@ class HomeModel extends ChangeNotifier {
     return result;
   }
 
-  Future<void> likeUser(UserWithImagesAndEloAndUuid user) async {
+  Future<bool> likeUser(UserWithImagesAndEloAndUuid user) async {
     //pop the user from the potential matches
     _potentialMatches.remove(user);
 
@@ -136,9 +136,10 @@ class HomeModel extends ChangeNotifier {
     if (result == null) {
       throw Exception('Failed to like user');
     }
+    return result;
   }
 
-  Future<void> dislikeUser(UserWithImagesAndEloAndUuid user) async {
+  Future<bool> dislikeUser(UserWithImagesAndEloAndUuid user) async {
     //pop the user from the potential matches
     _potentialMatches.remove(user);
 
@@ -147,6 +148,7 @@ class HomeModel extends ChangeNotifier {
     if (result == null) {
       throw Exception('Failed to dislike user');
     }
+    return result;
   }
 
   Future<void> updateMe(UserWithImages user) async {

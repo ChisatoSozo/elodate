@@ -47,10 +47,19 @@ class SwipePageState extends State<SwipePage> {
 
   Future<void> handleSwipe(
       UserWithImagesAndEloAndUuid user, bool isLiked) async {
+    var homeModel = Provider.of<HomeModel>(context, listen: false);
     if (isLiked) {
-      await Provider.of<HomeModel>(context, listen: false).likeUser(user);
+      var match = await homeModel.likeUser(user);
+      if (match) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("It's a match!")),
+        );
+        homeModel.chats = [];
+        homeModel.initChats();
+      }
     } else {
-      await Provider.of<HomeModel>(context, listen: false).dislikeUser(user);
+      await homeModel.dislikeUser(user);
     }
 
     setState(() {

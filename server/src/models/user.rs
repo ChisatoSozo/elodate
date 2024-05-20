@@ -111,6 +111,19 @@ pub struct User {
     pub public: UserPublicFields,
 }
 
+impl User {
+    pub fn is_liked_by(&self, user: &UuidModel) -> bool {
+        self.ratings.iter().any(|rating| match rating {
+            Rated::LikedBy(uuid) => uuid == user,
+            _ => false,
+        })
+    }
+
+    pub fn add_chat(&mut self, chat: &Chat) {
+        self.chats.push(chat.uuid.clone());
+    }
+}
+
 impl FakeGen<bool> for User {
     fn fake_gen(_options: &bool) -> Self {
         let uuid = UuidModel::new();
