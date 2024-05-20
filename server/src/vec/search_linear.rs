@@ -45,7 +45,7 @@ impl<const N: usize> VectorSearch<N> for LinearSearch<N> {
                 for i in 0..N {
                     if label_pair.vec[i] < bbox.min[i] || label_pair.vec[i] > bbox.max[i] {
                         // println!(
-                        //     "[INV] idx: {}, min: {}, max: {}, loc: {}",
+                        //     "[SRCH] idx: {}, min: {}, max: {}, loc: {}",
                         //     i, bbox.min[i], bbox.max[i], label_pair.vec[i]
                         // );
                         return false;

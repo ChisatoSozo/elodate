@@ -1,5 +1,5 @@
 use std::path::Path;
-
+//TODO: encryption at rest
 use crate::{
     db::get_single_from_key,
     mokuroku::lib::{Document, Emitter, Error as MkrkError},

@@ -1,3 +1,4 @@
+import 'dart:async'; // Add this import
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
@@ -29,20 +30,33 @@ class ChatScreenState extends State<ChatScreen> {
   final ImagePicker _picker = ImagePicker();
   final FocusNode _focusNode = FocusNode();
   List<Message> _messages = [];
-  UserWithImagesAndEloAndUuid? _me;
   Uint8List? _selectedImage;
   String? _selectedImageMimeType;
+  Timer? _timer; // Declare a Timer
 
   @override
   void initState() {
     super.initState();
-    Future.delayed(Duration.zero, () {
-      Provider.of<HomeModel>(context, listen: false)
-          .getMessages(widget.chatId)
-          .then((value) {
-        setState(() {
-          _messages = value;
-        });
+    _fetchMessages(); // Initial fetch
+    _timer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      _fetchMessages();
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel(); // Cancel the timer when disposing
+    _controller.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  void _fetchMessages() {
+    Provider.of<HomeModel>(context, listen: false)
+        .getMessages(widget.chatId)
+        .then((value) {
+      setState(() {
+        _messages = value;
       });
     });
   }
@@ -63,13 +77,7 @@ class ChatScreenState extends State<ChatScreen> {
                     : fromMesageImageImageTypeEnum(
                         mimeToType(_selectedImageMimeType!))))
         .then((value) {
-      Provider.of<HomeModel>(context, listen: false)
-          .getMessages(widget.chatId)
-          .then((value) {
-        setState(() {
-          _messages = value;
-        });
-      });
+      _fetchMessages();
     });
     if (_controller.text.isNotEmpty) {
       setState(() {
@@ -119,15 +127,6 @@ class ChatScreenState extends State<ChatScreen> {
     final chatBarColor = isDarkMode ? Colors.grey[850] : Colors.grey[300];
     final inputFieldColor = isDarkMode ? Colors.grey[800] : Colors.grey[200];
 
-    if (_me == null) {
-      Provider.of<HomeModel>(context, listen: false).getMe().then((value) {
-        setState(() {
-          _me = value;
-        });
-      });
-
-      return const Center(child: CircularProgressIndicator());
-    }
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.displayName),
@@ -140,7 +139,8 @@ class ChatScreenState extends State<ChatScreen> {
                 itemCount: _messages.length,
                 itemBuilder: (context, index) {
                   final message = _messages[index];
-                  final bool isMe = message.author == _me!.uuid;
+                  final bool isMe =
+                      message.author == Provider.of<HomeModel>(context).me.uuid;
                   return ChatBubble(
                       text: message.content,
                       image: message.image == null

@@ -6,17 +6,17 @@ import 'package:client/components/gender_picker.dart';
 import 'package:client/components/image_grid.dart';
 import 'package:client/components/location_getter.dart';
 import 'package:client/components/value_slider.dart';
+import 'package:client/models/home_model.dart';
 import 'package:client/utils/utils.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class SettingsPageMe extends StatefulWidget {
-  final UserWithImagesAndEloAndUuid me;
   final List<AdditionalPreferencePublic> additionalPreferences;
   final SettingsPageMeController settingsController;
 
   const SettingsPageMe({
     super.key,
-    required this.me,
     required this.additionalPreferences,
     required this.settingsController,
   });
@@ -44,24 +44,25 @@ class SettingsPageMeState extends State<SettingsPageMe> {
   void initState() {
     super.initState();
 
-    usernameController = TextEditingController(text: widget.me.user.username);
-    displayNameController =
-        TextEditingController(text: widget.me.user.displayName);
-    descriptionController =
-        TextEditingController(text: widget.me.user.description);
+    var me = Provider.of<HomeModel>(context, listen: false).me;
+
+    usernameController = TextEditingController(text: me.user.username);
+    displayNameController = TextEditingController(text: me.user.displayName);
+    descriptionController = TextEditingController(text: me.user.description);
+    //TODO: gender is borked, fix the preferences
     genderController = GenderPickerController(
-      percentMale: (widget.me.user.gender.percentMale as double) / 100,
-      percentFemale: (widget.me.user.gender.percentFemale as double) / 100,
+      percentMale: (me.user.gender.percentMale as double) / 100,
+      percentFemale: (me.user.gender.percentFemale as double) / 100,
     );
     imageGridController = ImageGridFormFieldController();
-    for (int i = 0; i < widget.me.images.length; i++) {
-      Uint8List? imageData = base64Decode(widget.me.images[i].b64Content);
-      String? mimeType = widget.me.images[i].imageType.toString();
+    for (int i = 0; i < me.images.length; i++) {
+      Uint8List? imageData = base64Decode(me.images[i].b64Content);
+      String? mimeType = me.images[i].imageType.toString();
       imageGridController.updateValue(i, (imageData, mimeType));
     }
 
-    var (lat, long) = decodeLatLongFromI16(
-        widget.me.user.location.lat, widget.me.user.location.long);
+    var (lat, long) =
+        decodeLatLongFromI16(me.user.location.lat, me.user.location.long);
 
     locationController = LocationController(
       latitude: lat,
@@ -75,7 +76,11 @@ class SettingsPageMeState extends State<SettingsPageMe> {
   void _initializeAdditionalPreferences() {
     _additionalPropertiesControllers = widget.additionalPreferences.map((pref) {
       return ValueSliderFormFieldController(
-          widget.me.user.additionalProperties[pref.name] ?? -32768);
+          Provider.of<HomeModel>(context, listen: false)
+                  .me
+                  .user
+                  .additionalProperties[pref.name] ??
+              -32768);
     }).toList();
   }
 
@@ -141,7 +146,7 @@ class SettingsPageMeState extends State<SettingsPageMe> {
   @override
   Widget build(BuildContext context) {
     final categorizedPreferences =
-        widget.additionalPreferences.fold<Map<String, List<int>>>(
+        widget.additionalPreferences.skip(5).fold<Map<String, List<int>>>(
       {},
       (map, pref) {
         final index = widget.additionalPreferences.indexOf(pref);
@@ -320,6 +325,17 @@ class SettingsPageMeState extends State<SettingsPageMe> {
                           padding: const EdgeInsets.all(8.0),
                           child: LocationPickerFormField(
                             controller: locationController,
+                            onChanged: (location) {
+                              if (location == null) {
+                                return;
+                              }
+
+                              var (lat, long) =
+                                  encodeLatLongToI16(location.$1, location.$2);
+
+                              widget.settingsController
+                                  .updateLocation(lat, long);
+                            },
                             onSaved: (location) {
                               if (location == null) {
                                 return;
@@ -374,16 +390,6 @@ class SettingsPageMeState extends State<SettingsPageMe> {
                   );
                 }),
               ],
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                if (_formKey.currentState!.validate()) {
-                  _formKey.currentState!.save();
-                  // Handle form submission
-                }
-              },
-              child: const Text('Save'),
             ),
           ],
         ),

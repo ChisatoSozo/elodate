@@ -12,23 +12,30 @@ class SwipePage extends StatefulWidget {
 }
 
 class SwipePageState extends State<SwipePage> {
-  UserWithImagesAndEloAndUuid? _nextUser;
+  final List<UserWithImagesAndEloAndUuid?> _userStack = [null, null];
   bool _isLoading = true;
   bool _hasError = false;
 
   @override
   void initState() {
     super.initState();
-    _loadNextUser();
+    _loadInitialUsers();
   }
 
-  Future<void> _loadNextUser() async {
+  Future<void> _loadInitialUsers() async {
+    await _loadNextUser(0);
+    await _loadNextUser(1);
+  }
+
+  Future<void> _loadNextUser(int index) async {
     try {
       final user = await Provider.of<HomeModel>(context, listen: false)
-          .getPotentialMatch();
+          .getPotentialMatch(index);
       setState(() {
-        _nextUser = user;
-        _isLoading = false;
+        _userStack[index] = user;
+        if (_userStack.every((user) => user != null)) {
+          _isLoading = false;
+        }
       });
     } catch (error) {
       setState(() {
@@ -45,7 +52,13 @@ class SwipePageState extends State<SwipePage> {
     } else {
       await Provider.of<HomeModel>(context, listen: false).dislikeUser(user);
     }
-    _loadNextUser();
+
+    setState(() {
+      _userStack[0] = _userStack[1];
+      _userStack[1] = null;
+    });
+
+    await _loadNextUser(1);
   }
 
   @override
@@ -58,13 +71,21 @@ class SwipePageState extends State<SwipePage> {
       return const Center(child: Text('Error loading user'));
     }
 
-    if (_nextUser == null) {
-      return const Center(child: Text('No user available'));
+    if (_userStack[0] == null) {
+      return const Center(child: Text('End of users, expand your preferences'));
     }
 
-    return SwipeableUserCard(
-      user: _nextUser!,
-      onSwipe: handleSwipe,
+    return Stack(
+      children: _userStack.reversed.map((user) {
+        if (user == null) return Container();
+        return Positioned.fill(
+          child: SwipeableUserCard(
+            user: user,
+            onSwipe: handleSwipe,
+            key: ValueKey(user.uuid),
+          ),
+        );
+      }).toList(),
     );
   }
 }

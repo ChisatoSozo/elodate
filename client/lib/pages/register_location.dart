@@ -16,6 +16,8 @@ class RegisterLocationPageState extends State<RegisterLocationPage> {
   final LocationController locationController =
       LocationController(latitude: 0, longitude: 0);
 
+  bool gotLocation = false;
+
   @override
   Widget build(BuildContext context) {
     return ResponsiveScaffold(
@@ -31,15 +33,33 @@ class RegisterLocationPageState extends State<RegisterLocationPage> {
               }
               Provider.of<RegisterModel>(context, listen: false)
                   .setLocation(location.$1, location.$2);
+
+              setState(() {
+                gotLocation = true;
+              });
+            },
+            onChanged: (location) {
+              if (location == null) {
+                return;
+              }
+              Provider.of<RegisterModel>(context, listen: false)
+                  .setLocation(location.$1, location.$2);
+
+              setState(() {
+                gotLocation = true;
+              });
             },
           ),
           const SizedBox(height: 20),
           ElevatedButton(
-            onPressed: () {
-              Provider.of<RegisterModel>(context, listen: false).setLocation(
-                  locationController.value.$1, locationController.value.$2);
-              nextPage(context, widget);
-            },
+            onPressed: gotLocation
+                ? () {
+                    Provider.of<RegisterModel>(context, listen: false)
+                        .setLocation(locationController.value.$1,
+                            locationController.value.$2);
+                    nextPage(context, widget);
+                  }
+                : null,
             child: const Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -47,7 +67,7 @@ class RegisterLocationPageState extends State<RegisterLocationPage> {
                 Icon(Icons.arrow_forward),
               ],
             ),
-          ),
+          )
         ],
       ),
     );

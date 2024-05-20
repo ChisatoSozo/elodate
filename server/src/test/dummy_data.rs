@@ -21,13 +21,13 @@ async fn insert_dummy_data() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut uuids = vec![];
 
-    let count = 100;
+    let count = 10000;
     for n in 0..count {
         println!("Inserting dummy data {}/{}", n, count);
         let user: User = User::fake_gen(&true);
 
         let mut images = vec![];
-        for _ in 0..5 {
+        for _ in 0..2 {
             images.push(Image::default());
         }
         upsert_user(&user, images, &mut db).await?;

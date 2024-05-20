@@ -50,7 +50,17 @@ async fn update_user(
         })?;
 
     if user_exists {
-        Err(actix_web::error::ErrorBadRequest("Username already taken"))?;
+        //is this the username this user already has?
+        let user_from_db = db
+            .get_user_by_username(&user_with_uuid.public.username)
+            .map_err(|e| {
+                println!("Failed to get user by username {:?}", e);
+                actix_web::error::ErrorInternalServerError("Failed to get user by username")
+            })?;
+
+        if &user_from_db.public.username != &user_with_uuid.public.username {
+            return Err(actix_web::error::ErrorBadRequest("Username already exists"));
+        }
     }
 
     upsert_user(&user_with_uuid, images, &mut db).await?;

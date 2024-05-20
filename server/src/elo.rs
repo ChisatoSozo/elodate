@@ -5,8 +5,8 @@ use crate::{
     models::{rating::Rated, shared::UuidModel, user::User},
 };
 
-const ELO_SCALE: f64 = 500.0;
-const ELO_SHIFT: f64 = 2.0;
+pub const ELO_SCALE: f64 = 500.0;
+pub const ELO_SHIFT: f64 = 2.0;
 const FUZZING_CONSTANT: f64 = 500.0;
 
 const ELO_MAX: f32 = (ELO_SCALE / (ELO_SHIFT - 1.0)) as f32;

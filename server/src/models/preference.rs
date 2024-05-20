@@ -43,13 +43,16 @@ impl UserProperties {
 
         let mut index = 5; // Start from the 6th element in the array
 
-        for (_, value) in self.additional_preferences.iter() {
-            if index < PREFERENCE_CARDINALITY {
-                vector[index] = *value;
-                index += 1;
+        while index < PREFERENCE_CARDINALITY {
+            if let Some(preference) = self
+                .additional_preferences
+                .get(ADDITIONAL_PREFERENCES[index].name)
+            {
+                vector[index] = *preference;
             } else {
-                break;
+                vector[index] = -32768;
             }
+            index += 1;
         }
 
         vector
@@ -138,15 +141,20 @@ impl Preference {
         // Adding the additional preferences
         let mut index = 5; // Start from the 6th element in the array
 
-        for (_, preference) in self.additional_preferences.iter() {
-            if index < PREFERENCE_CARDINALITY {
+        while index < PREFERENCE_CARDINALITY {
+            if let Some(preference) = self
+                .additional_preferences
+                .get(ADDITIONAL_PREFERENCES[index].name)
+            {
                 min_vals[index] = preference.min;
                 max_vals[index] = preference.max;
-                index += 1;
             } else {
-                break;
+                min_vals[index] = -32768;
+                max_vals[index] = 32767;
             }
+            index += 1;
         }
+
         Bbox {
             min: min_vals,
             max: max_vals,
@@ -425,6 +433,7 @@ pub struct LinearMapping {
     pub real_max: f64,
 }
 
+//TODO: on a database of 10000 only 9998 are returned with no preference
 const P_NONE: f64 = 0.92;
 const P_NONE_PROP: f64 = 0.05;
 
@@ -894,7 +903,7 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
         category: "diet",
         min: 0,
         max: 50,
-        mean: 5.0,
+        mean: 2.0,
         std_dev: 5.0,
         mean_alteration: MeanAlteration::Set,
         std_dev_alteration: StdDevAlteration::FromValue(Linear {

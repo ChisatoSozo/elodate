@@ -1,5 +1,6 @@
 use crate::{
     db::{get_any_from_key, get_single_from_key},
+    elo::{ELO_SCALE, ELO_SHIFT},
     models::preference::UserProperties,
     mokuroku::lib::{Document, Emitter, Error as MkrkError},
     test::fake::FakeGen,
@@ -114,7 +115,8 @@ impl FakeGen<bool> for User {
     fn fake_gen(_options: &bool) -> Self {
         let uuid = UuidModel::new();
         let hashed_password = "asdfasdf".to_string();
-        let elo = 1000;
+        let elo = (ELO_SCALE / (ELO_SHIFT - rand::rngs::ThreadRng::default().gen_range(0.0..1.0)))
+            as usize;
         let ratings = vec![];
         let seen = HashSet::new();
         let chats = vec![];

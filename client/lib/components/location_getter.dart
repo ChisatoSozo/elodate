@@ -172,6 +172,7 @@ class LocationPickerFormField extends FormField<(double, double)> {
     super.key,
     required LocationController controller,
     required FormFieldSetter<(double, double)> onSaved,
+    required void Function((double, double)?) onChanged,
     super.validator,
     AutovalidateMode autovalidateMode = AutovalidateMode.disabled,
   }) : super(
@@ -184,6 +185,7 @@ class LocationPickerFormField extends FormField<(double, double)> {
                   controller: controller,
                   onUpdate: (double newLatitude, double newLongitude) {
                     state.didChange((newLatitude, newLongitude));
+                    onChanged((newLatitude, newLongitude));
                   },
                 ),
                 if (state.hasError)

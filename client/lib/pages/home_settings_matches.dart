@@ -1,17 +1,17 @@
 import 'package:client/api/pkg/lib/api.dart';
 import 'package:client/components/distance_slider.dart';
 import 'package:client/components/range_slider.dart';
+import 'package:client/models/home_model.dart';
 import 'package:client/utils/preference_utils.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class UserPreferenceForm extends StatefulWidget {
-  final UserWithImagesAndEloAndUuid me;
   final List<AdditionalPreferencePublic> additionalPreferences;
   final UserWithImagesUserPreferenceController preferencesController;
 
   const UserPreferenceForm({
     super.key,
-    required this.me,
     required this.additionalPreferences,
     required this.preferencesController,
   });
@@ -51,7 +51,8 @@ class UserPreferenceFormState extends State<UserPreferenceForm> {
   }
 
   void _initializeDistanceIndex() {
-    int initialDistance = calculateInitialDistance(widget.me);
+    int initialDistance = calculateInitialDistance(
+        Provider.of<HomeModel>(context, listen: false).me);
     _distanceIndex = findClosestDistanceIndex(initialDistance, presetDistances);
   }
 
