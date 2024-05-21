@@ -1,19 +1,25 @@
 use actix_cors::Cors;
 use actix_web::{http::header, App, HttpServer};
 
-use async_mutex::Mutex;
 use db::DB;
 use middleware::jwt::Jwt;
+
 use paperclip::actix::{web, OpenApiExt};
 
-use routes::check_username::check_username;
+use routes::{
+    check_username::check_username, get_chats::get_chats, get_images::get_images,
+    get_messages::get_messages, get_next_users::get_next_users,
+    get_preferences_config::get_preferences_config, get_users::get_users,
+    get_users_i_perfer_count_dry_run::get_users_i_perfer_count_dry_run,
+    get_users_mutual_perfer_count_dry_run::get_users_mutual_perfer_count_dry_run, login::login,
+    put_user::put_user, rate::rate, send_message::send_message, signup::signup,
+};
 
 pub mod constants;
 pub mod db;
 pub mod elo;
 pub mod middleware;
 pub mod models;
-pub mod procedures;
 pub mod routes;
 pub mod test;
 pub mod util;
@@ -23,7 +29,7 @@ const JSON_SPEC_PATH: &str = "/api/spec/v2.json";
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    let db = web::Data::new(Mutex::new(DB::new("test")));
+    let db = web::Data::new(DB::new("test"));
 
     HttpServer::new(move || {
         App::new()
@@ -38,23 +44,20 @@ async fn main() -> std::io::Result<()> {
             .app_data(db.clone())
             .wrap_api()
             .wrap(Jwt)
-            // .service(signup)
-            // .service(login)
-            // .service(generate_access_codes)
-            // .service(check_username)
-            // .service(get_next_users)
-            // .service(update_user)
-            // .service(get_my_chats)
-            // .service(get_chat_messages)
-            // .service(get_user_with_single_image)
-            // .service(get_me)
-            // .service(get_users_i_perfer_count)
-            // .service(get_users_i_perfer_count_dry_run)
-            // .service(get_users_mutual_perfer_count)
-            // .service(get_users_mutual_perfer_count_dry_run)
-            // .service(get_additional_preferences)
-            // .service(rate)
-            // .service(send_message)
+            .service(signup)
+            .service(login)
+            .service(get_users)
+            .service(get_chats)
+            .service(get_messages)
+            .service(check_username)
+            .service(send_message)
+            .service(get_preferences_config)
+            .service(put_user)
+            .service(get_users_i_perfer_count_dry_run)
+            .service(get_users_mutual_perfer_count_dry_run)
+            .service(get_next_users)
+            .service(get_images)
+            .service(rate)
             .with_json_spec_at(JSON_SPEC_PATH)
             .build()
     })

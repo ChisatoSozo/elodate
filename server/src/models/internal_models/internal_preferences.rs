@@ -14,7 +14,14 @@ use serde::{Deserialize, Serialize};
 use crate::{db::DB, vec::shared::Bbox};
 
 #[derive(
-    Debug, Clone, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Serialize, Deserialize,
+    Debug,
+    Clone,
+    rkyv::Archive,
+    rkyv::Serialize,
+    rkyv::Deserialize,
+    Serialize,
+    Deserialize,
+    Apiv2Schema,
 )]
 #[archive(compare(PartialEq), check_bytes)]
 pub struct PreferenceRange {
@@ -23,16 +30,30 @@ pub struct PreferenceRange {
 }
 
 #[derive(
-    Debug, Clone, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Serialize, Deserialize,
+    Debug,
+    Clone,
+    rkyv::Archive,
+    rkyv::Serialize,
+    rkyv::Deserialize,
+    Serialize,
+    Deserialize,
+    Apiv2Schema,
 )]
 #[archive(compare(PartialEq), check_bytes)]
 pub struct LabeledPreferenceRange {
-    name: String,
-    range: PreferenceRange,
+    pub name: String,
+    pub range: PreferenceRange,
 }
 
 #[derive(
-    Debug, Clone, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Serialize, Deserialize,
+    Debug,
+    Clone,
+    rkyv::Archive,
+    rkyv::Serialize,
+    rkyv::Deserialize,
+    Serialize,
+    Deserialize,
+    Apiv2Schema,
 )]
 #[archive(compare(PartialEq), check_bytes)]
 pub struct Preferences {
@@ -45,16 +66,30 @@ pub struct Preferences {
 }
 
 #[derive(
-    Debug, Clone, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Serialize, Deserialize,
+    Debug,
+    Clone,
+    rkyv::Archive,
+    rkyv::Serialize,
+    rkyv::Deserialize,
+    Serialize,
+    Deserialize,
+    Apiv2Schema,
 )]
 #[archive(compare(PartialEq), check_bytes)]
 pub struct LabeledProperty {
-    name: String,
-    value: i16,
+    pub name: String,
+    pub value: i16,
 }
 
 #[derive(
-    Debug, Clone, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Serialize, Deserialize,
+    Debug,
+    Clone,
+    rkyv::Archive,
+    rkyv::Serialize,
+    rkyv::Deserialize,
+    Serialize,
+    Deserialize,
+    Apiv2Schema,
 )]
 #[archive(compare(PartialEq), check_bytes)]
 pub struct Properties {
@@ -184,7 +219,7 @@ impl Preferences {
 
 impl DB {
     fn get_users_who_prefer_me_direct(
-        &mut self,
+        &self,
         properties: &Properties,
         seen: &Vec<InternalUuid<InternalUser>>,
     ) -> HashSet<InternalUuid<InternalUser>> {
@@ -199,7 +234,7 @@ impl DB {
     }
 
     fn get_users_who_i_prefer_direct(
-        &mut self,
+        &self,
         preferences: &Preferences,
         seen: &Vec<InternalUuid<InternalUser>>,
     ) -> HashSet<InternalUuid<InternalUser>> {
@@ -214,7 +249,7 @@ impl DB {
     }
 
     pub fn get_mutual_preference_users_direct(
-        &mut self,
+        &self,
         properties: &Properties,
         preferences: &Preferences,
         seen: &Vec<InternalUuid<InternalUser>>,
@@ -234,7 +269,7 @@ impl DB {
     }
 
     pub fn get_mutual_preference_users_count_direct(
-        &mut self,
+        &self,
         properties: &Properties,
         preference: &Preferences,
         seen: &Vec<InternalUuid<InternalUser>>,
@@ -248,7 +283,7 @@ impl DB {
     }
 
     pub fn get_users_i_prefer_count_direct(
-        &mut self,
+        &self,
         preference: &Preferences,
         seen: &Vec<InternalUuid<InternalUser>>,
     ) -> usize {
@@ -256,27 +291,27 @@ impl DB {
     }
 
     pub fn get_users_who_prefer_me(
-        &mut self,
+        &self,
         user: &InternalUser,
     ) -> HashSet<InternalUuid<InternalUser>> {
         self.get_users_who_prefer_me_direct(&user.properties, &user.seen)
     }
 
     pub fn get_users_who_i_prefer(
-        &mut self,
+        &self,
         user: &InternalUser,
     ) -> HashSet<InternalUuid<InternalUser>> {
         self.get_users_who_i_prefer_direct(&user.preferences, &user.seen)
     }
 
     pub fn get_mutual_preference_users(
-        &mut self,
+        &self,
         user: &InternalUser,
     ) -> Result<Vec<InternalUser>, Box<dyn std::error::Error>> {
         self.get_mutual_preference_users_direct(&user.properties, &user.preferences, &user.seen)
     }
 
-    pub fn get_mutual_preference_users_count(&mut self, user: &InternalUser) -> usize {
+    pub fn get_mutual_preference_users_count(&self, user: &InternalUser) -> usize {
         self.get_mutual_preference_users_count_direct(
             &user.properties,
             &user.preferences,
@@ -284,7 +319,7 @@ impl DB {
         )
     }
 
-    pub fn get_users_i_prefer_count(&mut self, user: &InternalUser) -> usize {
+    pub fn get_users_i_prefer_count(&self, user: &InternalUser) -> usize {
         self.get_users_i_prefer_count_direct(&user.preferences, &user.seen)
     }
 }
@@ -478,13 +513,14 @@ pub struct LinearMapping {
 //TODO: on a database of 10000 only 9998 are returned with no preference
 const P_NONE: f64 = 0.92;
 const P_NONE_PROP: f64 = 0.05;
-
-struct MandatoryPreferencesConfig<'a> {
-    age: PreferenceConfig<'a>,
-    percent_male: PreferenceConfig<'a>,
-    percent_female: PreferenceConfig<'a>,
-    latitude: PreferenceConfig<'a>,
-    longitude: PreferenceConfig<'a>,
+#[derive(Debug, Serialize, Deserialize, Apiv2Schema, Clone, PartialEq)]
+#[serde(bound(deserialize = "'de: 'a"))]
+pub struct MandatoryPreferencesConfig<'a> {
+    pub age: PreferenceConfig<'a>,
+    pub percent_male: PreferenceConfig<'a>,
+    pub percent_female: PreferenceConfig<'a>,
+    pub latitude: PreferenceConfig<'a>,
+    pub longitude: PreferenceConfig<'a>,
 }
 
 pub static MANDATORY_PREFERENCES_CONFIG: MandatoryPreferencesConfig = MandatoryPreferencesConfig {
@@ -1112,6 +1148,20 @@ pub static ADDITIONAL_PREFERENCES_CONFIG: [PreferenceConfig; ADDITIONAL_PREFEREN
         probability_to_be_none: P_NONE,
     },
 ];
+
+#[derive(Debug, Serialize, Deserialize, Apiv2Schema, Clone, PartialEq)]
+#[serde(bound(deserialize = "'de: 'a"))]
+pub struct PreferencesConfig<'a> {
+    pub mandatory: MandatoryPreferencesConfig<'a>,
+    pub additional: Vec<PreferenceConfig<'a>>,
+}
+
+pub fn preferences_config() -> PreferencesConfig<'static> {
+    PreferencesConfig {
+        mandatory: MANDATORY_PREFERENCES_CONFIG.clone(),
+        additional: ADDITIONAL_PREFERENCES_CONFIG.iter().cloned().collect(),
+    }
+}
 
 pub const ADDITIONAL_PREFERENCE_CARDINALITY: usize = 29;
 

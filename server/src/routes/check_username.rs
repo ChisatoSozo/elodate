@@ -1,4 +1,4 @@
-use async_mutex::Mutex;
+
 
 use actix_web::Error;
 use paperclip::actix::{
@@ -22,12 +22,11 @@ struct CheckUsernameOutput {
 
 #[api_v2_operation]
 #[post("/check_username")]
-async fn check_username(
-    db: web::Data<Mutex<DB>>,
+fn check_username(
+    db: web::Data<DB>,
     body: Json<CheckUsernameInput>,
 ) -> Result<Json<CheckUsernameOutput>, Error> {
     let user = body.into_inner();
-    let mut db = db.lock().await;
 
     let available = db
         .get_user_by_username(&user.username)

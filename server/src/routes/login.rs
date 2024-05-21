@@ -1,5 +1,3 @@
-use async_mutex::Mutex;
-
 use actix_web::Error;
 use bcrypt::verify;
 use paperclip::actix::{
@@ -23,8 +21,7 @@ pub struct LoginRequest {
 
 #[api_v2_operation]
 #[post("/login")]
-async fn login(db: web::Data<Mutex<DB>>, body: Json<LoginRequest>) -> Result<Json<Jwt>, Error> {
-    let mut db = db.lock().await;
+async fn login(db: web::Data<DB>, body: Json<LoginRequest>) -> Result<Json<Jwt>, Error> {
     let login_req = body.into_inner();
     let user = db.get_user_by_username(&login_req.username).map_err(|e| {
         println!("Failed to get user by username {:?}", e);
@@ -44,7 +41,12 @@ async fn login(db: web::Data<Mutex<DB>>, body: Json<LoginRequest>) -> Result<Jso
     }
 
     make_jwt(&user.uuid)
-        .map(|jwt| Json(Jwt { jwt }))
+        .map(|jwt| {
+            Json(Jwt {
+                jwt,
+                uuid: user.uuid.into(),
+            })
+        })
         .map_err(|e| {
             println!("Failed to make jwt {:?}", e);
             actix_web::error::ErrorInternalServerError("Failed to make jwt")

@@ -10,8 +10,8 @@ import 'package:preload_page_view/preload_page_view.dart';
 import 'swipe_overlay.dart';
 
 class SwipeableUserCard extends StatefulWidget {
-  final UserWithImagesAndEloAndUuid user;
-  final Function(UserWithImagesAndEloAndUuid, bool) onSwipe;
+  final ApiUser user;
+  final Function(ApiUser, bool) onSwipe;
 
   const SwipeableUserCard({
     super.key,

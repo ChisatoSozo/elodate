@@ -131,7 +131,6 @@ impl<const N: usize> VectorSearch<N> for LinearSearch<N> {
     }
 
     fn load_from_file(path: &str) -> Result<LinearSearch<N>, Box<dyn Error>> {
-        //fild exists?
         if !std::path::Path::new(path).exists() {
             return Ok(LinearSearch {
                 vecs: vec![],

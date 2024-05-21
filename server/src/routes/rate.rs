@@ -1,33 +1,90 @@
-// use async_mutex::Mutex;
+use actix_web::{Error, HttpRequest};
 
-// use actix_web::{Error, HttpMessage, HttpRequest};
+use paperclip::actix::{
+    api_v2_operation, post,
+    web::{self, Json},
+    Apiv2Schema,
+};
+use serde::{Deserialize, Serialize};
 
-// use paperclip::actix::{
-//     api_v2_operation, post,
-//     web::{self, Json},
-// };
+use crate::{
+    db::DB,
+    models::{
+        api_models::{api_rating::ApiRating, shared::ApiUuid},
+        internal_models::{
+            internal_chat::InternalChat,
+            internal_user::{InternalRating, InternalUser},
+            shared::{InternalUuid, Save},
+        },
+    },
+    routes::shared::route_body_mut_db,
+};
 
-// use crate::{
-//     db::DB,
-//     internal_models::{rating::RatingWithTarget, shared::UuidModel},
-//     procedures::add_rating::add_rating,
-// };
+#[derive(Debug, PartialEq, Serialize, Deserialize, Apiv2Schema)]
+pub struct RatingWithTarget {
+    pub target: ApiUuid<InternalUser>,
+    pub rating: ApiRating,
+}
 
-// #[api_v2_operation]
-// #[post("/rate")]
-// pub async fn rate(
-//     db: web::Data<Mutex<DB>>,
-//     req: HttpRequest,
-//     rate: web::Json<RatingWithTarget>,
-// ) -> Result<Json<bool>, Error> {
-//     let db_inner = db.into_inner();
-//     let mut db = db_inner.lock().await;
-//     let ext = req.extensions();
-//     let source = ext.get::<UuidModel>().unwrap();
-//     let rating_with_target = rate.into_inner();
-//     let rating = rating_with_target.rating;
-//     let target = rating_with_target.target;
+#[api_v2_operation]
+#[post("/rate")]
+pub fn rate(
+    db: web::Data<DB>,
+    req: HttpRequest,
+    body: web::Json<RatingWithTarget>,
+) -> Result<Json<bool>, Error> {
+    route_body_mut_db(db, req, body, |db, user, body| {
+        let mut user = user;
+        let rating = body.rating;
+        let target = body.target;
+        let target_internal_user_uuid: InternalUuid<InternalUser> = target.into();
+        let target = target_internal_user_uuid.load(db).map_err(|e| {
+            println!("Failed to get target user by uuid {:?}", e);
+            actix_web::error::ErrorInternalServerError("Failed to get target user by uuid")
+        })?;
 
-//     let mutual = add_rating(rating, source.clone(), target, &mut db).await?;
-//     Ok(Json(mutual))
-// }
+        let mut target = match target {
+            Some(target) => target,
+            None => return Err(actix_web::error::ErrorNotFound("Target user not found")),
+        };
+
+        let mut mutual = false;
+
+        if rating == ApiRating::Like {
+            if user.is_liked_by(&target.uuid) {
+                mutual = true;
+                let chat = InternalChat::new(vec![user.uuid.clone(), target.uuid.clone()]);
+                target.add_chat(&chat);
+                user.add_chat(&chat);
+                chat.save(db)?;
+            }
+        }
+
+        let rated = match rating {
+            ApiRating::Like => InternalRating::LikedBy(user.uuid.clone()),
+            ApiRating::Pass => InternalRating::PassedBy(user.uuid.clone()),
+        };
+
+        let new_user = InternalUser {
+            seen: user
+                .seen
+                .into_iter()
+                .chain(std::iter::once(target.uuid.clone()))
+                .collect(),
+            ..user
+        };
+
+        let new_target = InternalUser {
+            ratings: target
+                .ratings
+                .into_iter()
+                .chain(std::iter::once(rated))
+                .collect(),
+            ..target
+        };
+
+        new_user.save(db)?;
+        new_target.save(db)?;
+        Ok(mutual)
+    })
+}

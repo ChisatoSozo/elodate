@@ -1,14 +1,25 @@
 use std::error::Error;
 
-use super::shared::{Gen, InternalUuid, Save};
+use super::{
+    internal_user::InternalUser,
+    shared::{Gen, InternalUuid, Save},
+};
 
 use crate::db::DB;
+
+#[derive(Debug, Clone, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
+#[archive(compare(PartialEq), check_bytes)]
+pub enum Access {
+    Everyone,
+    UserList(Vec<InternalUuid<InternalUser>>),
+}
 
 #[derive(Debug, Clone, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
 #[archive(compare(PartialEq), check_bytes)]
 pub struct InternalImage {
     pub uuid: InternalUuid<InternalImage>,
     pub content: Vec<u8>,
+    pub access: Access,
 }
 
 impl Gen<bool> for InternalImage {
@@ -17,14 +28,14 @@ impl Gen<bool> for InternalImage {
             uuid: InternalUuid::<InternalImage>::new(),
             #[allow(deprecated)]
             content: base64::decode(TEST_IMG_B64).unwrap(),
+            access: Access::Everyone,
         }
     }
 }
 
 impl Save for InternalImage {
-    fn save(self, db: &mut DB) -> Result<(), Box<dyn Error>> {
-        db.write_object(&self.uuid, &self)?;
-        Ok(())
+    fn save(self, db: &DB) -> Result<InternalUuid<InternalImage>, Box<dyn Error>> {
+        db.write_object(&self.uuid, &self)
     }
 }
 

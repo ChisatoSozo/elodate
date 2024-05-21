@@ -101,7 +101,7 @@ impl DB {
         &self,
         key: &InternalUuid<T>,
         object: &T,
-    ) -> Result<(), Box<dyn std::error::Error>>
+    ) -> Result<InternalUuid<T>, Box<dyn std::error::Error>>
     where
         T: Serialize<
             CompositeSerializer<
@@ -110,6 +110,7 @@ impl DB {
                 SharedSerializeMap,
             >,
         >,
+        T: Clone,
     {
         let mut serializer = DefaultSerializer::default();
         serializer.serialize_value(object).unwrap();
@@ -118,7 +119,7 @@ impl DB {
         let key_raw = Raw::from(key.id.as_bytes());
         let value_raw = Raw::from(bytes.as_slice());
         bucket.set(&key_raw, &value_raw)?;
-        Ok(())
+        Ok(key.clone())
     }
 
     pub fn read_object<T>(
@@ -143,5 +144,36 @@ impl DB {
             let deserialized: T = archived.deserialize(&mut Infallible)?;
             Ok(Some(deserialized))
         }
+    }
+
+    pub fn delete_object<T>(
+        &self,
+        key: &InternalUuid<T>,
+    ) -> Result<Option<T>, Box<dyn std::error::Error>>
+    where
+        T: Archive,
+        for<'a> T::Archived: rkyv::CheckBytes<DefaultValidator<'a>> + Deserialize<T, Infallible>,
+    {
+        let bucket = self.store.bucket::<Raw, Raw>(Some("object_storage"))?;
+        let key_raw = Raw::from(key.id.as_bytes());
+        let result = bucket.remove(&key_raw)?;
+        let value_raw = match result {
+            Some(value_raw) => value_raw,
+            None => return Ok(None),
+        };
+
+        // Ensuring value_raw is scoped to the check_archived_root and deserialize
+        {
+            let archived = rkyv::check_archived_root::<T>(&value_raw[..])?;
+            let deserialized: T = archived.deserialize(&mut Infallible)?;
+            Ok(Some(deserialized))
+        }
+    }
+
+    pub fn object_exists<T>(&self, key: &InternalUuid<T>) -> Result<bool, kv::Error> {
+        let bucket = self.store.bucket::<Raw, Raw>(Some("object_storage"))?;
+        let key_raw = Raw::from(key.id.as_bytes());
+        let result = bucket.contains(&key_raw)?;
+        Ok(result)
     }
 }

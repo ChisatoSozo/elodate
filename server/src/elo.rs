@@ -2,15 +2,23 @@
 
 // use crate::{
 //     db::DB,
-//     internal_models::{rating::Rated, shared::UuidModel, user::User},
+//     internal_models::{rating::InternalRating, shared::UuidModel, user::User},
 // };
 
 pub const ELO_SCALE: f64 = 500.0;
 pub const ELO_SHIFT: f64 = 2.0;
-// const FUZZING_CONSTANT: f64 = 500.0;
 
-// const ELO_MAX: f32 = (ELO_SCALE / (ELO_SHIFT - 1.0)) as f32;
-// const ELO_MIN: f32 = (ELO_SCALE / (ELO_SHIFT)) as f32;
+pub fn calc_elo(liked_percentage: f64) -> u32 {
+    (ELO_SCALE / (ELO_SHIFT - liked_percentage)) as u32
+}
+
+pub fn elo_max() -> u32 {
+    calc_elo(1.0)
+}
+
+pub fn elo_min() -> u32 {
+    calc_elo(0.0)
+}
 
 // const NUM_ELOS: usize = 24;
 // const ELO_LABELS: [&str; NUM_ELOS] = [
@@ -80,12 +88,12 @@ pub const ELO_SHIFT: f64 = 2.0;
 //     ELO_LABELS[i].to_string()
 // }
 
-// pub fn update_elo(user: User, db: &mut DB) -> Result<(), Box<dyn Error>> {
+// pub fn update_elo(user: User, db: &DB) -> Result<(), Box<dyn Error>> {
 //     let liked_by = user
 //         .ratings
 //         .iter()
 //         .filter_map(|r| match r {
-//             Rated::LikedBy(user) => Some(user.clone()),
+//             InternalRating::LikedBy(user) => Some(user.clone()),
 //             _ => None,
 //         })
 //         .collect::<Vec<UuidModel>>();
@@ -93,7 +101,7 @@ pub const ELO_SHIFT: f64 = 2.0;
 //         .ratings
 //         .iter()
 //         .filter_map(|r| match r {
-//             Rated::PassedBy(user) => Some(user.clone()),
+//             InternalRating::PassedBy(user) => Some(user.clone()),
 //             _ => None,
 //         })
 //         .collect::<Vec<UuidModel>>();

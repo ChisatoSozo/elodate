@@ -4,29 +4,34 @@ import 'package:localstorage/localstorage.dart';
 
 class HomeModel extends ChangeNotifier {
   late DefaultApi _client;
-  late UserWithImagesAndEloAndUuid me;
-  final List<UserWithImagesAndEloAndUuid> _potentialMatches = [];
-  late List<AdditionalPreferencePublic> additionalPreferences;
-  List<(Chat, UserWithImagesAndElo)> chats = [];
+  late ApiUser me;
+  final List<ApiUser> _potentialMatches = [];
+  late PreferencesConfig preferencesConfig;
+  List<ApiChat> chats = [];
   bool isLoaded = false;
   bool isLoading = false;
 
   Future<void> initAll() async {
-    isLoading = true;
-    await initClient();
-    await Future.wait([initMe(), initAdditionalPreferences()]);
-    await initChats();
-    isLoaded = true;
-    isLoading = false;
-    notifyListeners();
-  }
-
-  Future<void> initClient() async {
     var jwt = localStorage.getItem('jwt');
     if (jwt == null) {
       throw Exception('No JWT found');
     }
 
+    var uuid = localStorage.getItem('uuid');
+    if (uuid == null) {
+      throw Exception('No UUID found');
+    }
+
+    isLoading = true;
+    await initClient(jwt);
+    await Future.wait([initMe(uuid), initAdditionalPreferences()]);
+    await initChats(me);
+    isLoaded = true;
+    isLoading = false;
+    notifyListeners();
+  }
+
+  Future<void> initClient(String jwt) async {
     var auth = HttpBearerAuth();
     auth.accessToken = jwt;
 
@@ -36,41 +41,37 @@ class HomeModel extends ChangeNotifier {
     _client = client;
   }
 
-  Future<void> initMe() async {
-    var newMe = await _client.getMePost();
+  Future<void> initMe(String myUuid) async {
+    var newMe = await _client.getUsersPost([myUuid]);
     if (newMe == null) {
       throw Exception('Failed to get user');
     }
-    me = newMe;
+    if (newMe.isEmpty) {
+      throw Exception('User not found');
+    }
+    if (newMe.length > 1) {
+      throw Exception('Too many users found');
+    }
+    me = newMe.first;
   }
 
   Future<void> initAdditionalPreferences() async {
-    var result = await _client.getAdditionalPreferencesGet();
+    var result = await _client.getPreferencesConfigPost(true);
     if (result == null) {
       throw Exception('Failed to get additional preferences');
     }
-    additionalPreferences = result;
+    preferencesConfig = result;
   }
 
-  Future<void> initChats() async {
-    var result = await _client.getMyChatsPost();
+  Future<void> initChats(ApiUser me) async {
+    var result = await _client.getChatsPost(me.chats);
 
     if (result == null) {
       throw Exception('Failed to get chat messages');
     }
-
-    for (var chat in result) {
-      var notMe =
-          [chat.user1, chat.user2].firstWhere((element) => element != me.uuid);
-      var user = await _client.getUserWithSingleImagePost(notMe);
-      if (user == null) {
-        throw Exception('Failed to get user');
-      }
-      chats.add((chat, user));
-    }
   }
 
-  Future<String> sendChatMessage(
+  Future<bool> sendChatMessage(
       String chatUuid, SendMessageInputMessage message) async {
     var result = await _client.sendMessagePost(
         SendMessageInput(chatUuid: chatUuid, message: message));
@@ -80,7 +81,7 @@ class HomeModel extends ChangeNotifier {
     return result;
   }
 
-  Future<UserWithImagesAndEloAndUuid> getPotentialMatch(int index) async {
+  Future<ApiUser> getPotentialMatch(int index) async {
     if (_potentialMatches.length < 5) {
       _fetchPotentialMatches()
           .then((matches) => _potentialMatches.addAll(matches));
@@ -93,7 +94,7 @@ class HomeModel extends ChangeNotifier {
     return _potentialMatches[index];
   }
 
-  Future<List<UserWithImagesAndEloAndUuid>> _fetchPotentialMatches() async {
+  Future<List<ApiUser>> _fetchPotentialMatches() async {
     var matches = await _client
         .getNextUsersPost(_potentialMatches.map((e) => e.uuid).toList());
     if (matches == null) {
@@ -103,23 +104,25 @@ class HomeModel extends ChangeNotifier {
     return matches.toList();
   }
 
-  Future<List<Message>> getMessages(String chatId) async {
-    var messages = await _client.getChatMessagesPost(chatId);
+  Future<List<ApiMessage>> getMessages(
+      String chatUuid, List<String> messageUuids) async {
+    var messages = await _client.getMessagesPost(
+        GetMessagesInput(chatUuid: chatUuid, messages: messageUuids));
     if (messages == null) {
       throw Exception('Failed to get messages');
     }
     return messages;
   }
 
-  Future<int> getNumUsersIPreferDryRun(Preference preference) async {
-    var result = await _client.getUsersIPerferCountDryRunPost(preference);
+  Future<int> getNumUsersIPreferDryRun(ApiUser newUser) async {
+    var result = await _client.getUsersIPerferCountDryRunPost(newUser);
     if (result == null) {
       throw Exception('Failed to get number of users');
     }
     return result;
   }
 
-  Future<int> getNumUsersMutuallyPreferDryRun(UserPublicFields user) async {
+  Future<int> getNumUsersMutuallyPreferDryRun(ApiUser user) async {
     var result = await _client.getUsersMutualPerferCountDryRunPost(user);
     if (result == null) {
       throw Exception('Failed to get number of users');
@@ -127,7 +130,7 @@ class HomeModel extends ChangeNotifier {
     return result;
   }
 
-  Future<bool> likeUser(UserWithImagesAndEloAndUuid user) async {
+  Future<bool> likeUser(ApiUser user) async {
     //pop the user from the potential matches
     _potentialMatches.remove(user);
 
@@ -139,7 +142,7 @@ class HomeModel extends ChangeNotifier {
     return result;
   }
 
-  Future<bool> dislikeUser(UserWithImagesAndEloAndUuid user) async {
+  Future<bool> dislikeUser(ApiUser user) async {
     //pop the user from the potential matches
     _potentialMatches.remove(user);
 
@@ -151,13 +154,9 @@ class HomeModel extends ChangeNotifier {
     return result;
   }
 
-  Future<void> updateMe(UserWithImages user) async {
-    var result = await _client.updateUserPost(user);
-    var newMe = await _client.getMePost();
-    if (newMe == null) {
-      throw Exception('Failed to get user');
-    }
-    me = newMe;
+  Future<void> updateMe(ApiUserWritable user) async {
+    var result = await _client.putUserPost(user);
+    await initMe(me.uuid);
     if (result == null) {
       throw Exception('Failed to update user');
     }

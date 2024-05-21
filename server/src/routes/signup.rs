@@ -1,74 +1,58 @@
-// use actix_web::Error;
+use actix_web::Error;
 
-// use async_mutex::Mutex;
-// use bcrypt::hash;
-// use paperclip::actix::{
-//     api_v2_operation, post,
-//     web::{self, Json},
-// };
+use paperclip::actix::{
+    api_v2_operation, post,
+    web::{self, Json},
+};
 
-// use crate::{
-//     constants::STARTING_ELO,
-//     db::DB,
-//     middleware::jwt::make_jwt,
-//     internal_models::{
-//         shared::UuidModel,
-//         user::{User, UserWithImagesAndPassword},
-//     },
-//     procedures::upsert_user::upsert_user,
-//     routes::common::Jwt,
-// };
+use crate::{
+    db::DB,
+    middleware::jwt::make_jwt,
+    models::{
+        api_models::{api_user::ApiUserWritable, shared::ApiUuid},
+        internal_models::{internal_user::InternalUser, shared::Save},
+    },
+    routes::common::Jwt,
+};
 
-// fn hash_password(password: &str) -> Result<String, bcrypt::BcryptError> {
-//     hash(password, 4)
-// }
+#[api_v2_operation]
+#[post("/signup")]
+async fn signup(db: web::Data<DB>, body: Json<ApiUserWritable>) -> Result<Json<Jwt>, Error> {
+    let mut inner = body.into_inner();
 
-// #[api_v2_operation]
-// #[post("/signup")]
-// async fn signup(
-//     db: web::Data<Mutex<DB>>,
-//     body: Json<UserWithImagesAndPassword>,
-// ) -> Result<Json<Jwt>, Error> {
-//     let mut db = db.lock().await;
-//     let inner = body.into_inner();
-//     let user = inner.user;
-//     let images = inner.images;
-//     let password = inner.password;
+    let user_exists = db
+        .get_user_by_username(&inner.username)
+        .map_err(|e| {
+            println!("Failed to check if user exists {:?}", e);
+            actix_web::error::ErrorInternalServerError("Failed to check if user exists")
+        })?
+        .is_some();
 
-//     let hashed_password = hash_password(&password).map_err(|e| {
-//         println!("Failed to hash password {:?}", e);
-//         actix_web::error::ErrorInternalServerError("Failed to hash password")
-//     })?;
+    inner.uuid = ApiUuid::<InternalUser>::new();
 
-//     let user_exists = db
-//         .get_user_by_username(&user.username)
-//         .map_err(|e| {
-//             println!("Failed to check if user exists {:?}", e);
-//             actix_web::error::ErrorInternalServerError("Failed to check if user exists")
-//         })?
-//         .is_some();
+    if user_exists {
+        Err(actix_web::error::ErrorBadRequest("Username already taken"))?;
+    }
 
-//     if user_exists {
-//         Err(actix_web::error::ErrorBadRequest("Username already taken"))?;
-//     }
+    let internal_user = inner.to_internal(&db).map_err(|e| {
+        println!("Failed to convert user to internal {:?}", e);
+        actix_web::error::ErrorInternalServerError("Failed to convert user to internal")
+    })?;
 
-//     let user_with_uuid = User {
-//         uuid: UuidModel::new(),
-//         elo: STARTING_ELO,
-//         public: user,
-//         hashed_password,
-//         ratings: vec![],
-//         chats: vec![],
-//         images: vec![],
-//         seen: Vec::new(),
-//     };
+    let internal_uuid = internal_user.save(&db).map_err(|e| {
+        println!("Failed to save user {:?}", e);
+        actix_web::error::ErrorInternalServerError("Failed to save user")
+    })?;
 
-//     upsert_user(&user_with_uuid, images, &mut db)?;
-
-//     make_jwt(&user_with_uuid.uuid)
-//         .map(|jwt| Json(Jwt { jwt }))
-//         .map_err(|e| {
-//             println!("Failed to make jwt {:?}", e);
-//             actix_web::error::ErrorInternalServerError("Failed to make jwt")
-//         })
-// }
+    make_jwt(&internal_uuid)
+        .map(|jwt| {
+            Json(Jwt {
+                jwt,
+                uuid: internal_uuid.into(),
+            })
+        })
+        .map_err(|e| {
+            println!("Failed to make jwt {:?}", e);
+            actix_web::error::ErrorInternalServerError("Failed to make jwt")
+        })
+}

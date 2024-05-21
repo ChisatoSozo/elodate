@@ -1,29 +1,37 @@
-// use async_mutex::Mutex;
+use actix_web::{Error, HttpRequest};
 
-// use actix_web::{Error, HttpMessage, HttpRequest};
+use paperclip::actix::{
+    api_v2_operation, post,
+    web::{self, Json},
+};
 
-// use paperclip::actix::{
-//     api_v2_operation, post,
-//     web::{self, Json},
-// };
+use crate::{
+    constants::USERS_PER_SET,
+    db::DB,
+    models::{
+        api_models::{api_user::ApiUser, shared::ApiUuid},
+        internal_models::internal_user::InternalUser,
+    },
+    routes::shared::route_body_mut_db,
+};
 
-// use crate::{
-//     db::DB,
-//     internal_models::{shared::UuidModel, user::UserWithImagesAndEloAndUuid},
-//     procedures::get_user_set::get_user_set,
-// };
+#[api_v2_operation]
+#[post("/get_next_users")]
+pub fn get_next_users(
+    db: web::Data<DB>,
+    req: HttpRequest,
+    body: web::Json<Vec<ApiUuid<InternalUser>>>,
+) -> Result<Json<Vec<ApiUser>>, Error> {
+    route_body_mut_db(db, req, body, |db, user, body| {
+        let users = db.get_mutual_preference_users(&user)?;
 
-// #[api_v2_operation]
-// #[post("/get_next_users")]
-// pub async fn get_next_users(
-//     db: web::Data<Mutex<DB>>,
-//     req: HttpRequest,
-//     body: web::Json<Vec<UuidModel>>,
-// ) -> Result<Json<Vec<UserWithImagesAndEloAndUuid>>, Error> {
-//     let ext = req.extensions();
-//     let user = ext.get::<UuidModel>().unwrap();
-//     let mut db = db.lock().await;
-//     let skip = body.into_inner();
-//     let user_set = get_user_set(&mut db, &user, skip).await?;
-//     Ok(Json(user_set))
-// }
+        let seen = &user.seen;
+        let users = users
+            .into_iter()
+            .filter(|u| !seen.contains(&u.uuid) && !body.contains(&u.uuid.clone().into()))
+            .take(USERS_PER_SET)
+            .map(|internal_user| ApiUser::from_internal(internal_user, &user))
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(users)
+    })
+}

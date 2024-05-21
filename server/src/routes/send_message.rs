@@ -1,66 +1,65 @@
-// use async_mutex::Mutex;
 
-// use actix_web::{Error, HttpMessage, HttpRequest};
 
-// use paperclip::actix::{
-//     api_v2_operation, post,
-//     web::{self, Json},
-//     Apiv2Schema,
-// };
-// use serde::{Deserialize, Serialize};
+use actix_web::{Error, HttpRequest};
 
-// use crate::{
-//     db::DB,
-//     internal_models::{message::PublicMessage, shared::UuidModel},
-//     procedures::send_chat_message::send_chat_message,
-// };
+use paperclip::actix::{
+    api_v2_operation, post,
+    web::{self, Json},
+    Apiv2Schema,
+};
+use serde::{Deserialize, Serialize};
 
-// #[derive(Debug, Clone, Serialize, Deserialize, Apiv2Schema)]
-// struct SendMessageInput {
-//     chat_uuid: UuidModel,
-//     message: PublicMessage,
-// }
+use crate::{
+    db::DB,
+    models::{
+        api_models::{api_message::ApiMessageWritable, shared::ApiUuid},
+        internal_models::{internal_chat::InternalChat, shared::InternalUuid},
+    },
+    routes::shared::route_body_mut_db,
+};
 
-// #[api_v2_operation]
-// #[post("/send_message")]
-// pub async fn send_message(
-//     db: web::Data<Mutex<DB>>,
-//     req: HttpRequest,
-//     body: Json<SendMessageInput>,
-// ) -> Result<Json<String>, Error> {
-//     let ext = req.extensions();
-//     let user_uuid = ext.get::<UuidModel>().unwrap();
-//     let mut db = db.lock().await;
-//     let inner = body.into_inner();
-//     let chat_uuid = inner.chat_uuid;
-//     let message = inner.message;
+#[derive(Debug, Clone, Serialize, Deserialize, Apiv2Schema)]
+struct SendMessageInput {
+    chat_uuid: ApiUuid<InternalChat>,
+    message: ApiMessageWritable,
+}
 
-//     let user = db.get_user(&user_uuid).map_err(|e| {
-//         println!("Failed to get user by uuid {:?}", e);
-//         actix_web::error::ErrorInternalServerError("Failed to get user by uuid")
-//     })?;
+#[api_v2_operation]
+#[post("/send_message")]
+pub fn send_message(
+    db: web::Data<DB>,
+    req: HttpRequest,
+    body: Json<SendMessageInput>,
+) -> Result<Json<bool>, Error> {
+    route_body_mut_db(db, req, body, |db, user, body| {
+        let chat_uuid = body.chat_uuid;
+        let message = body.message;
 
-//     let user = match user {
-//         Some(user) => user,
-//         None => return Err(actix_web::error::ErrorNotFound("User not found")),
-//     };
+        let internal_chat_uuid: InternalUuid<InternalChat> = chat_uuid.into();
 
-//     let chat = db.get_chat(&chat_uuid).map_err(|e| {
-//         println!("Failed to get chat {:?}", e);
-//         actix_web::error::ErrorInternalServerError("Failed to get chat")
-//     })?;
+        let chat = internal_chat_uuid.load(db).map_err(|e| {
+            println!("Failed to get chat {:?}", e);
+            actix_web::error::ErrorInternalServerError("Failed to get chat")
+        })?;
 
-//     let chat = match chat {
-//         Some(chat) => chat,
-//         None => return Err(actix_web::error::ErrorNotFound("Chat not found")),
-//     };
+        let mut chat = match chat {
+            Some(chat) => chat,
+            None => return Err(actix_web::error::ErrorNotFound("Chat not found")),
+        };
 
-//     if &chat.user1 != user_uuid && &chat.user2 != user_uuid {
-//         println!("User not in chat");
-//         return Err(actix_web::error::ErrorBadRequest("Chat not found"));
-//     }
+        //is user in chat
+        if chat.users.iter().find(|u| u == &&user.uuid).is_none() {
+            return Err(actix_web::error::ErrorBadRequest("User not in chat"));
+        }
 
-//     send_chat_message(chat_uuid, user, message.to_message(user_uuid), &mut db)?;
+        let internal_message = message.into_internal(user, &chat, db)?;
 
-//     Ok(Json("success".to_string()))
-// }
+        internal_message.save(&mut chat, db).map_err(|e| {
+            println!("Failed to save message {:?}", e);
+            actix_web::error::ErrorInternalServerError("Failed to save message")
+        })?;
+
+        Ok(true)
+    })
+    
+}
