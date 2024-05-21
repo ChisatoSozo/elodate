@@ -35,8 +35,10 @@ int findClosestDistanceIndex(int distance, List<int> presetDistances) {
   return closestIndex;
 }
 
-(PreferenceAdditionalPreferencesValue, PreferenceAdditionalPreferencesValue)
-    getLatLngRange(
+(
+  PreferenceAdditionalPreferencesInnerRange,
+  PreferenceAdditionalPreferencesInnerRange
+) getLatLngRange(
   UserWithImagesAndEloAndUuid user,
   int distanceInKm,
 ) {
@@ -58,7 +60,9 @@ int findClosestDistanceIndex(int distance, List<int> presetDistances) {
   final maxLatLng = encodeLatLongToI16(maxLat, maxLng);
 
   return (
-    PreferenceAdditionalPreferencesValue(min: minLatLng.$1, max: maxLatLng.$1),
-    PreferenceAdditionalPreferencesValue(min: minLatLng.$2, max: maxLatLng.$2)
+    PreferenceAdditionalPreferencesInnerRange(
+        min: minLatLng.$1, max: maxLatLng.$1),
+    PreferenceAdditionalPreferencesInnerRange(
+        min: minLatLng.$2, max: maxLatLng.$2)
   );
 }

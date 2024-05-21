@@ -16,7 +16,10 @@ use actix_web::{
 };
 use futures_util::future::LocalBoxFuture;
 
-use crate::{models::shared::UuidModel, JSON_SPEC_PATH};
+use crate::{
+    models::internal_models::{internal_user::InternalUser, shared::InternalUuid},
+    JSON_SPEC_PATH,
+};
 
 // There are two steps in middleware processing.
 // 1. Middleware initialization, middleware factory gets called with
@@ -101,24 +104,13 @@ where
                                     )))
                                 });
                             }
-                            let uuid = UuidModel::from_string(&claims.claims.uuid);
-                            match uuid {
-                                Ok(uuid) => {
-                                    {
-                                        let mut ext = req.extensions_mut();
-                                        ext.insert(uuid);
-                                    }
-                                    Box::pin(self.service.call(req))
-                                }
-                                Err(e) => {
-                                    println!("Failed to parse uuid {:?}", e);
-                                    Box::pin(async move {
-                                        Err(Error::from(actix_web::error::ErrorUnauthorized(
-                                            "Invalid token format, uuid invalid",
-                                        )))
-                                    })
-                                }
+                            let uuid: InternalUuid<InternalUser> = claims.claims.uuid.into();
+
+                            {
+                                let mut ext = req.extensions_mut();
+                                ext.insert(uuid);
                             }
+                            Box::pin(self.service.call(req))
                         }
                         Err(err) => {
                             println!("Failed to decode token {:?}", err);
@@ -151,10 +143,10 @@ where
     }
 }
 
-pub fn make_jwt(uuid: &UuidModel) -> Result<String, jsonwebtoken::errors::Error> {
+pub fn make_jwt(uuid: &InternalUuid<InternalUser>) -> Result<String, jsonwebtoken::errors::Error> {
     //make it expire in 2 hours
     let claims = Claims {
-        uuid: uuid.to_string(),
+        uuid: uuid.id.clone(),
         exp: (chrono::Utc::now() + chrono::Duration::hours(2)).timestamp() as usize,
     };
 

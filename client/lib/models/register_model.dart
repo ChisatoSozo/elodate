@@ -154,13 +154,15 @@ class RegisterModel extends ChangeNotifier {
             percentFemale: (_percentFemale! * 100).toInt(),
             percentMale: (_percentMale! * 100).toInt()),
         preference: UserPublicFieldsPreference(
-          age: PreferenceAdditionalPreferencesValue(max: 100, min: 18),
-          latitude:
-              PreferenceAdditionalPreferencesValue(max: 32767, min: -32768),
-          longitude:
-              PreferenceAdditionalPreferencesValue(max: 32767, min: -32768),
-          percentFemale: PreferenceAdditionalPreferencesValue(max: 100, min: 0),
-          percentMale: PreferenceAdditionalPreferencesValue(max: 100, min: 0),
+          age: PreferenceAdditionalPreferencesInnerRange(max: 100, min: 18),
+          latitude: PreferenceAdditionalPreferencesInnerRange(
+              max: 32767, min: -32768),
+          longitude: PreferenceAdditionalPreferencesInnerRange(
+              max: 32767, min: -32768),
+          percentFemale:
+              PreferenceAdditionalPreferencesInnerRange(max: 100, min: 0),
+          percentMale:
+              PreferenceAdditionalPreferencesInnerRange(max: 100, min: 0),
         ),
         username: _username!,
         location: UserPublicFieldsLocation(lat: lat, long: long),

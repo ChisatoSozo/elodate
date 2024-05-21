@@ -35,7 +35,7 @@ class UserPreferenceFormState extends State<UserPreferenceForm> {
   ];
 
   late List<RangeSliderFormFieldController> _additionalPreferencesControllers;
-  late List<void Function(PreferenceAdditionalPreferencesValue)>
+  late List<void Function(PreferenceAdditionalPreferencesInnerRange)>
       _additionalPreferenceUpdaters;
 
   List<AdditionalPreferencePublic>? _additionalPreferences = [];
@@ -60,7 +60,7 @@ class UserPreferenceFormState extends State<UserPreferenceForm> {
     setState(() {
       _additionalPreferences = widget.additionalPreferences;
       _additionalPreferencesControllers = _additionalPreferences!.map((pref) {
-        late PreferenceAdditionalPreferencesValue prefProc;
+        late PreferenceAdditionalPreferencesInnerRange prefProc;
 
         switch (pref.name) {
           case 'age':
@@ -81,7 +81,7 @@ class UserPreferenceFormState extends State<UserPreferenceForm> {
           default:
             prefProc = widget.preferencesController.value
                     .additionalPreferences[pref.name] ??
-                PreferenceAdditionalPreferencesValue(
+                PreferenceAdditionalPreferencesInnerRange(
                   min: pref.min,
                   max: pref.max,
                 );
@@ -90,7 +90,7 @@ class UserPreferenceFormState extends State<UserPreferenceForm> {
         return RangeSliderFormFieldController(prefProc);
       }).toList();
       _additionalPreferenceUpdaters = _additionalPreferences!.map((pref) {
-        return (PreferenceAdditionalPreferencesValue value) {
+        return (PreferenceAdditionalPreferencesInnerRange value) {
           _handleAdditionalPreferenceUpdate(pref.name, value);
         };
       }).toList();
@@ -130,7 +130,7 @@ class UserPreferenceFormState extends State<UserPreferenceForm> {
   }
 
   void _handleAdditionalPreferenceUpdate(
-      String name, PreferenceAdditionalPreferencesValue value) {
+      String name, PreferenceAdditionalPreferencesInnerRange value) {
     widget.preferencesController.updateAdditionalPreference(name, value);
   }
 
@@ -256,7 +256,7 @@ class UserWithImagesUserPreferenceController {
     onUpdate(newValue);
   }
 
-  void updateAge(PreferenceAdditionalPreferencesValue age) {
+  void updateAge(PreferenceAdditionalPreferencesInnerRange age) {
     value = UserPublicFieldsPreference(
       additionalPreferences: value.additionalPreferences,
       age: age,
@@ -268,7 +268,7 @@ class UserWithImagesUserPreferenceController {
     onUpdate(value);
   }
 
-  void updateLatitude(PreferenceAdditionalPreferencesValue latitude) {
+  void updateLatitude(PreferenceAdditionalPreferencesInnerRange latitude) {
     value = UserPublicFieldsPreference(
       additionalPreferences: value.additionalPreferences,
       age: value.age,
@@ -280,7 +280,7 @@ class UserWithImagesUserPreferenceController {
     onUpdate(value);
   }
 
-  void updateLongitude(PreferenceAdditionalPreferencesValue longitude) {
+  void updateLongitude(PreferenceAdditionalPreferencesInnerRange longitude) {
     value = UserPublicFieldsPreference(
       additionalPreferences: value.additionalPreferences,
       age: value.age,
@@ -292,7 +292,8 @@ class UserWithImagesUserPreferenceController {
     onUpdate(value);
   }
 
-  void updatePercentFemale(PreferenceAdditionalPreferencesValue percentFemale) {
+  void updatePercentFemale(
+      PreferenceAdditionalPreferencesInnerRange percentFemale) {
     value = UserPublicFieldsPreference(
       additionalPreferences: value.additionalPreferences,
       age: value.age,
@@ -304,7 +305,8 @@ class UserWithImagesUserPreferenceController {
     onUpdate(value);
   }
 
-  void updatePercentMale(PreferenceAdditionalPreferencesValue percentMale) {
+  void updatePercentMale(
+      PreferenceAdditionalPreferencesInnerRange percentMale) {
     value = UserPublicFieldsPreference(
       additionalPreferences: value.additionalPreferences,
       age: value.age,
@@ -316,10 +318,10 @@ class UserWithImagesUserPreferenceController {
     onUpdate(value);
   }
 
-  void updateAdditionalPreference(
-      String name, PreferenceAdditionalPreferencesValue additionalPreference) {
+  void updateAdditionalPreference(String name,
+      PreferenceAdditionalPreferencesInnerRange additionalPreference) {
     final updatedPreferences =
-        Map<String, PreferenceAdditionalPreferencesValue>.from(
+        Map<String, PreferenceAdditionalPreferencesInnerRange>.from(
             value.additionalPreferences);
     updatedPreferences[name] = additionalPreference;
     value = UserPublicFieldsPreference(

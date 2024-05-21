@@ -6,24 +6,13 @@ use db::DB;
 use middleware::jwt::Jwt;
 use paperclip::actix::{web, OpenApiExt};
 
-use routes::{
-    check_username::check_username, generate_access_codes::generate_access_codes,
-    get_additional_preferences::get_additional_preferences, get_chat_messages::get_chat_messages,
-    get_me::get_me, get_my_chats::get_my_chats, get_next_users::get_next_users,
-    get_user_with_single_image::get_user_with_single_image,
-    get_users_i_perfer_count::get_users_i_perfer_count,
-    get_users_i_perfer_count_dry_run::get_users_i_perfer_count_dry_run,
-    get_users_mutual_perfer_count::get_users_mutual_perfer_count,
-    get_users_mutual_perfer_count_dry_run::get_users_mutual_perfer_count_dry_run, login::login,
-    rate::rate, send_message::send_message, signup::signup, update_user::update_user,
-};
+use routes::check_username::check_username;
 
 pub mod constants;
 pub mod db;
 pub mod elo;
 pub mod middleware;
 pub mod models;
-pub mod mokuroku;
 pub mod procedures;
 pub mod routes;
 pub mod test;
@@ -49,23 +38,23 @@ async fn main() -> std::io::Result<()> {
             .app_data(db.clone())
             .wrap_api()
             .wrap(Jwt)
-            .service(signup)
-            .service(login)
-            .service(generate_access_codes)
-            .service(check_username)
-            .service(get_next_users)
-            .service(update_user)
-            .service(get_my_chats)
-            .service(get_chat_messages)
-            .service(get_user_with_single_image)
-            .service(get_me)
-            .service(get_users_i_perfer_count)
-            .service(get_users_i_perfer_count_dry_run)
-            .service(get_users_mutual_perfer_count)
-            .service(get_users_mutual_perfer_count_dry_run)
-            .service(get_additional_preferences)
-            .service(rate)
-            .service(send_message)
+            // .service(signup)
+            // .service(login)
+            // .service(generate_access_codes)
+            // .service(check_username)
+            // .service(get_next_users)
+            // .service(update_user)
+            // .service(get_my_chats)
+            // .service(get_chat_messages)
+            // .service(get_user_with_single_image)
+            // .service(get_me)
+            // .service(get_users_i_perfer_count)
+            // .service(get_users_i_perfer_count_dry_run)
+            // .service(get_users_mutual_perfer_count)
+            // .service(get_users_mutual_perfer_count_dry_run)
+            // .service(get_additional_preferences)
+            // .service(rate)
+            // .service(send_message)
             .with_json_spec_at(JSON_SPEC_PATH)
             .build()
     })

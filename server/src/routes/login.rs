@@ -30,6 +30,10 @@ async fn login(db: web::Data<Mutex<DB>>, body: Json<LoginRequest>) -> Result<Jso
         println!("Failed to get user by username {:?}", e);
         actix_web::error::ErrorInternalServerError("Failed to get user by username")
     })?;
+    let user = match user {
+        Some(user) => user,
+        None => return Err(actix_web::error::ErrorNotFound("User not found")),
+    };
     let hashed_password = user.hashed_password.clone();
     let password_matches = verify_password(&login_req.password, &hashed_password).map_err(|e| {
         println!("Failed to verify password {:?}", e);

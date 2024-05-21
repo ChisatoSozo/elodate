@@ -1,53 +1,61 @@
-use std::error::Error;
-
+use crate::models::internal_models::shared::Save;
 use crate::{
     db::DB,
-    models::{
-        chat::Chat,
-        rating::{Rated, Rating},
-        shared::UuidModel,
-        user::User,
+    models::api_models::api_rating::Rating,
+    models::internal_models::{
+        internal_chat::InternalChat,
+        internal_user::{InternalUser, Rated},
+        shared::InternalUuid,
     },
 };
+use std::error::Error;
 
 pub async fn add_rating(
     rating: Rating,
-    source: UuidModel,
-    target: UuidModel,
+    source: InternalUuid<InternalUser>,
+    target: InternalUuid<InternalUser>,
     db: &mut DB,
 ) -> Result<bool, Box<dyn Error>> {
-    let mut source_user = db.get_user_by_uuid(&source)?;
-    let mut target_user = db.get_user_by_uuid(&target)?;
+    let source_user = source.load(db)?;
+    let target_user = target.load(db)?;
+
+    let mut source_user = match source_user {
+        Some(user) => user,
+        None => return Err("Source user not found".into()),
+    };
+
+    let mut target_user = match target_user {
+        Some(user) => user,
+        None => return Err("Target user not found".into()),
+    };
 
     let mut mutual = false;
 
     if rating == Rating::Like {
-        if source_user.is_liked_by(&target) {
+        if source_user.is_liked_by(&target_user.uuid) {
             mutual = true;
-            let chat = Chat::new(source.clone(), target.clone());
-            db.insert_chat(&chat)?;
-
+            let chat = InternalChat::new(vec![source_user.uuid.clone(), target_user.uuid.clone()]);
             target_user.add_chat(&chat);
             source_user.add_chat(&chat);
-            db.insert_user(&target_user)?;
+            chat.save(db)?;
         }
     }
 
-    let new_source_user = User {
+    let rated = match rating {
+        Rating::Like => Rated::LikedBy(source_user.uuid.clone()),
+        Rating::Pass => Rated::PassedBy(source_user.uuid.clone()),
+    };
+
+    let new_source_user = InternalUser {
         seen: source_user
             .seen
             .into_iter()
-            .chain(std::iter::once(target))
+            .chain(std::iter::once(target_user.uuid.clone()))
             .collect(),
         ..source_user
     };
 
-    let rated = match rating {
-        Rating::Like => Rated::LikedBy(source),
-        Rating::Pass => Rated::PassedBy(source),
-    };
-
-    let new_target_user = User {
+    let new_target_user = InternalUser {
         ratings: target_user
             .ratings
             .into_iter()
@@ -56,8 +64,8 @@ pub async fn add_rating(
         ..target_user
     };
 
-    db.insert_user(&new_source_user)?;
-    db.insert_user(&new_target_user)?;
+    new_source_user.save(db)?;
+    new_target_user.save(db)?;
 
     Ok(mutual)
 }

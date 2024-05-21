@@ -1,9 +1,2 @@
-pub mod access_code;
-pub mod chat;
-pub mod image;
-pub mod message;
-pub mod preference;
-pub mod rating;
-pub mod shared;
-pub mod success;
-pub mod user;
+pub mod api_models;
+pub mod internal_models;

@@ -1,7 +1,9 @@
-use crate::{test::fake::FakeGen, vec::shared::VectorSearch};
+use crate::vec::shared::VectorSearch;
 use std::array;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 
+use super::internal_user::InternalUser;
+use super::shared::{Gen, InternalUuid};
 use paperclip::actix::Apiv2Schema;
 use rand::rngs::ThreadRng;
 use rand::Rng;
@@ -11,29 +13,62 @@ use serde::{Deserialize, Serialize};
 
 use crate::{db::DB, vec::shared::Bbox};
 
-use super::{
-    shared::UuidModel,
-    user::{User, UserPublicFields},
-};
-
-#[derive(Debug, Serialize, Deserialize, Apiv2Schema, Clone, PartialEq, Eq)]
+#[derive(
+    Debug, Clone, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Serialize, Deserialize,
+)]
+#[archive(compare(PartialEq), check_bytes)]
 pub struct PreferenceRange {
     pub min: i16,
     pub max: i16,
 }
 
-pub struct UserProperties {
+#[derive(
+    Debug, Clone, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Serialize, Deserialize,
+)]
+#[archive(compare(PartialEq), check_bytes)]
+pub struct LabeledPreferenceRange {
+    name: String,
+    range: PreferenceRange,
+}
+
+#[derive(
+    Debug, Clone, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Serialize, Deserialize,
+)]
+#[archive(compare(PartialEq), check_bytes)]
+pub struct Preferences {
+    pub age: PreferenceRange,
+    pub percent_male: PreferenceRange,
+    pub percent_female: PreferenceRange,
+    pub latitude: PreferenceRange,
+    pub longitude: PreferenceRange,
+    pub additional_preferences: Vec<LabeledPreferenceRange>,
+}
+
+#[derive(
+    Debug, Clone, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Serialize, Deserialize,
+)]
+#[archive(compare(PartialEq), check_bytes)]
+pub struct LabeledProperty {
+    name: String,
+    value: i16,
+}
+
+#[derive(
+    Debug, Clone, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Serialize, Deserialize,
+)]
+#[archive(compare(PartialEq), check_bytes)]
+pub struct Properties {
     pub age: i16,
     pub percent_male: i16,
     pub percent_female: i16,
     pub latitude: i16,
     pub longitude: i16,
-    pub additional_preferences: HashMap<String, i16>,
+    pub additional_properties: Vec<LabeledProperty>,
 }
 
-impl UserProperties {
-    pub fn get_vector(&self) -> [i16; PREFERENCE_CARDINALITY] {
-        let mut vector = [0 as i16; PREFERENCE_CARDINALITY];
+impl Properties {
+    pub fn get_vector(&self) -> [i16; TOTAL_PREFERENCES_CARDINALITY] {
+        let mut vector = [0 as i16; TOTAL_PREFERENCES_CARDINALITY];
 
         vector[0] = self.age;
         vector[1] = self.percent_male;
@@ -41,17 +76,11 @@ impl UserProperties {
         vector[3] = self.latitude;
         vector[4] = self.longitude;
 
-        let mut index = 5; // Start from the 6th element in the array
+        let mut index = 0; // Start from the 6th element in the array
 
-        while index < PREFERENCE_CARDINALITY {
-            if let Some(preference) = self
-                .additional_preferences
-                .get(ADDITIONAL_PREFERENCES[index].name)
-            {
-                vector[index] = *preference;
-            } else {
-                vector[index] = -32768;
-            }
+        while index < ADDITIONAL_PREFERENCE_CARDINALITY {
+            vector[index + MANDATORY_PREFERENCES_CARDINALITY] =
+                self.additional_properties.get(index).unwrap().value;
             index += 1;
         }
 
@@ -59,31 +88,21 @@ impl UserProperties {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Apiv2Schema, Clone, PartialEq, Eq)]
-pub struct Preference {
-    pub age: PreferenceRange,
-    pub percent_male: PreferenceRange,
-    pub percent_female: PreferenceRange,
-    pub latitude: PreferenceRange,
-    pub longitude: PreferenceRange,
-    pub additional_preferences: HashMap<String, PreferenceRange>,
-}
-
-impl FakeGen<UserProperties> for Preference {
-    fn fake_gen(user: &UserProperties) -> Self {
+impl Gen<Properties> for Preferences {
+    fn gen(user: &Properties) -> Self {
         let mut rng = rand::thread_rng();
         let age = sample_range_from_additional_preference_and_prop(
-            &ADDITIONAL_PREFERENCES[0],
+            &MANDATORY_PREFERENCES_CONFIG.age,
             user.age,
             &mut rng,
         );
         let percent_male = sample_range_from_additional_preference_and_prop(
-            &ADDITIONAL_PREFERENCES[1],
+            &MANDATORY_PREFERENCES_CONFIG.percent_male,
             user.percent_male,
             &mut rng,
         );
         let percent_female = sample_range_from_additional_preference_and_prop(
-            &ADDITIONAL_PREFERENCES[2],
+            &MANDATORY_PREFERENCES_CONFIG.percent_female,
             user.percent_female,
             &mut rng,
         );
@@ -96,17 +115,21 @@ impl FakeGen<UserProperties> for Preference {
             max: 32767,
         };
 
-        let mut additional_preferences = HashMap::new();
-        let mut index = 5; // Start from the 6th element in the array
-
-        while index < PREFERENCE_CARDINALITY {
-            let preference = ADDITIONAL_PREFERENCES[index].sample_range(user, &mut rng);
-            additional_preferences
-                .insert(ADDITIONAL_PREFERENCES[index].name.to_string(), preference);
-            index += 1;
-        }
-
-        Preference {
+        let additional_preferences = (0..(ADDITIONAL_PREFERENCE_CARDINALITY))
+            .map(|i| {
+                let additional_preference = &ADDITIONAL_PREFERENCES_CONFIG[i];
+                let range = sample_range_from_additional_preference_and_prop(
+                    additional_preference,
+                    user.additional_properties.get(i).unwrap().value,
+                    &mut rng,
+                );
+                LabeledPreferenceRange {
+                    name: additional_preference.name.to_string(),
+                    range,
+                }
+            })
+            .collect();
+        Preferences {
             age,
             percent_male,
             percent_female,
@@ -117,10 +140,10 @@ impl FakeGen<UserProperties> for Preference {
     }
 }
 
-impl Preference {
-    pub fn get_bbox(&self) -> Bbox<PREFERENCE_CARDINALITY> {
-        let mut min_vals = [0 as i16; PREFERENCE_CARDINALITY];
-        let mut max_vals = [0 as i16; PREFERENCE_CARDINALITY];
+impl Preferences {
+    pub fn get_bbox(&self) -> Bbox<TOTAL_PREFERENCES_CARDINALITY> {
+        let mut min_vals = [0 as i16; TOTAL_PREFERENCES_CARDINALITY];
+        let mut max_vals = [0 as i16; TOTAL_PREFERENCES_CARDINALITY];
 
         // Adding the core preferences
         min_vals[0] = self.age.min;
@@ -141,13 +164,10 @@ impl Preference {
         // Adding the additional preferences
         let mut index = 5; // Start from the 6th element in the array
 
-        while index < PREFERENCE_CARDINALITY {
-            if let Some(preference) = self
-                .additional_preferences
-                .get(ADDITIONAL_PREFERENCES[index].name)
-            {
-                min_vals[index] = preference.min;
-                max_vals[index] = preference.max;
+        while index < ADDITIONAL_PREFERENCE_CARDINALITY {
+            if let Some(preference) = self.additional_preferences.get(index - 5) {
+                min_vals[index] = preference.range.min;
+                max_vals[index] = preference.range.max;
             } else {
                 min_vals[index] = -32768;
                 max_vals[index] = 32767;
@@ -165,53 +185,61 @@ impl Preference {
 impl DB {
     fn get_users_who_prefer_me_direct(
         &mut self,
-        user: &UserPublicFields,
-        seen: &HashSet<UuidModel>,
-    ) -> HashSet<String> {
+        properties: &Properties,
+        seen: &Vec<InternalUuid<InternalUser>>,
+    ) -> HashSet<InternalUuid<InternalUser>> {
         self.vec_index
             .search_inverse(
-                &user.get_my_vector(),
-                Some(&seen.iter().map(|u| u.0.clone()).collect()),
+                &properties.get_vector(),
+                Some(&seen.iter().map(|u| u.id.clone()).collect()),
             )
             .map(|u| u.label)
+            .map(|u| u.into())
             .collect()
     }
 
     fn get_users_who_i_prefer_direct(
         &mut self,
-        preference: &Preference,
-        seen: &HashSet<UuidModel>,
-    ) -> HashSet<String> {
+        preferences: &Preferences,
+        seen: &Vec<InternalUuid<InternalUser>>,
+    ) -> HashSet<InternalUuid<InternalUser>> {
         self.vec_index
             .search(
-                &preference.get_bbox(),
-                Some(&seen.iter().map(|u| u.0.clone()).collect()),
+                &preferences.get_bbox(),
+                Some(&seen.iter().map(|u| u.id.clone()).collect()),
             )
             .map(|u| u.label)
+            .map(|u| u.into())
             .collect()
     }
 
     pub fn get_mutual_preference_users_direct(
         &mut self,
-        user: &UserPublicFields,
-        seen: &HashSet<UuidModel>,
-    ) -> Vec<User> {
-        let users_who_prefer_me = self.get_users_who_prefer_me_direct(user, &seen);
-        let users_who_i_prefer = self.get_users_who_i_prefer_direct(&user.preference, &seen);
+        properties: &Properties,
+        preferences: &Preferences,
+        seen: &Vec<InternalUuid<InternalUser>>,
+    ) -> Result<Vec<InternalUser>, Box<dyn std::error::Error>> {
+        let users_who_prefer_me = self.get_users_who_prefer_me_direct(properties, &seen);
+        let users_who_i_prefer = self.get_users_who_i_prefer_direct(preferences, &seen);
 
-        users_who_prefer_me
+        let user_options = users_who_prefer_me
             .intersection(&users_who_i_prefer)
-            .map(|u| self.get_user_by_uuid(&UuidModel(u.to_string())).unwrap())
-            .collect()
+            .map(|u| u.load(self))
+            .collect::<Result<Option<Vec<_>>, _>>()?;
+
+        match user_options {
+            Some(users) => Ok(users),
+            None => Err("Error getting mutual preference users".into()),
+        }
     }
 
     pub fn get_mutual_preference_users_count_direct(
         &mut self,
-        user: &UserPublicFields,
-        preference: &Preference,
-        seen: &HashSet<UuidModel>,
+        properties: &Properties,
+        preference: &Preferences,
+        seen: &Vec<InternalUuid<InternalUser>>,
     ) -> usize {
-        let users_who_prefer_me = self.get_users_who_prefer_me_direct(user, &seen);
+        let users_who_prefer_me = self.get_users_who_prefer_me_direct(properties, &seen);
         let users_who_i_prefer = self.get_users_who_i_prefer_direct(preference, &seen);
 
         users_who_prefer_me
@@ -221,39 +249,48 @@ impl DB {
 
     pub fn get_users_i_prefer_count_direct(
         &mut self,
-        preference: &Preference,
-        seen: &HashSet<UuidModel>,
+        preference: &Preferences,
+        seen: &Vec<InternalUuid<InternalUser>>,
     ) -> usize {
         self.get_users_who_i_prefer_direct(preference, &seen).len()
     }
 
-    pub fn get_users_who_prefer_me(&mut self, user: &User) -> HashSet<String> {
-        self.get_users_who_prefer_me_direct(&user.public, &user.seen)
+    pub fn get_users_who_prefer_me(
+        &mut self,
+        user: &InternalUser,
+    ) -> HashSet<InternalUuid<InternalUser>> {
+        self.get_users_who_prefer_me_direct(&user.properties, &user.seen)
     }
 
-    pub fn get_users_who_i_prefer(&mut self, user: &User) -> HashSet<String> {
-        self.get_users_who_i_prefer_direct(&user.public.preference, &user.seen)
+    pub fn get_users_who_i_prefer(
+        &mut self,
+        user: &InternalUser,
+    ) -> HashSet<InternalUuid<InternalUser>> {
+        self.get_users_who_i_prefer_direct(&user.preferences, &user.seen)
     }
 
-    pub fn get_mutual_preference_users(&mut self, user: &User) -> Vec<User> {
-        self.get_mutual_preference_users_direct(&user.public, &user.seen)
+    pub fn get_mutual_preference_users(
+        &mut self,
+        user: &InternalUser,
+    ) -> Result<Vec<InternalUser>, Box<dyn std::error::Error>> {
+        self.get_mutual_preference_users_direct(&user.properties, &user.preferences, &user.seen)
     }
 
-    pub fn get_mutual_preference_users_count(&mut self, user: &User) -> usize {
+    pub fn get_mutual_preference_users_count(&mut self, user: &InternalUser) -> usize {
         self.get_mutual_preference_users_count_direct(
-            &user.public,
-            &user.public.preference,
+            &user.properties,
+            &user.preferences,
             &user.seen,
         )
     }
 
-    pub fn get_users_i_prefer_count(&mut self, user: &User) -> usize {
-        self.get_users_i_prefer_count_direct(&user.public.preference, &user.seen)
+    pub fn get_users_i_prefer_count(&mut self, user: &InternalUser) -> usize {
+        self.get_users_i_prefer_count_direct(&user.preferences, &user.seen)
     }
 }
 
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema, Clone, PartialEq)]
-pub struct AdditionalPreference<'a> {
+pub struct PreferenceConfig<'a> {
     pub name: &'a str,
     pub display: &'a str,
     pub category: &'a str,
@@ -269,9 +306,9 @@ pub struct AdditionalPreference<'a> {
     pub labels: Option<[&'a str; 5]>,
 }
 
-impl AdditionalPreference<'_> {
-    pub fn get_public(&self) -> AdditionalPreferencePublic {
-        AdditionalPreferencePublic {
+impl PreferenceConfig<'_> {
+    pub fn get_public(&self) -> PreferenceConfigPublic {
+        PreferenceConfigPublic {
             name: self.name.to_string(),
             display: self.display.to_string(),
             category: self.category.to_string(),
@@ -291,7 +328,7 @@ impl AdditionalPreference<'_> {
 }
 
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema, Clone, PartialEq)]
-pub struct AdditionalPreferencePublic {
+pub struct PreferenceConfigPublic {
     pub name: String,
     pub display: String,
     pub category: String,
@@ -302,7 +339,7 @@ pub struct AdditionalPreferencePublic {
     pub optional: bool,
 }
 
-fn f64_to_i16(value: f64, additional_preference: &AdditionalPreference) -> i16 {
+fn f64_to_i16(value: f64, additional_preference: &PreferenceConfig) -> i16 {
     if let Some(linear_mapping) = &additional_preference.linear_mapping {
         let real_min = linear_mapping.real_min;
         let real_max = linear_mapping.real_max;
@@ -314,7 +351,7 @@ fn f64_to_i16(value: f64, additional_preference: &AdditionalPreference) -> i16 {
 }
 
 fn sample_range_from_additional_preference_and_prop(
-    additional_preference: &AdditionalPreference,
+    additional_preference: &PreferenceConfig,
     prop: i16,
     rng: &mut ThreadRng,
 ) -> PreferenceRange {
@@ -378,7 +415,7 @@ fn sample_range_from_additional_preference_and_prop(
     PreferenceRange { min, max }
 }
 
-impl<'a> AdditionalPreference<'a> {
+impl<'a> PreferenceConfig<'a> {
     pub fn sample(&self, rng: &mut ThreadRng) -> i16 {
         //get if none
         if rng.gen_range(0.0..1.0) < P_NONE_PROP {
@@ -399,9 +436,14 @@ impl<'a> AdditionalPreference<'a> {
         }
     }
 
-    pub fn sample_range(&self, user: &UserProperties, rng: &mut ThreadRng) -> PreferenceRange {
-        let prop = user.additional_preferences.get(self.name).unwrap();
-        sample_range_from_additional_preference_and_prop(self, *prop, rng)
+    pub fn sample_range(&self, properties: &Properties, rng: &mut ThreadRng) -> PreferenceRange {
+        let prop = properties
+            .additional_properties
+            .iter()
+            .find(|p| p.name == self.name)
+            .unwrap()
+            .value;
+        sample_range_from_additional_preference_and_prop(self, prop, rng)
     }
 }
 
@@ -437,8 +479,16 @@ pub struct LinearMapping {
 const P_NONE: f64 = 0.92;
 const P_NONE_PROP: f64 = 0.05;
 
-pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY] = [
-    AdditionalPreference {
+struct MandatoryPreferencesConfig<'a> {
+    age: PreferenceConfig<'a>,
+    percent_male: PreferenceConfig<'a>,
+    percent_female: PreferenceConfig<'a>,
+    latitude: PreferenceConfig<'a>,
+    longitude: PreferenceConfig<'a>,
+}
+
+pub static MANDATORY_PREFERENCES_CONFIG: MandatoryPreferencesConfig = MandatoryPreferencesConfig {
+    age: PreferenceConfig {
         name: "age",
         display: "Age",
         category: "mandatory",
@@ -456,7 +506,7 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
         labels: None,
         probability_to_be_none: 0.0,
     },
-    AdditionalPreference {
+    percent_male: PreferenceConfig {
         name: "percent_male",
         display: "Percent Male",
         category: "mandatory",
@@ -474,7 +524,7 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
         labels: None,
         probability_to_be_none: 0.0,
     },
-    AdditionalPreference {
+    percent_female: PreferenceConfig {
         name: "percent_female",
         display: "Percent Female",
         category: "mandatory",
@@ -492,7 +542,7 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
         labels: None,
         probability_to_be_none: 0.0,
     },
-    AdditionalPreference {
+    latitude: PreferenceConfig {
         name: "latitude",
         display: "Latitude",
         category: "mandatory",
@@ -510,7 +560,7 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
         labels: None,
         probability_to_be_none: 0.0,
     },
-    AdditionalPreference {
+    longitude: PreferenceConfig {
         name: "longitude",
         display: "Longitude",
         category: "mandatory",
@@ -528,7 +578,102 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
         labels: None,
         probability_to_be_none: 0.0,
     },
-    AdditionalPreference {
+};
+
+const MANDATORY_PREFERENCES_CARDINALITY: usize = 5;
+
+pub static ADDITIONAL_PREFERENCES_CONFIG: [PreferenceConfig; ADDITIONAL_PREFERENCE_CARDINALITY] = [
+    PreferenceConfig {
+        name: "age",
+        display: "Age",
+        category: "mandatory",
+        min: 18,
+        max: 120,
+        mean: 35.0,
+        std_dev: 20.0,
+        mean_alteration: MeanAlteration::Set,
+        std_dev_alteration: StdDevAlteration::FromMean(Linear {
+            slope: 1.0,
+            intercept: 0.0,
+        }),
+        linear_mapping: None,
+        optional: false,
+        labels: None,
+        probability_to_be_none: 0.0,
+    },
+    PreferenceConfig {
+        name: "percent_male",
+        display: "Percent Male",
+        category: "mandatory",
+        min: 0,
+        max: 100,
+        mean: 50.0,
+        std_dev: 25.0,
+        mean_alteration: MeanAlteration::FromValue(Linear {
+            slope: -1.0,
+            intercept: 100.0,
+        }),
+        std_dev_alteration: StdDevAlteration::None,
+        linear_mapping: None,
+        optional: false,
+        labels: None,
+        probability_to_be_none: 0.0,
+    },
+    PreferenceConfig {
+        name: "percent_female",
+        display: "Percent Female",
+        category: "mandatory",
+        min: 0,
+        max: 100,
+        mean: 50.0,
+        std_dev: 25.0,
+        mean_alteration: MeanAlteration::FromValue(Linear {
+            slope: -1.0,
+            intercept: 100.0,
+        }),
+        std_dev_alteration: StdDevAlteration::None,
+        linear_mapping: None,
+        optional: false,
+        labels: None,
+        probability_to_be_none: 0.0,
+    },
+    PreferenceConfig {
+        name: "latitude",
+        display: "Latitude",
+        category: "mandatory",
+        min: -32767,
+        max: 32767,
+        mean: 0.0,
+        std_dev: 10000.0,
+        mean_alteration: MeanAlteration::Set,
+        std_dev_alteration: StdDevAlteration::None,
+        linear_mapping: Some(LinearMapping {
+            real_min: -90.0,
+            real_max: 90.0,
+        }),
+        optional: false,
+        labels: None,
+        probability_to_be_none: 0.0,
+    },
+    PreferenceConfig {
+        name: "longitude",
+        display: "Longitude",
+        category: "mandatory",
+        min: -32767,
+        max: 32767,
+        mean: 0.0,
+        std_dev: 0.0,
+        mean_alteration: MeanAlteration::Set,
+        std_dev_alteration: StdDevAlteration::None,
+        linear_mapping: Some(LinearMapping {
+            real_min: -180.0,
+            real_max: 180.0,
+        }),
+        optional: false,
+        labels: None,
+        probability_to_be_none: 0.0,
+    },
+    PreferenceConfig {
         name: "salary_per_year",
         display: "Salary per Year",
         category: "financial",
@@ -549,7 +694,7 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
         labels: None,
         probability_to_be_none: P_NONE,
     },
-    AdditionalPreference {
+    PreferenceConfig {
         name: "height_cm",
         display: "Height (cm)",
         category: "physical",
@@ -567,7 +712,7 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
         labels: None,
         probability_to_be_none: P_NONE,
     },
-    AdditionalPreference {
+    PreferenceConfig {
         name: "bmi",
         display: "BMI",
         category: "physical",
@@ -585,7 +730,7 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
         labels: None,
         probability_to_be_none: P_NONE,
     },
-    AdditionalPreference {
+    PreferenceConfig {
         name: "number_of_times_a_week_you_want_to_have_sex",
         display: "Number of Times a Week You Want to Have Sex",
         category: "personal",
@@ -600,7 +745,7 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
         labels: None,
         probability_to_be_none: P_NONE,
     },
-    AdditionalPreference {
+    PreferenceConfig {
         name: "is_trans",
         display: "Is Transgender",
         category: "personal",
@@ -615,7 +760,7 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
         labels: None,
         probability_to_be_none: P_NONE,
     },
-    AdditionalPreference {
+    PreferenceConfig {
         name: "political_affiliation",
         display: "Political Affiliation",
         category: "beliefs",
@@ -636,7 +781,7 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
         ]),
         probability_to_be_none: P_NONE,
     },
-    AdditionalPreference {
+    PreferenceConfig {
         name: "fitness_level",
         display: "Fitness Level",
         category: "physical",
@@ -651,7 +796,7 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
         labels: Some(["Couch potato", "Sedentary", "Average", "Fit", "Athlete"]),
         probability_to_be_none: P_NONE,
     },
-    AdditionalPreference {
+    PreferenceConfig {
         name: "number_of_children",
         display: "Number of Children You Have",
         category: "personal",
@@ -666,7 +811,7 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
         labels: None,
         probability_to_be_none: P_NONE,
     },
-    AdditionalPreference {
+    PreferenceConfig {
         name: "number_of_dogs",
         display: "Number of Dogs You Have",
         category: "personal",
@@ -681,7 +826,7 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
         labels: None,
         probability_to_be_none: P_NONE,
     },
-    AdditionalPreference {
+    PreferenceConfig {
         name: "number_of_cats",
         display: "Number of Cats You Have",
         category: "personal",
@@ -696,7 +841,7 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
         labels: None,
         probability_to_be_none: P_NONE,
     },
-    AdditionalPreference {
+    PreferenceConfig {
         name: "vegetarianness",
         display: "Vegetarianness",
         category: "diet",
@@ -717,7 +862,7 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
         ]),
         probability_to_be_none: P_NONE,
     },
-    AdditionalPreference {
+    PreferenceConfig {
         name: "gamerness_level",
         display: "Gamerness Level",
         category: "hobbies",
@@ -738,7 +883,7 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
         ]),
         probability_to_be_none: P_NONE,
     },
-    AdditionalPreference {
+    PreferenceConfig {
         name: "extroversion_level",
         display: "Extroversion Level",
         category: "personality",
@@ -759,7 +904,7 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
         ]),
         probability_to_be_none: P_NONE,
     },
-    AdditionalPreference {
+    PreferenceConfig {
         name: "how_much_you_want_to_go_outside",
         display: "How Much You Want to Go Outside",
         category: "hobbies",
@@ -780,7 +925,7 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
         ]),
         probability_to_be_none: P_NONE,
     },
-    AdditionalPreference {
+    PreferenceConfig {
         name: "how_much_you_want_to_travel",
         display: "How Much You Want to Travel",
         category: "hobbies",
@@ -801,7 +946,7 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
         ]),
         probability_to_be_none: P_NONE,
     },
-    AdditionalPreference {
+    PreferenceConfig {
         name: "how_cleanly_are_you",
         display: "How Cleanly Are You",
         category: "personality",
@@ -822,7 +967,7 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
         ]),
         probability_to_be_none: P_NONE,
     },
-    AdditionalPreference {
+    PreferenceConfig {
         name: "hoarder_level",
         display: "Hoarder Level",
         category: "personality",
@@ -837,7 +982,7 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
         labels: Some(["Monk", "Minimalist", "Average", "Collector", "Hoarder"]),
         probability_to_be_none: P_NONE,
     },
-    AdditionalPreference {
+    PreferenceConfig {
         name: "how_much_you_want_to_have_children",
         display: "How Much You Want to Have Children",
         category: "personal",
@@ -858,7 +1003,7 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
         ]),
         probability_to_be_none: P_NONE,
     },
-    AdditionalPreference {
+    PreferenceConfig {
         name: "how_much_you_want_to_get_married",
         display: "How Much You Want to Get Married",
         category: "personal",
@@ -879,7 +1024,7 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
         ]),
         probability_to_be_none: P_NONE,
     },
-    AdditionalPreference {
+    PreferenceConfig {
         name: "drinks_consumed_per_week",
         display: "Drinks Consumed per Week",
         category: "diet",
@@ -897,7 +1042,7 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
         labels: None,
         probability_to_be_none: P_NONE,
     },
-    AdditionalPreference {
+    PreferenceConfig {
         name: "smokes_per_day",
         display: "Smokes per Day",
         category: "diet",
@@ -915,7 +1060,7 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
         labels: None,
         probability_to_be_none: P_NONE,
     },
-    AdditionalPreference {
+    PreferenceConfig {
         name: "marajuana_consumed_per_week_joints",
         display: "Marijuana Consumed per Week (Joints)",
         category: "diet",
@@ -933,7 +1078,7 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
         labels: None,
         probability_to_be_none: P_NONE,
     },
-    AdditionalPreference {
+    PreferenceConfig {
         name: "hours_a_day_spent_on_social_media",
         display: "Hours a Day Spent on Social Media",
         category: "personal",
@@ -951,7 +1096,7 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
         labels: None,
         probability_to_be_none: P_NONE,
     },
-    AdditionalPreference {
+    PreferenceConfig {
         name: "pubic_hair_length",
         display: "Pubic Hair Length",
         category: "physical",
@@ -968,4 +1113,7 @@ pub static ADDITIONAL_PREFERENCES: [AdditionalPreference; PREFERENCE_CARDINALITY
     },
 ];
 
-pub const PREFERENCE_CARDINALITY: usize = 29;
+pub const ADDITIONAL_PREFERENCE_CARDINALITY: usize = 29;
+
+pub const TOTAL_PREFERENCES_CARDINALITY: usize =
+    MANDATORY_PREFERENCES_CARDINALITY + ADDITIONAL_PREFERENCE_CARDINALITY;

@@ -31,8 +31,15 @@ class LoginPageState extends State<LoginPage> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
-                Text("Login",
-                    style: Theme.of(context).textTheme.headlineMedium),
+                Image.asset(
+                  'images/logo.png',
+                  height: 100, // Adjust the height as needed
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  "elodate",
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
                 const SizedBox(height: 20),
                 TextFormField(
                   controller: usernameController,
@@ -72,6 +79,13 @@ class LoginPageState extends State<LoginPage> {
                     ),
                   ],
                 ),
+                if (loginError != null) ...[
+                  const SizedBox(height: 20),
+                  Text(
+                    loginError!,
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                ],
               ],
             ),
           ),
@@ -91,7 +105,7 @@ class LoginPageState extends State<LoginPage> {
         passwordController.text,
       );
       if (jwt == null) {
-        throw Exception('Failed to register');
+        throw Exception('Failed to login');
       }
       localStorage.setItem("jwt", jwt.jwt);
       if (!context.mounted) return;
@@ -102,6 +116,10 @@ class LoginPageState extends State<LoginPage> {
     } catch (e) {
       setState(() {
         loginError = e.toString();
+      });
+    } finally {
+      setState(() {
+        loggingIn = false;
       });
     }
   }

@@ -4,3 +4,4 @@ target
 access_codes.txt
 images
 tmp
+flamegraph.svg

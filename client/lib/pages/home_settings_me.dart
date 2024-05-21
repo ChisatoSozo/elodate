@@ -74,12 +74,14 @@ class SettingsPageMeState extends State<SettingsPageMe> {
   }
 
   void _initializeAdditionalPreferences() {
-    _additionalPropertiesControllers = widget.additionalPreferences.map((pref) {
+    _additionalPropertiesControllers =
+        widget.additionalPreferences.map((pref, i) {
       return ValueSliderFormFieldController(
           Provider.of<HomeModel>(context, listen: false)
                   .me
                   .user
-                  .additionalProperties[pref.name] ??
+                  .additionalProperties[pref.name]
+                  .value ??
               -32768);
     }).toList();
   }
