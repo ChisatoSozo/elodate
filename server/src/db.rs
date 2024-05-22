@@ -10,7 +10,10 @@ use rkyv::{
     validation::validators::DefaultValidator,
     AlignedVec, Archive, Deserialize, Infallible, Serialize,
 };
-use std::path::Path;
+use std::{
+    path::Path,
+    sync::{Arc, Mutex},
+};
 
 use crate::models::internal_models::{
     internal_preferences::TOTAL_PREFERENCES_CARDINALITY, shared::InternalUuid,
@@ -23,7 +26,7 @@ pub type DefaultSerializer = AllocSerializer<SCRATCH_SPACE_SIZE>;
 
 pub struct DB {
     pub store: Store,
-    pub vec_index: LinearSearch<TOTAL_PREFERENCES_CARDINALITY>,
+    pub vec_index: Arc<Mutex<LinearSearch<TOTAL_PREFERENCES_CARDINALITY>>>,
     pub path: String,
 }
 
@@ -37,7 +40,7 @@ impl DB {
         let store = Store::new(cfg)?;
         Ok(DB {
             store,
-            vec_index: vector_search,
+            vec_index: Arc::new(Mutex::new(vector_search)),
             path: db_path,
         })
     }
@@ -175,5 +178,14 @@ impl DB {
         let key_raw = Raw::from(key.id.as_bytes());
         let result = bucket.contains(&key_raw)?;
         Ok(result)
+    }
+
+    pub fn save_to_disk(&self) -> Result<(), Box<dyn std::error::Error>> {
+        let vector_db_path = self.path.clone() + "/vec_index.bin";
+        self.vec_index
+            .lock()
+            .map_err(|_| "Could not lock vec_index")?
+            .save_to_file(&vector_db_path)?;
+        Ok(())
     }
 }

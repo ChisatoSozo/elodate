@@ -222,30 +222,42 @@ impl DB {
         &self,
         properties: &Properties,
         seen: &Vec<InternalUuid<InternalUser>>,
-    ) -> HashSet<InternalUuid<InternalUser>> {
-        self.vec_index
-            .search_inverse(
+    ) -> Result<HashSet<InternalUuid<InternalUser>>, Box<dyn std::error::Error>> {
+        let arc_clone = self.vec_index.clone();
+        let lock = arc_clone.lock().map_err(|_| "Error getting lock")?;
+        let inv = {
+            lock.search_inverse(
                 &properties.get_vector(),
                 Some(&seen.iter().map(|u| u.id.clone()).collect()),
             )
-            .map(|u| u.label)
+            .collect::<Vec<_>>()
+        };
+        Ok(inv
+            .iter()
+            .map(|u| u.label.clone())
             .map(|u| u.into())
-            .collect()
+            .collect())
     }
 
     fn get_users_who_i_prefer_direct(
         &self,
         preferences: &Preferences,
         seen: &Vec<InternalUuid<InternalUser>>,
-    ) -> HashSet<InternalUuid<InternalUser>> {
-        self.vec_index
-            .search(
+    ) -> Result<HashSet<InternalUuid<InternalUser>>, Box<dyn std::error::Error>> {
+        let arc_clone = self.vec_index.clone();
+        let lock = arc_clone.lock().map_err(|_| "Error getting lock")?;
+        let inv = {
+            lock.search(
                 &preferences.get_bbox(),
                 Some(&seen.iter().map(|u| u.id.clone()).collect()),
             )
-            .map(|u| u.label)
+            .collect::<Vec<_>>()
+        };
+        Ok(inv
+            .iter()
+            .map(|u| u.label.clone())
             .map(|u| u.into())
-            .collect()
+            .collect())
     }
 
     pub fn get_mutual_preference_users_direct(
@@ -254,8 +266,8 @@ impl DB {
         preferences: &Preferences,
         seen: &Vec<InternalUuid<InternalUser>>,
     ) -> Result<Vec<InternalUser>, Box<dyn std::error::Error>> {
-        let users_who_prefer_me = self.get_users_who_prefer_me_direct(properties, &seen);
-        let users_who_i_prefer = self.get_users_who_i_prefer_direct(preferences, &seen);
+        let users_who_prefer_me = self.get_users_who_prefer_me_direct(properties, &seen)?;
+        let users_who_i_prefer = self.get_users_who_i_prefer_direct(preferences, &seen)?;
 
         let user_options = users_who_prefer_me
             .intersection(&users_who_i_prefer)
@@ -273,34 +285,34 @@ impl DB {
         properties: &Properties,
         preference: &Preferences,
         seen: &Vec<InternalUuid<InternalUser>>,
-    ) -> usize {
-        let users_who_prefer_me = self.get_users_who_prefer_me_direct(properties, &seen);
-        let users_who_i_prefer = self.get_users_who_i_prefer_direct(preference, &seen);
+    ) -> Result<usize, Box<dyn std::error::Error>> {
+        let users_who_prefer_me = self.get_users_who_prefer_me_direct(properties, &seen)?;
+        let users_who_i_prefer = self.get_users_who_i_prefer_direct(preference, &seen)?;
 
-        users_who_prefer_me
+        Ok(users_who_prefer_me
             .intersection(&users_who_i_prefer)
-            .count()
+            .count())
     }
 
     pub fn get_users_i_prefer_count_direct(
         &self,
         preference: &Preferences,
         seen: &Vec<InternalUuid<InternalUser>>,
-    ) -> usize {
-        self.get_users_who_i_prefer_direct(preference, &seen).len()
+    ) -> Result<usize, Box<dyn std::error::Error>> {
+        Ok(self.get_users_who_i_prefer_direct(preference, &seen)?.len())
     }
 
     pub fn get_users_who_prefer_me(
         &self,
         user: &InternalUser,
-    ) -> HashSet<InternalUuid<InternalUser>> {
+    ) -> Result<HashSet<InternalUuid<InternalUser>>, Box<dyn std::error::Error>> {
         self.get_users_who_prefer_me_direct(&user.properties, &user.seen)
     }
 
     pub fn get_users_who_i_prefer(
         &self,
         user: &InternalUser,
-    ) -> HashSet<InternalUuid<InternalUser>> {
+    ) -> Result<HashSet<InternalUuid<InternalUser>>, Box<dyn std::error::Error>> {
         self.get_users_who_i_prefer_direct(&user.preferences, &user.seen)
     }
 
@@ -311,7 +323,10 @@ impl DB {
         self.get_mutual_preference_users_direct(&user.properties, &user.preferences, &user.seen)
     }
 
-    pub fn get_mutual_preference_users_count(&self, user: &InternalUser) -> usize {
+    pub fn get_mutual_preference_users_count(
+        &self,
+        user: &InternalUser,
+    ) -> Result<usize, Box<dyn std::error::Error>> {
         self.get_mutual_preference_users_count_direct(
             &user.properties,
             &user.preferences,
@@ -319,7 +334,10 @@ impl DB {
         )
     }
 
-    pub fn get_users_i_prefer_count(&self, user: &InternalUser) -> usize {
+    pub fn get_users_i_prefer_count(
+        &self,
+        user: &InternalUser,
+    ) -> Result<usize, Box<dyn std::error::Error>> {
         self.get_users_i_prefer_count_direct(&user.preferences, &user.seen)
     }
 }
@@ -472,17 +490,32 @@ impl<'a> PreferenceConfig<'a> {
     }
 
     pub fn sample_range(&self, properties: &Properties, rng: &mut ThreadRng) -> PreferenceRange {
-        let prop = properties
-            .additional_properties
-            .iter()
-            .find(|p| p.name == self.name)
-            .unwrap()
-            .value;
+        let prop;
+
+        if self.name == "age" {
+            prop = properties.age;
+        } else if self.name == "percent_male" {
+            prop = properties.percent_male;
+        } else if self.name == "percent_female" {
+            prop = properties.percent_female;
+        } else if self.name == "latitude" {
+            prop = properties.latitude;
+        } else if self.name == "longitude" {
+            prop = properties.longitude;
+        } else {
+            prop = properties
+                .additional_properties
+                .iter()
+                .find(|p| p.name == self.name)
+                .unwrap()
+                .value;
+        }
+
         sample_range_from_additional_preference_and_prop(self, prop, rng)
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Apiv2Schema, Clone, PartialEq)]
+#[derive(Debug, Deserialize, Apiv2Schema, Clone, PartialEq)]
 pub enum MeanAlteration {
     None,
     Increase,
@@ -491,17 +524,47 @@ pub enum MeanAlteration {
     FromValue(Linear),
 }
 
+impl Serialize for MeanAlteration {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::ser::Serializer,
+    {
+        serializer.serialize_str("None")
+    }
+}
+
+impl Default for MeanAlteration {
+    fn default() -> Self {
+        MeanAlteration::None
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema, Clone, PartialEq)]
 pub struct Linear {
     pub slope: f64,
     pub intercept: f64,
 }
 
-#[derive(Debug, Serialize, Deserialize, Apiv2Schema, Clone, PartialEq)]
+#[derive(Debug, Deserialize, Apiv2Schema, Clone, PartialEq)]
 pub enum StdDevAlteration {
     None,
     FromMean(Linear),
     FromValue(Linear),
+}
+
+impl Serialize for StdDevAlteration {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::ser::Serializer,
+    {
+        serializer.serialize_str("None")
+    }
+}
+
+impl Default for StdDevAlteration {
+    fn default() -> Self {
+        StdDevAlteration::None
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema, Clone, PartialEq)]
@@ -619,96 +682,6 @@ pub static MANDATORY_PREFERENCES_CONFIG: MandatoryPreferencesConfig = MandatoryP
 const MANDATORY_PREFERENCES_CARDINALITY: usize = 5;
 
 pub static ADDITIONAL_PREFERENCES_CONFIG: [PreferenceConfig; ADDITIONAL_PREFERENCE_CARDINALITY] = [
-    PreferenceConfig {
-        name: "age",
-        display: "Age",
-        category: "mandatory",
-        min: 18,
-        max: 120,
-        mean: 35.0,
-        std_dev: 20.0,
-        mean_alteration: MeanAlteration::Set,
-        std_dev_alteration: StdDevAlteration::FromMean(Linear {
-            slope: 1.0,
-            intercept: 0.0,
-        }),
-        linear_mapping: None,
-        optional: false,
-        labels: None,
-        probability_to_be_none: 0.0,
-    },
-    PreferenceConfig {
-        name: "percent_male",
-        display: "Percent Male",
-        category: "mandatory",
-        min: 0,
-        max: 100,
-        mean: 50.0,
-        std_dev: 25.0,
-        mean_alteration: MeanAlteration::FromValue(Linear {
-            slope: -1.0,
-            intercept: 100.0,
-        }),
-        std_dev_alteration: StdDevAlteration::None,
-        linear_mapping: None,
-        optional: false,
-        labels: None,
-        probability_to_be_none: 0.0,
-    },
-    PreferenceConfig {
-        name: "percent_female",
-        display: "Percent Female",
-        category: "mandatory",
-        min: 0,
-        max: 100,
-        mean: 50.0,
-        std_dev: 25.0,
-        mean_alteration: MeanAlteration::FromValue(Linear {
-            slope: -1.0,
-            intercept: 100.0,
-        }),
-        std_dev_alteration: StdDevAlteration::None,
-        linear_mapping: None,
-        optional: false,
-        labels: None,
-        probability_to_be_none: 0.0,
-    },
-    PreferenceConfig {
-        name: "latitude",
-        display: "Latitude",
-        category: "mandatory",
-        min: -32767,
-        max: 32767,
-        mean: 0.0,
-        std_dev: 10000.0,
-        mean_alteration: MeanAlteration::Set,
-        std_dev_alteration: StdDevAlteration::None,
-        linear_mapping: Some(LinearMapping {
-            real_min: -90.0,
-            real_max: 90.0,
-        }),
-        optional: false,
-        labels: None,
-        probability_to_be_none: 0.0,
-    },
-    PreferenceConfig {
-        name: "longitude",
-        display: "Longitude",
-        category: "mandatory",
-        min: -32767,
-        max: 32767,
-        mean: 0.0,
-        std_dev: 0.0,
-        mean_alteration: MeanAlteration::Set,
-        std_dev_alteration: StdDevAlteration::None,
-        linear_mapping: Some(LinearMapping {
-            real_min: -180.0,
-            real_max: 180.0,
-        }),
-        optional: false,
-        labels: None,
-        probability_to_be_none: 0.0,
-    },
     PreferenceConfig {
         name: "salary_per_year",
         display: "Salary per Year",
@@ -1163,7 +1136,7 @@ pub fn preferences_config() -> PreferencesConfig<'static> {
     }
 }
 
-pub const ADDITIONAL_PREFERENCE_CARDINALITY: usize = 29;
+pub const ADDITIONAL_PREFERENCE_CARDINALITY: usize = 24;
 
 pub const TOTAL_PREFERENCES_CARDINALITY: usize =
     MANDATORY_PREFERENCES_CARDINALITY + ADDITIONAL_PREFERENCE_CARDINALITY;

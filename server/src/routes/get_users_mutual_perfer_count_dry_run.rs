@@ -31,7 +31,7 @@ pub fn get_users_mutual_perfer_count_dry_run(
             &body.properties,
             &body.preferences,
             &user.seen,
-        );
+        )?;
         Ok(users_mutual_perfer_count)
     })
 }

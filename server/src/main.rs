@@ -29,7 +29,12 @@ const JSON_SPEC_PATH: &str = "/api/spec/v2.json";
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    let db = web::Data::new(DB::new("test"));
+    std::env::set_var("RUST_LOG", "debug");
+    env_logger::init();
+    let db = web::Data::new(DB::new("test").map_err(|e| {
+        println!("Failed to create db {:?}", e);
+        std::io::Error::new(std::io::ErrorKind::Other, "Failed to create db")
+    })?);
 
     HttpServer::new(move || {
         App::new()

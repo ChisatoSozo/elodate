@@ -1,6 +1,7 @@
 use crate::{
     elo::{ELO_SCALE, ELO_SHIFT},
     util::to_i16,
+    vec::shared::VectorSearch,
 };
 
 use fake::Fake;
@@ -77,7 +78,13 @@ impl InternalUser {
 impl Save for InternalUser {
     fn save(self, db: &DB) -> Result<InternalUuid<InternalUser>, Box<dyn Error>> {
         db.write_index("user.username", &self.username, &self.uuid)?;
-        db.write_object(&self.uuid, &self)
+        db.write_object(&self.uuid, &self)?;
+        let arc_clone = db.vec_index.clone();
+        let mut lock = arc_clone.lock().map_err(|_| "Could not lock vec_index")?;
+
+        lock.add(&self.properties.get_vector(), &self.uuid.id);
+        lock.add_bbox(&self.preferences.get_bbox(), &self.uuid.id);
+        Ok(self.uuid)
     }
 }
 
@@ -91,9 +98,13 @@ impl Gen<DB> for InternalUser {
         let ratings = vec![];
         let seen = vec![];
         let chats = vec![];
-        let image = InternalImage::gen(&true);
-        let img_uuid = image.save(db).unwrap();
-        let images = vec![img_uuid];
+        let mut uuids = Vec::with_capacity(6);
+        for _ in 0..2 {
+            let image = InternalImage::gen(&true);
+            let img_uuid = image.save(db).unwrap();
+            uuids.push(img_uuid);
+        }
+        let images = uuids;
         let is_male = rng.gen_bool(0.5);
         let percent_male = is_male as i16 * 100;
         let percent_female = (is_male == false) as i16 * 100;

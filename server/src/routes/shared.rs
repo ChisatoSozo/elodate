@@ -5,10 +5,7 @@ use actix_web::{
 
 use crate::{
     db::DB,
-    models::{
-        api_models::shared::ApiUuid,
-        internal_models::{internal_user::InternalUser, shared::InternalUuid},
-    },
+    models::internal_models::{internal_user::InternalUser, shared::InternalUuid},
 };
 
 use actix_web::HttpMessage;
@@ -20,14 +17,13 @@ pub fn route_body_mut_db<T, R>(
     fn_: impl FnOnce(&DB, InternalUser, T) -> Result<R, actix_web::Error>,
 ) -> Result<Json<R>, actix_web::Error> {
     let ext = req.extensions();
-    let user_uuid = ext.get::<ApiUuid<InternalUser>>();
+    let user_uuid = ext.get::<InternalUuid<InternalUser>>();
     let user_uuid = match user_uuid {
         Some(user_uuid) => user_uuid,
         None => return Err(actix_web::error::ErrorBadRequest("User not in session")),
     };
 
-    let internal_user_uuid: InternalUuid<InternalUser> = user_uuid.clone().into();
-    let user = internal_user_uuid.load(&db).map_err(|e| {
+    let user = user_uuid.load(&db).map_err(|e| {
         println!("Failed to get user by uuid {:?}", e);
         actix_web::error::ErrorInternalServerError("Failed to get user by uuid")
     })?;

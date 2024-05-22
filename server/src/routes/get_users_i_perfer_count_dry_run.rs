@@ -18,7 +18,7 @@ pub fn get_users_i_perfer_count_dry_run(
     body: Json<Preferences>,
 ) -> Result<Json<usize>, Error> {
     route_body_mut_db(db, req, body, |db, user, body| {
-        let users_i_perfer_count = db.get_users_i_prefer_count_direct(&body, &user.seen);
+        let users_i_perfer_count = db.get_users_i_prefer_count_direct(&body, &user.seen)?;
         Ok(users_i_perfer_count)
     })
 }

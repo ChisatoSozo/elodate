@@ -5,11 +5,26 @@ use serde::{Deserialize, Serialize};
 use std::marker::PhantomData;
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct ApiUuid<InternalModel> {
     pub id: String,
-    #[serde(skip)]
     _marker: PhantomData<InternalModel>,
+}
+
+impl<InternalModel> Serialize for ApiUuid<InternalModel> {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        self.id.serialize(serializer)
+    }
+}
+
+impl<'de, InternalModel> Deserialize<'de> for ApiUuid<InternalModel> {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let id = String::deserialize(deserializer)?;
+        Ok(Self {
+            id,
+            _marker: PhantomData,
+        })
+    }
 }
 
 impl<InternalModel> TypedData for ApiUuid<InternalModel> {
