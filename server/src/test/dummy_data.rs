@@ -75,6 +75,7 @@ fn insert_dummy_data() -> Result<(), Box<dyn std::error::Error>> {
                 content: fake::faker::lorem::en::Sentence(1..2).fake(),
                 image: None,
                 read_by: vec![],
+                edited: false,
             })
             .collect();
 
@@ -84,6 +85,7 @@ fn insert_dummy_data() -> Result<(), Box<dyn std::error::Error>> {
             messages: messages.iter().map(|m| m.uuid.clone()).collect(),
             most_recent_message: messages.last().unwrap().content.clone(),
             unread: vec![0, 0],
+            most_recent_sender: Some(uuids[n].clone()),
         };
 
         for message in messages {

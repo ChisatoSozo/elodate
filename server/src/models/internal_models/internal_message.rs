@@ -13,6 +13,7 @@ use super::{
 pub struct InternalMessage {
     pub uuid: InternalUuid<InternalMessage>,
     pub sent_at: i64,
+    pub edited: bool,
     pub author: InternalUuid<InternalUser>,
     pub content: String,
     pub image: Option<InternalUuid<InternalImage>>,
@@ -28,6 +29,8 @@ impl InternalMessage {
         //does the chat already have this message?
         if !chat.messages.contains(&self.uuid) {
             chat.messages.push(self.uuid.clone());
+            chat.most_recent_message = self.content.clone();
+            chat.most_recent_sender = Some(self.author.clone());
             chat.save(db)?;
         };
         db.write_object(&self.uuid, &self)

@@ -1,5 +1,3 @@
-
-
 use actix_web::{Error, HttpRequest};
 
 use paperclip::actix::{
@@ -7,7 +5,7 @@ use paperclip::actix::{
     web::{self, Json},
     Apiv2Schema,
 };
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 
 use crate::{
     db::DB,
@@ -18,7 +16,7 @@ use crate::{
     routes::shared::route_body_mut_db,
 };
 
-#[derive(Debug, Clone, Serialize, Deserialize, Apiv2Schema)]
+#[derive(Debug, Clone, Deserialize, Apiv2Schema)]
 struct SendMessageInput {
     chat_uuid: ApiUuid<InternalChat>,
     message: ApiMessageWritable,
@@ -61,5 +59,4 @@ pub fn send_message(
 
         Ok(true)
     })
-    
 }

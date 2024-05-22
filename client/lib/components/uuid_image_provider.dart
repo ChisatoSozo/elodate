@@ -1,12 +1,18 @@
+import 'dart:convert';
 import 'dart:ui' as ui;
 
+import 'package:client/models/home_model.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 class UuidImageProvider extends ImageProvider<UuidImageProvider> {
   final String uuid;
+  final HomeModel homeModel;
 
-  UuidImageProvider(this.uuid);
+  UuidImageProvider({
+    required this.uuid,
+    required this.homeModel,
+  });
 
   @override
   Future<UuidImageProvider> obtainKey(ImageConfiguration configuration) {
@@ -17,22 +23,24 @@ class UuidImageProvider extends ImageProvider<UuidImageProvider> {
   ImageStreamCompleter loadImage(
       UuidImageProvider key, ImageDecoderCallback decode) {
     return MultiFrameImageStreamCompleter(
-      codec: _loadAsync(key.uuid, decode),
+      codec: _loadAsync(key, decode),
       scale: 1.0,
     );
   }
 
-  Future<ui.Codec> _loadAsync(String uuid, ImageDecoderCallback decode) async {
-    final Uint8List bytes = await _fetchImageBytes(uuid);
+  Future<ui.Codec> _loadAsync(
+      UuidImageProvider input, ImageDecoderCallback decode) async {
+    var homeModel = input.homeModel;
+    var uuid = input.uuid;
+    var image = await homeModel.getImage(uuid);
+    var b64 = image.b64Content;
+    final Uint8List bytes = base64Decode(b64);
     if (bytes.isEmpty) {
       throw Exception('Failed to load image for UUID: $uuid');
     }
     final buffer = await ui.ImmutableBuffer.fromUint8List(bytes);
     return decode(buffer);
   }
-
-  // Method signature to fetch image bytes using UUID
-  Future<Uint8List> _fetchImageBytes(String uuid);
 
   @override
   bool operator ==(Object other) {

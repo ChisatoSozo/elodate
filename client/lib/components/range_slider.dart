@@ -3,16 +3,17 @@ import 'package:client/utils/slider_utils.dart';
 import 'package:flutter/material.dart';
 
 class RangeSliderFormFieldController
-    extends ValueNotifier<PreferenceAdditionalPreferencesInnerRange> {
+    extends ValueNotifier<ApiUserPreferencesAdditionalPreferencesInnerRange> {
   RangeSliderFormFieldController(super.value);
 }
 
 class RangeSliderFormField
-    extends FormField<PreferenceAdditionalPreferencesInnerRange> {
+    extends FormField<ApiUserPreferencesAdditionalPreferencesInnerRange> {
   final RangeSliderFormFieldController controller;
   final String title;
-  final AdditionalPreferencePublic config;
-  final void Function(PreferenceAdditionalPreferencesInnerRange)? onUpdate;
+  final PreferencesConfigAdditionalInner config;
+  final void Function(ApiUserPreferencesAdditionalPreferencesInnerRange)?
+      onUpdate;
 
   RangeSliderFormField({
     super.key,
@@ -27,8 +28,9 @@ class RangeSliderFormField
           autovalidateMode: autovalidate
               ? AutovalidateMode.always
               : AutovalidateMode.disabled,
-          builder: (FormFieldState<PreferenceAdditionalPreferencesInnerRange>
-              state) {
+          builder:
+              (FormFieldState<ApiUserPreferencesAdditionalPreferencesInnerRange>
+                  state) {
             var rangeValueMin = controller.value.min;
             if (rangeValueMin < config.min) {
               rangeValueMin = config.min;
@@ -109,7 +111,8 @@ class RangeSliderFormField
                           outEnd = 32767;
                         }
 
-                        var outPref = PreferenceAdditionalPreferencesInnerRange(
+                        var outPref =
+                            ApiUserPreferencesAdditionalPreferencesInnerRange(
                           min: outStart,
                           max: outEnd,
                         );
@@ -155,7 +158,7 @@ class RangeSliderFormField
                           onChanged: (value) {
                             if (value != null) {
                               var outPref =
-                                  PreferenceAdditionalPreferencesInnerRange(
+                                  ApiUserPreferencesAdditionalPreferencesInnerRange(
                                 min: 1,
                                 max: 1,
                               );
@@ -184,7 +187,7 @@ class RangeSliderFormField
                           onChanged: (value) {
                             if (value != null) {
                               var outPref =
-                                  PreferenceAdditionalPreferencesInnerRange(
+                                  ApiUserPreferencesAdditionalPreferencesInnerRange(
                                 min: 0,
                                 max: 0,
                               );
@@ -213,7 +216,7 @@ class RangeSliderFormField
                           onChanged: (value) {
                             if (value != null) {
                               var outPref =
-                                  PreferenceAdditionalPreferencesInnerRange(
+                                  ApiUserPreferencesAdditionalPreferencesInnerRange(
                                 min: 0,
                                 max: 1,
                               );
@@ -255,12 +258,12 @@ class RangeSliderFormField
         );
 
   @override
-  FormFieldState<PreferenceAdditionalPreferencesInnerRange> createState() =>
-      RangeSliderFormFieldState();
+  FormFieldState<ApiUserPreferencesAdditionalPreferencesInnerRange>
+      createState() => RangeSliderFormFieldState();
 }
 
 class RangeSliderFormFieldState
-    extends FormFieldState<PreferenceAdditionalPreferencesInnerRange> {
+    extends FormFieldState<ApiUserPreferencesAdditionalPreferencesInnerRange> {
   @override
   void initState() {
     super.initState();

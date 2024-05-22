@@ -12,12 +12,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 class SettingsPageMe extends StatefulWidget {
-  final List<AdditionalPreferencePublic> additionalPreferences;
   final SettingsPageMeController settingsController;
 
   const SettingsPageMe({
     super.key,
-    required this.additionalPreferences,
     required this.settingsController,
   });
 
@@ -27,12 +25,12 @@ class SettingsPageMe extends StatefulWidget {
 
 class SettingsPageMeState extends State<SettingsPageMe> {
   final _formKey = GlobalKey<FormState>();
-  late TextEditingController usernameController;
-  late TextEditingController displayNameController;
-  late TextEditingController descriptionController;
-  late GenderPickerController genderController;
-  late ImageGridFormFieldController imageGridController;
-  late LocationController locationController;
+  late TextEditingController _usernameController;
+  late TextEditingController _displayNameController;
+  late TextEditingController _descriptionController;
+  late GenderPickerController _genderController;
+  late ImageGridFormFieldController _imageGridController;
+  late LocationController _locationController;
   late List<ValueSliderFormFieldController> _additionalPropertiesControllers;
   bool _isProfileExpanded = false;
   bool _isGenderExpanded = false;
@@ -46,49 +44,56 @@ class SettingsPageMeState extends State<SettingsPageMe> {
 
     var me = Provider.of<HomeModel>(context, listen: false).me;
 
-    usernameController = TextEditingController(text: me.user.username);
-    displayNameController = TextEditingController(text: me.user.displayName);
-    descriptionController = TextEditingController(text: me.user.description);
-    //TODO: gender is borked, fix the preferences
-    genderController = GenderPickerController(
-      percentMale: (me.user.gender.percentMale as double) / 100,
-      percentFemale: (me.user.gender.percentFemale as double) / 100,
-    );
-    imageGridController = ImageGridFormFieldController();
-    for (int i = 0; i < me.images.length; i++) {
-      Uint8List? imageData = base64Decode(me.images[i].b64Content);
-      String? mimeType = me.images[i].imageType.toString();
-      imageGridController.updateValue(i, (imageData, mimeType));
-    }
-
     var (lat, long) =
-        decodeLatLongFromI16(me.user.location.lat, me.user.location.long);
+        decodeLatLongFromI16(me.properties.latitude, me.properties.longitude);
 
-    locationController = LocationController(
+    _locationController = LocationController(
       latitude: lat,
       longitude: long,
     );
 
-    _initializeAdditionalPreferences();
+    _initializeAdditionalPropertiesControllers();
     _initializeExpandedCategories();
   }
 
-  void _initializeAdditionalPreferences() {
-    _additionalPropertiesControllers =
-        widget.additionalPreferences.map((pref, i) {
-      return ValueSliderFormFieldController(
-          Provider.of<HomeModel>(context, listen: false)
-                  .me
-                  .user
-                  .additionalProperties[pref.name]
-                  .value ??
-              -32768);
-    }).toList();
+  void _initializeAdditionalPropertiesControllers() {
+    var homeModel = Provider.of<HomeModel>(context, listen: false);
+    var me = homeModel.me;
+    _usernameController = TextEditingController(text: me.username);
+    _displayNameController = TextEditingController(text: me.displayName);
+    _descriptionController = TextEditingController(text: me.description);
+    //TODO: gender is borked, fix the preferences
+
+    _genderController = GenderPickerController(
+      percentMale: (me.properties.percentMale as double) / 100,
+      percentFemale: (me.properties.percentFemale as double) / 100,
+    );
+    _imageGridController = ImageGridFormFieldController();
+    for (int i = 0; i < me.images.length; i++) {
+      Uint8List? imageData = base64Decode(me.images[i].b64Content);
+      _imageGridController.updateValue(i, (imageData, "webP"));
+    }
+
+    _genderController = GenderPickerController(
+        percentMale: (homeModel.me.preferences.percentMale as double) / 100,
+        percentFemale:
+            (homeModel.me.preferences.percentFemale as double) / 100);
+
+    _additionalPropertiesControllers = homeModel.preferencesConfig.additional
+        .map((pref) => ValueSliderFormFieldController(homeModel
+            .me
+            .properties
+            .additionalProperties[
+                homeModel.preferencesConfig.additional.indexOf(pref)]
+            .value))
+        .toList();
   }
 
   void _initializeExpandedCategories() {
+    var homeModel = Provider.of<HomeModel>(context, listen: false);
     _expandedCategories = {
-      for (var pref in widget.additionalPreferences) pref.category: false
+      for (var pref in homeModel.preferencesConfig.additional)
+        pref.category: false
     };
   }
 
@@ -136,22 +141,23 @@ class SettingsPageMeState extends State<SettingsPageMe> {
 
   @override
   void dispose() {
-    usernameController.dispose();
-    displayNameController.dispose();
-    descriptionController.dispose();
-    genderController.dispose();
-    imageGridController.dispose();
-    locationController.dispose();
+    _usernameController.dispose();
+    _displayNameController.dispose();
+    _descriptionController.dispose();
+    _genderController.dispose();
+    _imageGridController.dispose();
+    _locationController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    var homeModel = Provider.of<HomeModel>(context);
     final categorizedPreferences =
-        widget.additionalPreferences.skip(5).fold<Map<String, List<int>>>(
+        homeModel.preferencesConfig.additional.fold<Map<String, List<int>>>(
       {},
       (map, pref) {
-        final index = widget.additionalPreferences.indexOf(pref);
+        final index = homeModel.preferencesConfig.additional.indexOf(pref);
         map.putIfAbsent(pref.category, () => []).add(index);
         return map;
       },
@@ -200,7 +206,7 @@ class SettingsPageMeState extends State<SettingsPageMe> {
                           child: Column(
                             children: <Widget>[
                               TextFormField(
-                                controller: usernameController,
+                                controller: _usernameController,
                                 decoration: const InputDecoration(
                                   labelText: 'Username',
                                   border: OutlineInputBorder(),
@@ -219,7 +225,7 @@ class SettingsPageMeState extends State<SettingsPageMe> {
                               ),
                               const SizedBox(height: 16.0),
                               TextFormField(
-                                controller: displayNameController,
+                                controller: _displayNameController,
                                 decoration: const InputDecoration(
                                   labelText: 'Display Name',
                                   border: OutlineInputBorder(),
@@ -238,7 +244,7 @@ class SettingsPageMeState extends State<SettingsPageMe> {
                               ),
                               const SizedBox(height: 16.0),
                               TextFormField(
-                                controller: descriptionController,
+                                controller: _descriptionController,
                                 decoration: const InputDecoration(
                                   labelText: 'Description',
                                   border: OutlineInputBorder(),
@@ -267,7 +273,7 @@ class SettingsPageMeState extends State<SettingsPageMe> {
                       ? Padding(
                           padding: const EdgeInsets.all(8.0),
                           child: GenderPickerFormField(
-                            controller: genderController,
+                            controller: _genderController,
                             onSaved: (genderValues) {
                               if (genderValues == null) {
                                 return;
@@ -299,7 +305,7 @@ class SettingsPageMeState extends State<SettingsPageMe> {
                       ? Padding(
                           padding: const EdgeInsets.all(8.0),
                           child: ImageGridFormField(
-                            controller: imageGridController,
+                            controller: _imageGridController,
                             validator: (images) {
                               if (images == null || images.isEmpty) {
                                 return 'Please upload at least one image';
@@ -326,7 +332,7 @@ class SettingsPageMeState extends State<SettingsPageMe> {
                       ? Padding(
                           padding: const EdgeInsets.all(8.0),
                           child: LocationPickerFormField(
-                            controller: locationController,
+                            controller: _locationController,
                             onChanged: (location) {
                               if (location == null) {
                                 return;
@@ -369,8 +375,8 @@ class SettingsPageMeState extends State<SettingsPageMe> {
                             padding: const EdgeInsets.all(8.0),
                             child: Column(
                               children: prefs.map<Widget>((index) {
-                                final pref =
-                                    widget.additionalPreferences[index];
+                                final pref = homeModel
+                                    .preferencesConfig.additional[index];
                                 return ValueSliderFormField(
                                   controller:
                                       _additionalPropertiesControllers[index],
@@ -401,132 +407,121 @@ class SettingsPageMeState extends State<SettingsPageMe> {
 }
 
 class SettingsPageMeController {
-  UserWithImages value;
-  void Function(UserWithImages) onUpdate;
+  ApiUserWritable value;
+  void Function(ApiUserWritable) onUpdate;
 
   SettingsPageMeController({required this.value, required this.onUpdate});
 
-  void updateValue(UserWithImages newValue) {
+  void updateValue(ApiUserWritable newValue) {
     value = newValue;
     onUpdate(newValue);
   }
 
   void updateUsername(String username) {
-    value = UserWithImages(
-      user: UserWithImagesUser(
-        username: username,
-        displayName: value.user.displayName,
-        description: value.user.description,
-        gender: value.user.gender,
-        location: value.user.location,
-        additionalProperties: value.user.additionalProperties,
-        birthdate: value.user.birthdate,
-        preference: value.user.preference,
-      ),
+    value = ApiUserWritable(
+      birthdate: value.birthdate,
+      description: value.description,
+      displayName: value.displayName,
+      preferences: value.preferences,
+      properties: value.properties,
+      published: value.published,
+      username: username,
+      uuid: value.uuid,
       images: value.images,
     );
     onUpdate(value);
   }
 
   void updateDisplayName(String displayName) {
-    value = UserWithImages(
-      user: UserWithImagesUser(
-        username: value.user.username,
-        displayName: displayName,
-        description: value.user.description,
-        gender: value.user.gender,
-        location: value.user.location,
-        additionalProperties: value.user.additionalProperties,
-        birthdate: value.user.birthdate,
-        preference: value.user.preference,
-      ),
+    value = ApiUserWritable(
+      birthdate: value.birthdate,
+      description: value.description,
+      displayName: displayName,
+      preferences: value.preferences,
+      properties: value.properties,
+      published: value.published,
+      username: value.username,
+      uuid: value.uuid,
       images: value.images,
     );
     onUpdate(value);
   }
 
   void updateDescription(String description) {
-    value = UserWithImages(
-      user: UserWithImagesUser(
-        username: value.user.username,
-        displayName: value.user.displayName,
-        description: description,
-        gender: value.user.gender,
-        location: value.user.location,
-        additionalProperties: value.user.additionalProperties,
-        birthdate: value.user.birthdate,
-        preference: value.user.preference,
-      ),
+    value = ApiUserWritable(
+      birthdate: value.birthdate,
+      description: description,
+      displayName: value.displayName,
+      preferences: value.preferences,
+      properties: value.properties,
+      published: value.published,
+      username: value.username,
+      uuid: value.uuid,
       images: value.images,
     );
     onUpdate(value);
   }
 
   void updateGender(int percentMale, int percentFemale) {
-    value = UserWithImages(
-      user: UserWithImagesUser(
-        username: value.user.username,
-        displayName: value.user.displayName,
-        description: value.user.description,
-        gender: UserPublicFieldsGender(
-            percentMale: percentMale, percentFemale: percentFemale),
-        location: value.user.location,
-        additionalProperties: value.user.additionalProperties,
-        birthdate: value.user.birthdate,
-        preference: value.user.preference,
+    value = ApiUserWritable(
+      birthdate: value.birthdate,
+      description: value.description,
+      displayName: value.displayName,
+      preferences: value.preferences,
+      properties: ApiUserProperties(
+        age: value.properties.age,
+        latitude: value.properties.latitude,
+        longitude: value.properties.longitude,
+        percentFemale: percentFemale,
+        percentMale: percentMale,
+        additionalProperties: value.properties.additionalProperties,
       ),
+      published: value.published,
+      username: value.username,
+      uuid: value.uuid,
       images: value.images,
     );
     onUpdate(value);
   }
 
   void updateImage(int index, Uint8List imageData, String mimeType) {
-    final updatedImages = List<MessageImage>.from(value.images);
-    updatedImages[index] = MessageImage(
+    value.images[index] = ApiUserWritableImagesInner(
         b64Content: base64Encode(imageData), imageType: mimeToType(mimeType));
 
-    value = UserWithImages(
-      user: value.user,
-      images: updatedImages,
-    );
     onUpdate(value);
   }
 
   void updateLocation(int latitude, int longitude) {
-    value = UserWithImages(
-      user: UserWithImagesUser(
-        username: value.user.username,
-        displayName: value.user.displayName,
-        description: value.user.description,
-        gender: value.user.gender,
-        location: UserPublicFieldsLocation(lat: latitude, long: longitude),
-        additionalProperties: value.user.additionalProperties,
-        birthdate: value.user.birthdate,
-        preference: value.user.preference,
+    value = ApiUserWritable(
+      birthdate: value.birthdate,
+      description: value.description,
+      displayName: value.displayName,
+      preferences: value.preferences,
+      properties: ApiUserProperties(
+        age: value.properties.age,
+        latitude: latitude,
+        longitude: longitude,
+        percentFemale: value.properties.percentFemale,
+        percentMale: value.properties.percentMale,
+        additionalProperties: value.properties.additionalProperties,
       ),
+      published: value.published,
+      username: value.username,
+      uuid: value.uuid,
       images: value.images,
     );
     onUpdate(value);
   }
 
   void updateAdditionalProperty(String name, int prop) {
-    final updatedProperties =
-        Map<String, int>.from(value.user.additionalProperties);
-    updatedProperties[name] = prop;
-
-    value = UserWithImages(
-      user: UserWithImagesUser(
-        username: value.user.username,
-        displayName: value.user.displayName,
-        description: value.user.description,
-        gender: value.user.gender,
-        location: value.user.location,
-        additionalProperties: updatedProperties,
-        birthdate: value.user.birthdate,
-        preference: value.user.preference,
-      ),
-      images: value.images,
+    var index = value.properties.additionalProperties
+        .indexWhere((element) => element.name == name);
+    value.properties.additionalProperties[index] =
+        ApiUserPropertiesAdditionalPropertiesInner(
+      name: name,
+      value: prop,
     );
+
     onUpdate(value);
   }
 }

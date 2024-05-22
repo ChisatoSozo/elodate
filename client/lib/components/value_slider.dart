@@ -9,7 +9,7 @@ class ValueSliderFormFieldController extends ValueNotifier<int> {
 class ValueSliderFormField extends FormField<int> {
   final ValueSliderFormFieldController controller;
   final String title;
-  final AdditionalPreferencePublic config;
+  final PreferencesConfigAdditionalInner config;
   final void Function(int)? onUpdate;
 
   ValueSliderFormField({

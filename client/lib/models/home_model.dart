@@ -4,10 +4,10 @@ import 'package:localstorage/localstorage.dart';
 
 class HomeModel extends ChangeNotifier {
   late DefaultApi _client;
-  late ApiUser me;
+  late ApiUserMe me;
   final List<ApiUser> _potentialMatches = [];
   late PreferencesConfig preferencesConfig;
-  List<ApiChat> chats = [];
+  List<(ApiUser, ApiChat)> chats = [];
   bool isLoaded = false;
   bool isLoading = false;
 
@@ -42,17 +42,11 @@ class HomeModel extends ChangeNotifier {
   }
 
   Future<void> initMe(String myUuid) async {
-    var newMe = await _client.getUsersPost([myUuid]);
+    var newMe = await _client.getMePost(true);
     if (newMe == null) {
-      throw Exception('Failed to get user');
+      throw Exception('Failed to get me');
     }
-    if (newMe.isEmpty) {
-      throw Exception('User not found');
-    }
-    if (newMe.length > 1) {
-      throw Exception('Too many users found');
-    }
-    me = newMe.first;
+    me = newMe;
   }
 
   Future<void> initAdditionalPreferences() async {
@@ -63,11 +57,25 @@ class HomeModel extends ChangeNotifier {
     preferencesConfig = result;
   }
 
-  Future<void> initChats(ApiUser me) async {
+  Future<void> initChats(ApiUserMe me) async {
     var result = await _client.getChatsPost(me.chats);
 
     if (result == null) {
       throw Exception('Failed to get chat messages');
+    }
+    var users = await _client.getUsersPost(result
+        .map((e) =>
+            e.mostRecentSender ??
+            e.users.firstWhere((element) => element != me.uuid))
+        .toList());
+
+    if (users == null) {
+      throw Exception('Failed to get chat users');
+    }
+
+    var newChats = [];
+    for (var i = 0; i < result.length; i++) {
+      newChats.add((users[i], result[i]));
     }
   }
 
@@ -114,16 +122,38 @@ class HomeModel extends ChangeNotifier {
     return messages;
   }
 
-  Future<int> getNumUsersIPreferDryRun(ApiUser newUser) async {
-    var result = await _client.getUsersIPerferCountDryRunPost(newUser);
+  Future<ApiChat> getChat(String chatUuid) async {
+    var chat = await _client.getChatsPost([chatUuid]);
+    if (chat == null) {
+      throw Exception('Failed to get chat');
+    }
+    if (chat.isEmpty) {
+      throw Exception('Chat not found');
+    }
+    if (chat.length > 1) {
+      throw Exception('Too many chats found');
+    }
+    return chat.first;
+  }
+
+  Future<int> getNumUsersIPreferDryRun(ApiUserPreferences prefs) async {
+    var result = await _client.getUsersIPerferCountDryRunPost(Preferences(
+        age: prefs.age,
+        latitude: prefs.latitude,
+        longitude: prefs.longitude,
+        percentFemale: prefs.percentFemale,
+        percentMale: prefs.percentMale,
+        additionalPreferences: prefs.additionalPreferences));
     if (result == null) {
       throw Exception('Failed to get number of users');
     }
     return result;
   }
 
-  Future<int> getNumUsersMutuallyPreferDryRun(ApiUser user) async {
-    var result = await _client.getUsersMutualPerferCountDryRunPost(user);
+  Future<int> getNumUsersMutuallyPreferDryRun(
+      ApiUserProperties props, ApiUserPreferences prefs) async {
+    var result = await _client.getUsersMutualPerferCountDryRunPost(
+        PropsAndPrefs(preferences: prefs, properties: props));
     if (result == null) {
       throw Exception('Failed to get number of users');
     }
@@ -161,5 +191,19 @@ class HomeModel extends ChangeNotifier {
       throw Exception('Failed to update user');
     }
     notifyListeners();
+  }
+
+  Future<ApiImage> getImage(String uuid) async {
+    var result = await _client.getImagesPost([uuid]);
+    if (result == null) {
+      throw Exception('Failed to get image');
+    }
+    if (result.isEmpty) {
+      throw Exception('Image not found');
+    }
+    if (result.length > 1) {
+      throw Exception('Too many images found');
+    }
+    return result.first;
   }
 }

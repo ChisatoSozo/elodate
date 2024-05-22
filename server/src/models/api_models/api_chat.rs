@@ -16,6 +16,7 @@ pub struct ApiChat {
     pub unread: u32, //same order as users
     pub messages: Vec<ApiUuid<InternalMessage>>,
     pub most_recent_message: String,
+    pub most_recent_sender: Option<ApiUuid<InternalUser>>,
 }
 
 impl ApiChat {
@@ -32,6 +33,7 @@ impl ApiChat {
             unread: chat.unread[user_index],
             messages: chat.messages.into_iter().map(|m| m.into()).collect(),
             most_recent_message: chat.most_recent_message.clone(),
+            most_recent_sender: chat.most_recent_sender.map(|s| s.into()),
         })
     }
 }

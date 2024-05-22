@@ -36,24 +36,31 @@ class SettingsPageState extends State<SettingsPage> {
     try {
       setState(() {
         _preferencesController = UserWithImagesUserPreferenceController(
-          value: homeModel.me.user.preference,
+          value: homeModel.me.preferences,
           onUpdate: (value) {
             setState(() {
-              homeModel.me.user.preference = value;
               _hasChanges = true; // Mark changes
               _fetchPreferCounts();
             });
           },
         );
         _meController = SettingsPageMeController(
-          value: UserWithImages(
-              user: homeModel.me.user, images: homeModel.me.images),
+          value: ApiUserWritable(
+              birthdate: homeModel.me.birthdate,
+              description: homeModel.me.description,
+              displayName: homeModel.me.displayName,
+              preferences: homeModel.me.preferences,
+              properties: homeModel.me.properties,
+              published: homeModel.me.published,
+              username: homeModel.me.username,
+              uuid: homeModel.me.uuid,
+              images: homeModel.me.images
+                  .map((e) => ApiUserWritableImagesInner(
+                      b64Content: e.b64Content,
+                      imageType: ApiUserWritableImagesInnerImageTypeEnum.webP))
+                  .toList()),
           onUpdate: (value) {
-            var homeModel = Provider.of<HomeModel>(context, listen: false);
             setState(() {
-              value.user.preference = homeModel.me.user.preference;
-              homeModel.me.user = value.user;
-              homeModel.me.images = value.images;
               _hasChanges = true; // Mark changes
               _fetchPreferCounts();
             });
@@ -84,8 +91,7 @@ class SettingsPageState extends State<SettingsPage> {
       length: 2,
       child: Scaffold(
         appBar: AppBar(
-          title: homeModel.me.user.published == null ||
-                  !homeModel.me.user.published!
+          title: !homeModel.me.published
               ? const Text("Optional profile set-up")
               : const Text("Settings"),
           automaticallyImplyLeading: false,
@@ -102,11 +108,9 @@ class SettingsPageState extends State<SettingsPage> {
               child: TabBarView(
                 children: [
                   SettingsPageMe(
-                    additionalPreferences: homeModel.additionalPreferences,
                     settingsController: _meController,
                   ),
                   UserPreferenceForm(
-                    additionalPreferences: homeModel.additionalPreferences,
                     preferencesController: _preferencesController,
                   ),
                 ],
@@ -184,32 +188,13 @@ class SettingsPageState extends State<SettingsPage> {
       }
       final homeModel = Provider.of<HomeModel>(context, listen: false);
 
-      final pref = Preference(
-        age: homeModel.me.user.preference.age,
-        latitude: homeModel.me.user.preference.latitude,
-        longitude: homeModel.me.user.preference.longitude,
-        percentFemale: homeModel.me.user.preference.percentFemale,
-        percentMale: homeModel.me.user.preference.percentMale,
-        additionalPreferences:
-            homeModel.me.user.preference.additionalPreferences,
-      );
-
       homeModel
-          .getNumUsersIPreferDryRun(pref)
+          .getNumUsersIPreferDryRun(_preferencesController.value)
           .then((value) => setState(() => _numUsersIPrefer = value));
 
       homeModel
-          .getNumUsersMutuallyPreferDryRun(UserPublicFields(
-            birthdate: homeModel.me.user.birthdate,
-            description: homeModel.me.user.description,
-            displayName: homeModel.me.user.displayName,
-            gender: homeModel.me.user.gender,
-            preference: homeModel.me.user.preference,
-            location: homeModel.me.user.location,
-            username: homeModel.me.user.username,
-            published: homeModel.me.user.published,
-            additionalProperties: homeModel.me.user.additionalProperties,
-          ))
+          .getNumUsersMutuallyPreferDryRun(
+              _meController.value.properties, _preferencesController.value)
           .then((value) => setState(() => _numUsersMutuallyPrefer = value));
     });
   }
@@ -217,9 +202,21 @@ class SettingsPageState extends State<SettingsPage> {
   Future<void> _saveChanges() async {
     try {
       final homeModel = Provider.of<HomeModel>(context, listen: false);
-      homeModel.me.user.published = true; // Mark as published
-      await homeModel.updateMe(
-          UserWithImages(user: homeModel.me.user, images: homeModel.me.images));
+      await homeModel.updateMe(ApiUserWritable(
+          birthdate: _meController.value.birthdate,
+          description: _meController.value.description,
+          displayName: _meController.value.displayName,
+          preferences: _preferencesController.value,
+          properties: _meController.value.properties,
+          published: true,
+          username: _meController.value.username,
+          uuid: homeModel.me.uuid,
+          images: homeModel.me.images
+              .map((e) => ApiUserWritableImagesInner(
+                  b64Content: e.b64Content,
+                  imageType: ApiUserWritableImagesInnerImageTypeEnum.webP))
+              .toList()));
+
       _loadData(); // Reload data
       setState(() {
         _hasChanges = false; // Reset change flag
@@ -233,20 +230,20 @@ class SettingsPageState extends State<SettingsPage> {
   Future<void> _flagUnpublished() async {
     try {
       final homeModel = Provider.of<HomeModel>(context, listen: false);
-      var unpublishedUser = UserWithImages(
-        user: UserWithImagesUser(
-          published: false,
-          birthdate: homeModel.me.user.birthdate,
-          description: homeModel.me.user.description,
-          displayName: homeModel.me.user.displayName,
-          gender: homeModel.me.user.gender,
-          preference: homeModel.me.user.preference,
-          location: homeModel.me.user.location,
-          username: homeModel.me.user.username,
-          additionalProperties: homeModel.me.user.additionalProperties,
-        ),
-        images: homeModel.me.images,
-      );
+      var unpublishedUser = ApiUserWritable(
+          birthdate: homeModel.me.birthdate,
+          description: homeModel.me.description,
+          displayName: homeModel.me.displayName,
+          preferences: homeModel.me.preferences,
+          properties: homeModel.me.properties,
+          published: homeModel.me.published,
+          username: homeModel.me.username,
+          uuid: homeModel.me.uuid,
+          images: homeModel.me.images
+              .map((e) => ApiUserWritableImagesInner(
+                  b64Content: e.b64Content,
+                  imageType: ApiUserWritableImagesInnerImageTypeEnum.webP))
+              .toList());
       await homeModel.updateMe(unpublishedUser);
     } catch (error) {
       print(error.toString());

@@ -7,12 +7,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 class UserPreferenceForm extends StatefulWidget {
-  final List<AdditionalPreferencePublic> additionalPreferences;
   final UserWithImagesUserPreferenceController preferencesController;
 
   const UserPreferenceForm({
     super.key,
-    required this.additionalPreferences,
     required this.preferencesController,
   });
 
@@ -35,10 +33,13 @@ class UserPreferenceFormState extends State<UserPreferenceForm> {
   ];
 
   late List<RangeSliderFormFieldController> _additionalPreferencesControllers;
-  late List<void Function(PreferenceAdditionalPreferencesInnerRange)>
+  late RangeSliderFormFieldController _ageController;
+  late RangeSliderFormFieldController _percentMaleController;
+  late RangeSliderFormFieldController _percentFemaleController;
+
+  late List<void Function(ApiUserPreferencesAdditionalPreferencesInnerRange)>
       _additionalPreferenceUpdaters;
 
-  List<AdditionalPreferencePublic>? _additionalPreferences = [];
   int _distanceIndex = 5;
   Map<String, bool> _expandedCategories = {};
   bool _basicIsExpanded = true;
@@ -47,7 +48,8 @@ class UserPreferenceFormState extends State<UserPreferenceForm> {
   void initState() {
     super.initState();
     _initializeDistanceIndex();
-    _loadAdditionalPreferences();
+    _initControllers();
+    _initializeExpandedCategories();
   }
 
   void _initializeDistanceIndex() {
@@ -56,51 +58,41 @@ class UserPreferenceFormState extends State<UserPreferenceForm> {
     _distanceIndex = findClosestDistanceIndex(initialDistance, presetDistances);
   }
 
-  void _loadAdditionalPreferences() {
-    setState(() {
-      _additionalPreferences = widget.additionalPreferences;
-      _additionalPreferencesControllers = _additionalPreferences!.map((pref) {
-        late PreferenceAdditionalPreferencesInnerRange prefProc;
+  void _initControllers() {
+    var homeModel = Provider.of<HomeModel>(context, listen: false);
+    _ageController = RangeSliderFormFieldController(
+      homeModel.me.preferences.age,
+    );
+    _percentMaleController = RangeSliderFormFieldController(
+      homeModel.me.preferences.percentMale,
+    );
+    _percentFemaleController = RangeSliderFormFieldController(
+      homeModel.me.preferences.percentFemale,
+    );
 
-        switch (pref.name) {
-          case 'age':
-            prefProc = widget.preferencesController.value.age;
-            break;
-          case 'percent_male':
-            prefProc = widget.preferencesController.value.percentMale;
-            break;
-          case 'percent_female':
-            prefProc = widget.preferencesController.value.percentFemale;
-            break;
-          case 'latitude':
-            prefProc = widget.preferencesController.value.latitude;
-            break;
-          case 'longitude':
-            prefProc = widget.preferencesController.value.longitude;
-            break;
-          default:
-            prefProc = widget.preferencesController.value
-                    .additionalPreferences[pref.name] ??
-                PreferenceAdditionalPreferencesInnerRange(
-                  min: pref.min,
-                  max: pref.max,
-                );
-        }
+    _additionalPreferencesControllers = homeModel.preferencesConfig.additional
+        .map((pref) => RangeSliderFormFieldController(homeModel
+            .me
+            .preferences
+            .additionalPreferences[
+                homeModel.preferencesConfig.additional.indexOf(pref)]
+            .range))
+        .toList();
 
-        return RangeSliderFormFieldController(prefProc);
-      }).toList();
-      _additionalPreferenceUpdaters = _additionalPreferences!.map((pref) {
-        return (PreferenceAdditionalPreferencesInnerRange value) {
-          _handleAdditionalPreferenceUpdate(pref.name, value);
-        };
-      }).toList();
-      _initializeExpandedCategories();
-    });
+    _additionalPreferenceUpdaters = homeModel.preferencesConfig.additional
+        .map((pref) =>
+            (ApiUserPreferencesAdditionalPreferencesInnerRange value) {
+              widget.preferencesController
+                  .updateAdditionalPreference(pref.name, value);
+            })
+        .toList();
   }
 
   void _initializeExpandedCategories() {
+    var homeModel = Provider.of<HomeModel>(context, listen: false);
     _expandedCategories = {
-      for (var pref in widget.additionalPreferences) pref.category: false
+      for (var pref in homeModel.preferencesConfig.additional)
+        pref.category: false
     };
   }
 
@@ -129,18 +121,14 @@ class UserPreferenceFormState extends State<UserPreferenceForm> {
     });
   }
 
-  void _handleAdditionalPreferenceUpdate(
-      String name, PreferenceAdditionalPreferencesInnerRange value) {
-    widget.preferencesController.updateAdditionalPreference(name, value);
-  }
-
   @override
   Widget build(BuildContext context) {
+    var homeModel = Provider.of<HomeModel>(context);
     final categorizedPreferences =
-        widget.additionalPreferences.skip(5).fold<Map<String, List<int>>>(
+        homeModel.preferencesConfig.additional.fold<Map<String, List<int>>>(
       {},
       (map, pref) {
-        final index = widget.additionalPreferences.indexOf(pref);
+        final index = homeModel.preferencesConfig.additional.indexOf(pref);
         map.putIfAbsent(pref.category, () => []).add(index);
         return map;
       },
@@ -174,9 +162,9 @@ class UserPreferenceFormState extends State<UserPreferenceForm> {
                           children: [
                             RangeSliderFormField(
                               title: 'Age Range',
-                              controller: _additionalPreferencesControllers[0],
+                              controller: _ageController,
                               onUpdate: widget.preferencesController.updateAge,
-                              config: widget.additionalPreferences[0],
+                              config: homeModel.preferencesConfig.mandatory.age,
                             ),
                             DistanceSliderWidget(
                               title: 'Distance Range (km)',
@@ -187,17 +175,19 @@ class UserPreferenceFormState extends State<UserPreferenceForm> {
                             ),
                             RangeSliderFormField(
                               title: 'Percent Male',
-                              controller: _additionalPreferencesControllers[1],
+                              controller: _percentMaleController,
                               onUpdate: widget
                                   .preferencesController.updatePercentMale,
-                              config: widget.additionalPreferences[1],
+                              config: homeModel
+                                  .preferencesConfig.mandatory.percentMale,
                             ),
                             RangeSliderFormField(
                               title: 'Percent Female',
-                              controller: _additionalPreferencesControllers[2],
+                              controller: _percentFemaleController,
                               onUpdate: widget
                                   .preferencesController.updatePercentFemale,
-                              config: widget.additionalPreferences[2],
+                              config: homeModel
+                                  .preferencesConfig.mandatory.percentFemale,
                             ),
                           ],
                         )
@@ -221,7 +211,8 @@ class UserPreferenceFormState extends State<UserPreferenceForm> {
                     body: _expandedCategories[category]!
                         ? Column(
                             children: indices.map((index) {
-                              final pref = widget.additionalPreferences[index];
+                              final pref =
+                                  homeModel.preferencesConfig.additional[index];
                               return RangeSliderFormField(
                                 title: pref.display,
                                 controller:
@@ -245,19 +236,19 @@ class UserPreferenceFormState extends State<UserPreferenceForm> {
 }
 
 class UserWithImagesUserPreferenceController {
-  UserPublicFieldsPreference value;
-  void Function(UserPublicFieldsPreference) onUpdate;
+  ApiUserPreferences value;
+  void Function(ApiUserPreferences) onUpdate;
 
   UserWithImagesUserPreferenceController(
       {required this.value, required this.onUpdate});
 
-  void updateValue(UserPublicFieldsPreference newValue) {
+  void updateValue(ApiUserPreferences newValue) {
     value = newValue;
     onUpdate(newValue);
   }
 
-  void updateAge(PreferenceAdditionalPreferencesInnerRange age) {
-    value = UserPublicFieldsPreference(
+  void updateAge(ApiUserPreferencesAdditionalPreferencesInnerRange age) {
+    value = ApiUserPreferences(
       additionalPreferences: value.additionalPreferences,
       age: age,
       latitude: value.latitude,
@@ -268,8 +259,9 @@ class UserWithImagesUserPreferenceController {
     onUpdate(value);
   }
 
-  void updateLatitude(PreferenceAdditionalPreferencesInnerRange latitude) {
-    value = UserPublicFieldsPreference(
+  void updateLatitude(
+      ApiUserPreferencesAdditionalPreferencesInnerRange latitude) {
+    value = ApiUserPreferences(
       additionalPreferences: value.additionalPreferences,
       age: value.age,
       latitude: latitude,
@@ -280,8 +272,9 @@ class UserWithImagesUserPreferenceController {
     onUpdate(value);
   }
 
-  void updateLongitude(PreferenceAdditionalPreferencesInnerRange longitude) {
-    value = UserPublicFieldsPreference(
+  void updateLongitude(
+      ApiUserPreferencesAdditionalPreferencesInnerRange longitude) {
+    value = ApiUserPreferences(
       additionalPreferences: value.additionalPreferences,
       age: value.age,
       latitude: value.latitude,
@@ -293,8 +286,8 @@ class UserWithImagesUserPreferenceController {
   }
 
   void updatePercentFemale(
-      PreferenceAdditionalPreferencesInnerRange percentFemale) {
-    value = UserPublicFieldsPreference(
+      ApiUserPreferencesAdditionalPreferencesInnerRange percentFemale) {
+    value = ApiUserPreferences(
       additionalPreferences: value.additionalPreferences,
       age: value.age,
       latitude: value.latitude,
@@ -306,8 +299,8 @@ class UserWithImagesUserPreferenceController {
   }
 
   void updatePercentMale(
-      PreferenceAdditionalPreferencesInnerRange percentMale) {
-    value = UserPublicFieldsPreference(
+      ApiUserPreferencesAdditionalPreferencesInnerRange percentMale) {
+    value = ApiUserPreferences(
       additionalPreferences: value.additionalPreferences,
       age: value.age,
       latitude: value.latitude,
@@ -319,12 +312,9 @@ class UserWithImagesUserPreferenceController {
   }
 
   void updateAdditionalPreference(String name,
-      PreferenceAdditionalPreferencesInnerRange additionalPreference) {
-    final updatedPreferences =
-        Map<String, PreferenceAdditionalPreferencesInnerRange>.from(
-            value.additionalPreferences);
-    updatedPreferences[name] = additionalPreference;
-    value = UserPublicFieldsPreference(
+      ApiUserPreferencesAdditionalPreferencesInnerRange additionalPreference) {
+    final updatedPreferences = value.additionalPreferences;
+    value = ApiUserPreferences(
       additionalPreferences: updatedPreferences,
       age: value.age,
       latitude: value.latitude,

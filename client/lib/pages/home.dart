@@ -49,7 +49,7 @@ class HomePageState extends State<HomePage> {
 
     var me = Provider.of<HomeModel>(context, listen: true).me;
 
-    if (me.user.published == null || !me.user.published!) {
+    if (!me.published) {
       if (_selectedIndex != 0) {
         _selectedIndex = 0;
       }
@@ -61,7 +61,7 @@ class HomePageState extends State<HomePage> {
           child: _widgetOptions.elementAt(_selectedIndex),
         ),
       ),
-      bottomNavigationBar: (me.user.published != null && me.user.published!)
+      bottomNavigationBar: me.published
           ? BottomNavigationBar(
               items: const <BottomNavigationBarItem>[
                 BottomNavigationBarItem(

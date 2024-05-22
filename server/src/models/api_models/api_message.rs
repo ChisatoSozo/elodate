@@ -12,9 +12,9 @@ use crate::{
     },
 };
 
-use super::{api_image::ApiImage, shared::ApiUuid};
+use super::{api_image::ApiImageWritable, shared::ApiUuid};
 
-#[derive(Debug, Clone, Serialize, Deserialize, Apiv2Schema)]
+#[derive(Debug, Clone, Serialize, Apiv2Schema)]
 pub struct ApiMessage {
     pub uuid: ApiUuid<InternalMessage>,
     pub sent_at: i64,
@@ -22,6 +22,7 @@ pub struct ApiMessage {
     pub content: String,
     pub image: Option<ApiUuid<InternalImage>>,
     pub read_by: Vec<ApiUuid<InternalUser>>,
+    pub edited: bool,
 }
 
 impl From<InternalMessage> for ApiMessage {
@@ -33,16 +34,16 @@ impl From<InternalMessage> for ApiMessage {
             content: message.content,
             image: message.image.map(|i| i.into()),
             read_by: message.read_by.into_iter().map(|u| u.into()).collect(),
+            edited: message.edited,
         }
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Apiv2Schema)]
+#[derive(Debug, Clone, Deserialize, Apiv2Schema)]
 pub struct ApiMessageWritable {
     pub uuid: ApiUuid<InternalMessage>,
-    pub sent_at: i64,
     pub content: String,
-    pub image: Option<ApiImage>,
+    pub image: Option<ApiImageWritable>,
 }
 
 impl ApiMessageWritable {
@@ -70,15 +71,17 @@ impl ApiMessageWritable {
                     return Err(actix_web::error::ErrorBadRequest("Message not in chat"));
                 }
                 let mut message = message;
-                message.sent_at = self.sent_at;
+                message.sent_at = chrono::Utc::now().timestamp();
                 message.content = self.content;
+                message.edited = true;
                 message
             }
             None => InternalMessage {
                 uuid: InternalUuid::new(),
-                sent_at: self.sent_at,
+                sent_at: chrono::Utc::now().timestamp(),
                 author: user.uuid.clone(),
                 content: self.content,
+                edited: false,
                 image: None,
                 read_by: vec![user.uuid],
             },
@@ -87,7 +90,7 @@ impl ApiMessageWritable {
             .image
             .map(|i| i.to_internal(Access::UserList(chat.users.clone())));
         if let Some(internal_image) = internal_image {
-            let image_uuid = internal_image.save(db)?;
+            let image_uuid = internal_image?.save(db)?;
             message.image = Some(image_uuid);
         }
         Ok(message)

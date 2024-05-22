@@ -6,6 +6,7 @@ import 'dart:typed_data';
 import 'package:client/api/pkg/lib/api.dart';
 import 'package:client/components/chat_bubble.dart';
 import 'package:client/components/responsive_container.dart';
+import 'package:client/components/uuid_image_provider.dart';
 import 'package:client/models/home_model.dart';
 import 'package:client/utils/utils.dart';
 import 'package:file_picker/file_picker.dart';
@@ -13,6 +14,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+import 'package:uuid/uuid.dart';
 
 class ChatScreen extends StatefulWidget {
   final String chatId;
@@ -29,7 +31,8 @@ class ChatScreenState extends State<ChatScreen> {
   final TextEditingController _controller = TextEditingController();
   final ImagePicker _picker = ImagePicker();
   final FocusNode _focusNode = FocusNode();
-  List<Message> _messages = [];
+  ApiChat? _chat;
+  final List<ApiMessage> _messages = [];
   Uint8List? _selectedImage;
   String? _selectedImageMimeType;
   Timer? _timer; // Declare a Timer
@@ -37,9 +40,9 @@ class ChatScreenState extends State<ChatScreen> {
   @override
   void initState() {
     super.initState();
-    _fetchMessages(); // Initial fetch
+    _fetchChat(); // Initial fetch
     _timer = Timer.periodic(const Duration(seconds: 5), (timer) {
-      _fetchMessages();
+      _fetchChat();
     });
   }
 
@@ -51,34 +54,47 @@ class ChatScreenState extends State<ChatScreen> {
     super.dispose();
   }
 
-  void _fetchMessages() {
-    Provider.of<HomeModel>(context, listen: false)
-        .getMessages(widget.chatId)
-        .then((value) {
-      setState(() {
-        _messages = value;
-      });
+  void _fetchChat() async {
+    var chat = await Provider.of<HomeModel>(context, listen: false)
+        .getChat(widget.chatId);
+    //is there new messages, if so, fetch the new ones
+    if (_chat != null && chat.messages.length > _chat!.messages.length) {
+      var newMessages = chat.messages
+          .sublist(_chat!.messages.length, chat.messages.length)
+          .toList();
+      _chat = chat;
+      _fetchMessages(newMessages);
+    }
+    _chat = chat;
+  }
+
+  void _fetchMessages(List<String> newMessages) async {
+    var messages = await Provider.of<HomeModel>(context, listen: false)
+        .getMessages(widget.chatId, newMessages);
+    setState(() {
+      _messages.addAll(messages);
     });
   }
 
-  void _sendMessage() {
+  void _sendMessage() async {
     Provider.of<HomeModel>(context, listen: false)
         .sendChatMessage(
-            widget.chatId,
-            SendMessageInputMessage(
-                content: _controller.text,
-                image: _selectedImage == null
-                    ? null
-                    : MessageImage(
-                        b64Content: base64Encode(_selectedImage!),
-                        imageType: mimeToType(_selectedImageMimeType!)),
-                imageType: _selectedImageMimeType == null
-                    ? null
-                    : fromMesageImageImageTypeEnum(
-                        mimeToType(_selectedImageMimeType!))))
-        .then((value) {
-      _fetchMessages();
-    });
+          widget.chatId,
+          SendMessageInputMessage(
+            uuid: const Uuid().v4(),
+            content: _controller.text,
+            image: _selectedImage == null
+                ? null
+                : ApiUserWritableImagesInner(
+                    b64Content: base64Encode(_selectedImage!),
+                    imageType: mimeToType(_selectedImageMimeType!),
+                  ),
+          ),
+        )
+        .then((value) => {
+              _fetchChat(),
+            });
+
     if (_controller.text.isNotEmpty) {
       setState(() {
         _controller.clear();
@@ -126,6 +142,7 @@ class ChatScreenState extends State<ChatScreen> {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final chatBarColor = isDarkMode ? Colors.grey[850] : Colors.grey[300];
     final inputFieldColor = isDarkMode ? Colors.grey[800] : Colors.grey[200];
+    final homeModel = Provider.of<HomeModel>(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -139,16 +156,15 @@ class ChatScreenState extends State<ChatScreen> {
                 itemCount: _messages.length,
                 itemBuilder: (context, index) {
                   final message = _messages[index];
-                  final bool isMe =
-                      message.author == Provider.of<HomeModel>(context).me.uuid;
+                  final bool isMe = message.author == homeModel.me.uuid;
                   return ChatBubble(
                       text: message.content,
                       image: message.image == null
                           ? null
-                          : Image.memory(
-                              base64Decode(message.image!.b64Content),
-                              fit: BoxFit.cover,
-                            ),
+                          : Image(
+                              width: 200,
+                              image: UuidImageProvider(
+                                  uuid: message.image!, homeModel: homeModel)),
                       isMe: isMe,
                       timestamp: DateTime.fromMillisecondsSinceEpoch(
                           message.sentAt * 1000));

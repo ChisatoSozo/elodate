@@ -12,7 +12,6 @@ pub struct ApiUuid<InternalModel> {
     _marker: PhantomData<InternalModel>,
 }
 
-// Implement TypedData for ApiUuid
 impl<InternalModel> TypedData for ApiUuid<InternalModel> {
     fn data_type() -> paperclip::v2::models::DataType {
         <String as TypedData>::data_type()

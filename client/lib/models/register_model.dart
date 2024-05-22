@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:client/api/pkg/lib/api.dart';
@@ -146,35 +145,35 @@ class RegisterModel extends ChangeNotifier {
 
     var (lat, long) = encodeLatLongToI16(_lat!, _long!);
 
-    var input = UserWithImagesAndPassword(
-      user: UserWithImagesUser(
+    //calc age in years
+    var age = DateTime.now().difference(_birthdate!).inDays ~/ 365;
+
+    var input = ApiUserWritable(
         birthdate: _birthdate!.millisecondsSinceEpoch ~/ 1000,
-        displayName: _displayName!,
-        gender: UserPublicFieldsGender(
-            percentFemale: (_percentFemale! * 100).toInt(),
-            percentMale: (_percentMale! * 100).toInt()),
-        preference: UserPublicFieldsPreference(
-          age: PreferenceAdditionalPreferencesInnerRange(max: 100, min: 18),
-          latitude: PreferenceAdditionalPreferencesInnerRange(
-              max: 32767, min: -32768),
-          longitude: PreferenceAdditionalPreferencesInnerRange(
-              max: 32767, min: -32768),
-          percentFemale:
-              PreferenceAdditionalPreferencesInnerRange(max: 100, min: 0),
-          percentMale:
-              PreferenceAdditionalPreferencesInnerRange(max: 100, min: 0),
-        ),
-        username: _username!,
-        location: UserPublicFieldsLocation(lat: lat, long: long),
         description: '',
-      ),
-      password: _password!,
-      images: _images
-          .map((e) => MessageImage(
-              b64Content: base64Encode(e.data),
-              imageType: mimeToType(e.mimeType)))
-          .toList(),
-    );
+        displayName: _displayName!,
+        preferences: ApiUserPreferences(
+            age: ApiUserPreferencesAdditionalPreferencesInnerRange(
+                max: 120, min: 18),
+            latitude: ApiUserPreferencesAdditionalPreferencesInnerRange(
+                max: 32767, min: -32768),
+            longitude: ApiUserPreferencesAdditionalPreferencesInnerRange(
+                max: 32767, min: -32768),
+            percentFemale: ApiUserPreferencesAdditionalPreferencesInnerRange(
+                max: 100, min: 0),
+            percentMale: ApiUserPreferencesAdditionalPreferencesInnerRange(
+                max: 100, min: 0),
+            additionalPreferences: []),
+        properties: ApiUserProperties(
+            age: age,
+            latitude: lat,
+            longitude: long,
+            percentFemale: _percentFemale!.toInt(),
+            percentMale: _percentMale!.toInt(),
+            additionalProperties: []),
+        published: false,
+        username: _username!,
+        uuid: '');
     var jwt = await DefaultApi(ApiClient(basePath: 'http://localhost:8080'))
         .signupPost(input);
 

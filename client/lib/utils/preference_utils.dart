@@ -3,13 +3,13 @@ import 'dart:math';
 import 'package:client/api/pkg/lib/api.dart';
 import 'package:client/utils/utils.dart';
 
-int calculateInitialDistance(UserWithImagesAndEloAndUuid user) {
+int calculateInitialDistance(ApiUserMe user) {
   final userLatLng =
-      decodeLatLongFromI16(user.user.location.lat, user.user.location.long);
+      decodeLatLongFromI16(user.properties.latitude, user.properties.longitude);
   final preferenceMinLatLng = decodeLatLongFromI16(
-      user.user.preference.latitude.min, user.user.preference.longitude.min);
+      user.preferences.latitude.min, user.preferences.longitude.min);
   final preferenceMaxLatLng = decodeLatLongFromI16(
-      user.user.preference.latitude.max, user.user.preference.longitude.max);
+      user.preferences.latitude.max, user.preferences.longitude.max);
 
   double deltaLat = (preferenceMaxLatLng.$1 - preferenceMinLatLng.$1) / 2;
   double deltaLng = (preferenceMaxLatLng.$2 - preferenceMinLatLng.$2) / 2;
@@ -36,14 +36,14 @@ int findClosestDistanceIndex(int distance, List<int> presetDistances) {
 }
 
 (
-  PreferenceAdditionalPreferencesInnerRange,
-  PreferenceAdditionalPreferencesInnerRange
+  ApiUserPreferencesAdditionalPreferencesInnerRange,
+  ApiUserPreferencesAdditionalPreferencesInnerRange
 ) getLatLngRange(
-  UserWithImagesAndEloAndUuid user,
+  ApiUser user,
   int distanceInKm,
 ) {
   final userLatLng =
-      decodeLatLongFromI16(user.user.location.lat, user.user.location.long);
+      decodeLatLongFromI16(user.properties.latitude, user.properties.longitude);
 
   const double earthRadiusKm = 6371.0;
 
@@ -60,9 +60,9 @@ int findClosestDistanceIndex(int distance, List<int> presetDistances) {
   final maxLatLng = encodeLatLongToI16(maxLat, maxLng);
 
   return (
-    PreferenceAdditionalPreferencesInnerRange(
+    ApiUserPreferencesAdditionalPreferencesInnerRange(
         min: minLatLng.$1, max: maxLatLng.$1),
-    PreferenceAdditionalPreferencesInnerRange(
+    ApiUserPreferencesAdditionalPreferencesInnerRange(
         min: minLatLng.$2, max: maxLatLng.$2)
   );
 }

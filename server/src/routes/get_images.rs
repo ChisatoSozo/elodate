@@ -3,9 +3,7 @@ use actix_web::Error;
 use paperclip::actix::{
     api_v2_operation, post,
     web::{self, Json},
-    Apiv2Schema,
 };
-use serde::{Deserialize, Serialize};
 
 use crate::{
     db::DB,
@@ -16,24 +14,15 @@ use crate::{
     routes::shared::route_body_mut_db,
 };
 
-#[derive(Debug, Clone, Serialize, Deserialize, Apiv2Schema)]
-struct GetImagesInput {
-    image_uuid: ApiUuid<InternalImage>,
-    images: Vec<ApiUuid<InternalImage>>,
-}
-
 #[api_v2_operation]
 #[post("/get_images")]
 pub fn get_images(
     db: web::Data<DB>,
     req: web::HttpRequest,
-    body: Json<GetImagesInput>,
+    body: Json<Vec<ApiUuid<InternalImage>>>,
 ) -> Result<Json<Vec<ApiImage>>, Error> {
     route_body_mut_db(db, req, body, |db, user, body| {
-        //is this user in this image?
-
         let images = body
-            .images
             .into_iter()
             .map(|image_uuid| {
                 let internal_image_uuid: InternalUuid<InternalImage> = image_uuid.into();

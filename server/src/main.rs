@@ -7,7 +7,7 @@ use middleware::jwt::Jwt;
 use paperclip::actix::{web, OpenApiExt};
 
 use routes::{
-    check_username::check_username, get_chats::get_chats, get_images::get_images,
+    check_username::check_username, get_chats::get_chats, get_images::get_images, get_me::get_me,
     get_messages::get_messages, get_next_users::get_next_users,
     get_preferences_config::get_preferences_config, get_users::get_users,
     get_users_i_perfer_count_dry_run::get_users_i_perfer_count_dry_run,
@@ -53,6 +53,7 @@ async fn main() -> std::io::Result<()> {
             .service(send_message)
             .service(get_preferences_config)
             .service(put_user)
+            .service(get_me)
             .service(get_users_i_perfer_count_dry_run)
             .service(get_users_mutual_perfer_count_dry_run)
             .service(get_next_users)

@@ -1,11 +1,12 @@
-import 'dart:convert';
-
 import 'package:client/api/pkg/lib/api.dart';
 import 'package:client/components/elo_badge.dart';
 import 'package:client/components/swipeable_user_card/page_indicator.dart';
 import 'package:client/components/swipeable_user_card/user_details.dart';
+import 'package:client/components/uuid_image_provider.dart';
+import 'package:client/models/home_model.dart';
 import 'package:flutter/material.dart';
 import 'package:preload_page_view/preload_page_view.dart';
+import 'package:provider/provider.dart';
 
 import 'swipe_overlay.dart';
 
@@ -27,7 +28,7 @@ class SwipeableUserCardState extends State<SwipeableUserCard>
     with SingleTickerProviderStateMixin {
   late PreloadPageController _pageController;
   late int _currentIndex;
-  final List<MemoryImage> _cachedImages = [];
+  final List<UuidImageProvider> _cachedImages = [];
   bool _isCardExpanded = false;
 
   // Variables for swipe animation
@@ -54,9 +55,12 @@ class SwipeableUserCardState extends State<SwipeableUserCard>
   }
 
   void _preloadImages() {
+    var homeModel = Provider.of<HomeModel>(context, listen: false);
     for (var image in widget.user.images) {
-      var imageData = base64Decode(image.b64Content);
-      _cachedImages.add(MemoryImage(imageData));
+      _cachedImages.add(UuidImageProvider(
+        uuid: image,
+        homeModel: homeModel,
+      ));
     }
   }
 
@@ -168,8 +172,8 @@ class SwipeableUserCardState extends State<SwipeableUserCard>
                 child: UserDetails(
                   isCardExpanded: _isCardExpanded,
                   toggleCard: _toggleCard,
-                  displayName: widget.user.user.displayName,
-                  description: widget.user.user.description,
+                  displayName: widget.user.displayName,
+                  description: widget.user.description,
                 ),
               ),
               Positioned(

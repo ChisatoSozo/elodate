@@ -13,6 +13,7 @@ pub struct InternalChat {
     pub unread: Vec<u32>, //same order as users
     pub messages: Vec<InternalUuid<InternalMessage>>,
     pub most_recent_message: String,
+    pub most_recent_sender: Option<InternalUuid<InternalUser>>,
 }
 
 impl InternalChat {
@@ -24,6 +25,7 @@ impl InternalChat {
             unread: vec![0; users_len],
             messages: vec![],
             most_recent_message: "No messages yet".to_string(),
+            most_recent_sender: None,
         }
     }
 }

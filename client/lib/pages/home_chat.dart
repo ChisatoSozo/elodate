@@ -1,5 +1,4 @@
-import 'dart:convert';
-
+import 'package:client/components/uuid_image_provider.dart';
 import 'package:client/models/home_model.dart';
 import 'package:client/pages/home_chat_single.dart';
 import 'package:flutter/material.dart';
@@ -21,6 +20,7 @@ class ChatPageState extends State<ChatPage> {
   @override
   Widget build(BuildContext context) {
     var chats = Provider.of<HomeModel>(context).chats;
+    var homeModel = Provider.of<HomeModel>(context);
     return Scaffold(
       appBar: AppBar(
         title: const Text("Chats"),
@@ -29,16 +29,14 @@ class ChatPageState extends State<ChatPage> {
       body: ListView.builder(
         itemCount: chats.length,
         itemBuilder: (context, index) {
-          final chat = chats[index].$1; // Assuming this holds the chat data
-          final user = chats[index].$2; // Assuming this holds the user data
-
-          var imageData = base64Decode(user.images[0].b64Content);
+          final (user, chat) = chats[index];
 
           return ListTile(
             leading: CircleAvatar(
-              backgroundImage: MemoryImage(imageData),
+              backgroundImage:
+                  UuidImageProvider(uuid: user.images[0], homeModel: homeModel),
             ),
-            title: Text(user.user.displayName,
+            title: Text(user.displayName,
                 style:
                     const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             subtitle: Text(chat.mostRecentMessage,
@@ -48,7 +46,7 @@ class ChatPageState extends State<ChatPage> {
                   context,
                   MaterialPageRoute(
                     builder: (context) => ChatScreen(
-                        chatId: chat.uuid, displayName: user.user.displayName),
+                        chatId: chat.uuid, displayName: user.displayName),
                   ));
             },
           );

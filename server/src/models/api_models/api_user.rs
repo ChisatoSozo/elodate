@@ -1,7 +1,10 @@
-use super::{api_image::ApiImage, shared::ApiUuid};
+use super::{
+    api_image::{ApiImage, ApiImageWritable},
+    shared::ApiUuid,
+};
 use crate::{
     db::DB,
-    elo::elo_min,
+    elo::{elo_min, elo_to_label},
     models::internal_models::{
         internal_chat::InternalChat,
         internal_image::{Access, InternalImage},
@@ -15,11 +18,11 @@ use paperclip::actix::Apiv2Schema;
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 
-#[derive(Debug, Clone, Serialize, Deserialize, Apiv2Schema)]
+#[derive(Debug, Clone, Serialize, Apiv2Schema)]
 pub struct ApiUser {
     pub uuid: ApiUuid<InternalUser>,
     pub images: Vec<ApiUuid<InternalImage>>,
-    pub elo: u32,
+    pub elo: String,
     pub username: String,
     pub display_name: String,
     pub description: String,
@@ -30,20 +33,6 @@ pub struct ApiUser {
     pub chats: Option<Vec<ApiUuid<InternalChat>>>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Apiv2Schema)]
-pub struct ApiUserWritable {
-    pub uuid: ApiUuid<InternalUser>,
-    pub images: Vec<ApiImage>,
-    pub username: String,
-    pub password: Option<String>,
-    pub display_name: String,
-    pub description: String,
-    pub preferences: Preferences,
-    pub properties: Properties,
-    pub birthdate: i64,
-    pub published: bool,
-}
-
 impl ApiUser {
     pub fn from_internal(
         user: InternalUser,
@@ -52,7 +41,7 @@ impl ApiUser {
         Ok(ApiUser {
             uuid: user.uuid.clone().into(),
             images: user.images.into_iter().map(|i| i.into()).collect(),
-            elo: user.elo,
+            elo: elo_to_label(user.elo),
             username: user.username,
             display_name: user.display_name,
             description: user.description,
@@ -67,6 +56,67 @@ impl ApiUser {
             },
         })
     }
+}
+
+#[derive(Debug, Clone, Serialize, Apiv2Schema)]
+pub struct ApiUserMe {
+    pub uuid: ApiUuid<InternalUser>,
+    pub images: Vec<ApiImage>,
+    pub elo: String,
+    pub username: String,
+    pub display_name: String,
+    pub description: String,
+    pub preferences: Preferences,
+    pub properties: Properties,
+    pub birthdate: i64,
+    pub published: bool,
+    pub chats: Vec<ApiUuid<InternalChat>>,
+}
+
+impl ApiUserMe {
+    pub fn from_internal(user: InternalUser, db: &DB) -> Result<Self, Box<dyn Error>> {
+        let images = user
+            .images
+            .iter()
+            .map(|i| {
+                i.load(db)
+                    .map(|i| i.map(|ii| ApiImage::from_internal(ii, &user)))
+            })
+            .collect::<Result<Option<Vec<_>>, _>>()?;
+        let images = match images {
+            Some(images) => images,
+            None => return Err("Failed to load images".into()),
+        }
+        .into_iter()
+        .collect::<Result<Vec<_>, _>>()?;
+        Ok(ApiUserMe {
+            uuid: user.uuid.clone().into(),
+            images: images,
+            elo: elo_to_label(user.elo),
+            username: user.username,
+            display_name: user.display_name,
+            description: user.description,
+            preferences: user.preferences,
+            properties: user.properties,
+            birthdate: user.birthdate,
+            published: user.published,
+            chats: user.chats.into_iter().map(|c| c.into()).collect(),
+        })
+    }
+}
+
+#[derive(Debug, Clone, Deserialize, Apiv2Schema)]
+pub struct ApiUserWritable {
+    pub uuid: ApiUuid<InternalUser>,
+    pub images: Vec<ApiImageWritable>,
+    pub username: String,
+    pub password: Option<String>,
+    pub display_name: String,
+    pub description: String,
+    pub preferences: Preferences,
+    pub properties: Properties,
+    pub birthdate: i64,
+    pub published: bool,
 }
 
 impl ApiUserWritable {
@@ -88,9 +138,10 @@ impl ApiUserWritable {
             }
         }
 
-        let mut internal_images = Vec::new();
+        let mut internal_images = vec![];
+
         for image in self.images {
-            let internal_image: InternalImage = image.to_internal(Access::Everyone);
+            let internal_image: InternalImage = image.to_internal(Access::Everyone)?;
             internal_images.push(internal_image.save(db)?);
         }
 

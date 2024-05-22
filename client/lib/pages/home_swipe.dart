@@ -12,7 +12,7 @@ class SwipePage extends StatefulWidget {
 }
 
 class SwipePageState extends State<SwipePage> {
-  final List<UserWithImagesAndEloAndUuid?> _userStack = [null, null];
+  final List<ApiUser?> _userStack = [null, null];
   bool _isLoading = true;
   bool _hasError = false;
 
@@ -45,8 +45,7 @@ class SwipePageState extends State<SwipePage> {
     }
   }
 
-  Future<void> handleSwipe(
-      UserWithImagesAndEloAndUuid user, bool isLiked) async {
+  Future<void> handleSwipe(ApiUser user, bool isLiked) async {
     var homeModel = Provider.of<HomeModel>(context, listen: false);
     if (isLiked) {
       var match = await homeModel.likeUser(user);
@@ -56,7 +55,7 @@ class SwipePageState extends State<SwipePage> {
           const SnackBar(content: Text("It's a match!")),
         );
         homeModel.chats = [];
-        homeModel.initChats();
+        homeModel.initChats(homeModel.me);
       }
     } else {
       await homeModel.dislikeUser(user);

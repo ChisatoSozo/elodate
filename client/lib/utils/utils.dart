@@ -1,39 +1,27 @@
 import 'package:client/api/pkg/lib/api.dart';
 
-MessageImageImageTypeEnum mimeToType(String mimeType) {
+ApiUserWritableImagesInnerImageTypeEnum mimeToType(String mimeType) {
   switch (mimeType) {
     case "image/jpeg":
-      return MessageImageImageTypeEnum.JPEG;
+      return ApiUserWritableImagesInnerImageTypeEnum.jpeg;
     case "jpeg":
-      return MessageImageImageTypeEnum.JPEG;
+      return ApiUserWritableImagesInnerImageTypeEnum.jpeg;
     case "image/jpg":
-      return MessageImageImageTypeEnum.JPEG;
+      return ApiUserWritableImagesInnerImageTypeEnum.jpeg;
     case "jpg":
-      return MessageImageImageTypeEnum.JPEG;
+      return ApiUserWritableImagesInnerImageTypeEnum.jpeg;
     case "image/png":
-      return MessageImageImageTypeEnum.PNG;
+      return ApiUserWritableImagesInnerImageTypeEnum.png;
     case "png":
-      return MessageImageImageTypeEnum.PNG;
+      return ApiUserWritableImagesInnerImageTypeEnum.png;
     case "image/webp":
-      return MessageImageImageTypeEnum.WEBP;
+      return ApiUserWritableImagesInnerImageTypeEnum.webP;
     case "webp":
-      return MessageImageImageTypeEnum.WEBP;
+      return ApiUserWritableImagesInnerImageTypeEnum.webP;
+    case "webP":
+      return ApiUserWritableImagesInnerImageTypeEnum.webP;
     default:
       throw Exception("Unknown mime type: $mimeType");
-  }
-}
-
-SendMessageInputMessageImageTypeEnum fromMesageImageImageTypeEnum(
-    MessageImageImageTypeEnum type) {
-  switch (type) {
-    case MessageImageImageTypeEnum.JPEG:
-      return SendMessageInputMessageImageTypeEnum.JPEG;
-    case MessageImageImageTypeEnum.PNG:
-      return SendMessageInputMessageImageTypeEnum.PNG;
-    case MessageImageImageTypeEnum.WEBP:
-      return SendMessageInputMessageImageTypeEnum.WEBP;
-    default:
-      throw Exception("Unknown message image image type: $type");
   }
 }
 
