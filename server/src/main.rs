@@ -29,8 +29,6 @@ const JSON_SPEC_PATH: &str = "/api/spec/v2.json";
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    std::env::set_var("RUST_LOG", "debug");
-    env_logger::init();
     let db = web::Data::new(DB::new("test").map_err(|e| {
         println!("Failed to create db {:?}", e);
         std::io::Error::new(std::io::ErrorKind::Other, "Failed to create db")
@@ -67,7 +65,7 @@ async fn main() -> std::io::Result<()> {
             .with_json_spec_at(JSON_SPEC_PATH)
             .build()
     })
-    .bind(("127.0.0.1", 8080))?
+    .bind(("0.0.0.0", 8080))?
     .run()
     .await
 }

@@ -1,6 +1,29 @@
 import 'package:client/api/pkg/lib/api.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:localstorage/localstorage.dart';
+
+//public function to construct client
+DefaultApi constructClient(String? jwt) {
+  HttpBearerAuth? auth;
+
+  if (jwt != null) {
+    auth = HttpBearerAuth();
+    auth.accessToken = jwt;
+  }
+
+  //if kIsWeb, get host from url
+  if (kIsWeb) {
+    var host = Uri.base.host;
+    var client = DefaultApi(
+        ApiClient(basePath: 'http://$host:8080', authentication: auth));
+    return client;
+  }
+
+  var client = DefaultApi(
+      ApiClient(basePath: 'http://localhost:8080', authentication: auth));
+
+  return client;
+}
 
 class HomeModel extends ChangeNotifier {
   late DefaultApi _client;
@@ -24,7 +47,7 @@ class HomeModel extends ChangeNotifier {
 
     isLoading = true;
     await initClient(jwt);
-    await Future.wait([initMe(uuid), initAdditionalPreferences()]);
+    await Future.wait([initMe(), initAdditionalPreferences()]);
     await initChats(me);
     isLoaded = true;
     isLoading = false;
@@ -32,16 +55,11 @@ class HomeModel extends ChangeNotifier {
   }
 
   Future<void> initClient(String jwt) async {
-    var auth = HttpBearerAuth();
-    auth.accessToken = jwt;
-
-    var client = DefaultApi(
-        ApiClient(basePath: 'http://localhost:8080', authentication: auth));
-
-    _client = client;
+    _client = constructClient(jwt);
   }
 
-  Future<void> initMe(String myUuid) async {
+  Future<void> initMe() async {
+    _potentialMatches.clear();
     var newMe = await _client.getMePost(true);
     if (newMe == null) {
       throw Exception('Failed to get me');
@@ -64,19 +82,22 @@ class HomeModel extends ChangeNotifier {
       throw Exception('Failed to get chat messages');
     }
     var users = await _client.getUsersPost(result
-        .map((e) =>
-            e.mostRecentSender ??
-            e.users.firstWhere((element) => element != me.uuid))
+        .map((e) => (e.mostRecentSender == null
+            ? e.users.firstWhere((element) => element != me.uuid)
+            : e.mostRecentSender == me.uuid
+                ? e.users.firstWhere((element) => element != me.uuid)
+                : e.mostRecentSender)!)
         .toList());
 
     if (users == null) {
       throw Exception('Failed to get chat users');
     }
 
-    var newChats = [];
+    List<(ApiUser, ApiChat)> newChats = [];
     for (var i = 0; i < result.length; i++) {
       newChats.add((users[i], result[i]));
     }
+    chats = newChats;
   }
 
   Future<bool> sendChatMessage(
@@ -89,13 +110,16 @@ class HomeModel extends ChangeNotifier {
     return result;
   }
 
-  Future<ApiUser> getPotentialMatch(int index) async {
+  Future<ApiUser?> getPotentialMatch(int index) async {
     if (_potentialMatches.length < 5) {
       _fetchPotentialMatches()
           .then((matches) => _potentialMatches.addAll(matches));
     }
     if (_potentialMatches.isEmpty) {
       var matches = await _fetchPotentialMatches();
+      if (matches.isEmpty) {
+        return null;
+      }
       _potentialMatches.addAll(matches);
       return _potentialMatches[index];
     }
@@ -186,7 +210,7 @@ class HomeModel extends ChangeNotifier {
 
   Future<void> updateMe(ApiUserWritable user) async {
     var result = await _client.putUserPost(user);
-    await initMe(me.uuid);
+    await initMe();
     if (result == null) {
       throw Exception('Failed to update user');
     }

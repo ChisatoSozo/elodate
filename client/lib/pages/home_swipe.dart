@@ -1,6 +1,7 @@
 import 'package:client/api/pkg/lib/api.dart';
 import 'package:client/components/swipeable_user_card/swipeable_user_card.dart';
 import 'package:client/models/home_model.dart';
+import 'package:client/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -14,7 +15,7 @@ class SwipePage extends StatefulWidget {
 class SwipePageState extends State<SwipePage> {
   final List<ApiUser?> _userStack = [null, null];
   bool _isLoading = true;
-  bool _hasError = false;
+  String? _error;
 
   @override
   void initState() {
@@ -31,7 +32,21 @@ class SwipePageState extends State<SwipePage> {
     try {
       final user = await Provider.of<HomeModel>(context, listen: false)
           .getPotentialMatch(index);
+
       setState(() {
+        if (user == null) {
+          _isLoading = false;
+          return;
+        }
+        //if index is 1 and user is the same as the user at index 0, don't do anything
+        if (index == 1 && _userStack[0] == null) {
+          _isLoading = false;
+          return;
+        }
+        if (index == 1 && user.uuid == _userStack[0]!.uuid) {
+          _isLoading = false;
+          return;
+        }
         _userStack[index] = user;
         if (_userStack.every((user) => user != null)) {
           _isLoading = false;
@@ -39,7 +54,7 @@ class SwipePageState extends State<SwipePage> {
       });
     } catch (error) {
       setState(() {
-        _hasError = true;
+        _error = formatApiError(error.toString());
         _isLoading = false;
       });
     }
@@ -75,17 +90,16 @@ class SwipePageState extends State<SwipePage> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    if (_hasError) {
-      return const Center(child: Text('Error loading user'));
-    }
-
-    if (_userStack[0] == null) {
-      return const Center(child: Text('End of users, expand your preferences'));
+    if (_error != null) {
+      return Center(child: Text(_error!));
     }
 
     return Stack(
       children: _userStack.reversed.map((user) {
-        if (user == null) return Container();
+        if (user == null) {
+          return const Center(
+              child: Text('End of users, expand your preferences'));
+        }
         return Positioned.fill(
           child: SwipeableUserCard(
             user: user,

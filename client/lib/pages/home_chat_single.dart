@@ -36,6 +36,7 @@ class ChatScreenState extends State<ChatScreen> {
   Uint8List? _selectedImage;
   String? _selectedImageMimeType;
   Timer? _timer; // Declare a Timer
+  bool _isSendButtonEnabled = false; // New variable
 
   @override
   void initState() {
@@ -44,14 +45,23 @@ class ChatScreenState extends State<ChatScreen> {
     _timer = Timer.periodic(const Duration(seconds: 5), (timer) {
       _fetchChat();
     });
+    _controller.addListener(_updateSendButtonState); // Add listener
   }
 
   @override
   void dispose() {
     _timer?.cancel(); // Cancel the timer when disposing
+    _controller.removeListener(_updateSendButtonState); // Remove listener
     _controller.dispose();
     _focusNode.dispose();
     super.dispose();
+  }
+
+  void _updateSendButtonState() {
+    setState(() {
+      _isSendButtonEnabled =
+          _controller.text.isNotEmpty || _selectedImage != null;
+    });
   }
 
   void _fetchChat() async {
@@ -64,6 +74,10 @@ class ChatScreenState extends State<ChatScreen> {
           .toList();
       _chat = chat;
       _fetchMessages(newMessages);
+    }
+    if (_chat == null) {
+      _chat = chat;
+      _fetchMessages(chat.messages);
     }
     _chat = chat;
   }
@@ -95,14 +109,13 @@ class ChatScreenState extends State<ChatScreen> {
               _fetchChat(),
             });
 
-    if (_controller.text.isNotEmpty) {
-      setState(() {
-        _controller.clear();
-        _selectedImage = null;
-        _selectedImageMimeType = null;
-      });
-      _focusNode.requestFocus();
-    }
+    setState(() {
+      _controller.clear();
+      _selectedImage = null;
+      _selectedImageMimeType = null;
+      _isSendButtonEnabled = false; // Reset send button state
+    });
+    _focusNode.requestFocus();
   }
 
   Future<void> _pickImage(ImageSource source) async {
@@ -117,6 +130,7 @@ class ChatScreenState extends State<ChatScreen> {
         setState(() {
           _selectedImage = result.files.single.bytes;
           _selectedImageMimeType = result.files.single.extension;
+          _isSendButtonEnabled = true; // Enable send button
         });
       }
     } else {
@@ -125,6 +139,7 @@ class ChatScreenState extends State<ChatScreen> {
         setState(() {
           _selectedImage = File(pickedFile.path).readAsBytesSync();
           _selectedImageMimeType = pickedFile.mimeType;
+          _isSendButtonEnabled = true; // Enable send button
         });
       }
     }
@@ -134,6 +149,8 @@ class ChatScreenState extends State<ChatScreen> {
     setState(() {
       _selectedImage = null;
       _selectedImageMimeType = null;
+      _isSendButtonEnabled =
+          _controller.text.isNotEmpty; // Update send button state
     });
   }
 
@@ -152,23 +169,30 @@ class ChatScreenState extends State<ChatScreen> {
         child: Column(
           children: <Widget>[
             Expanded(
-              child: ListView.builder(
-                itemCount: _messages.length,
-                itemBuilder: (context, index) {
-                  final message = _messages[index];
-                  final bool isMe = message.author == homeModel.me.uuid;
-                  return ChatBubble(
-                      text: message.content,
-                      image: message.image == null
-                          ? null
-                          : Image(
-                              width: 200,
-                              image: UuidImageProvider(
-                                  uuid: message.image!, homeModel: homeModel)),
-                      isMe: isMe,
-                      timestamp: DateTime.fromMillisecondsSinceEpoch(
-                          message.sentAt * 1000));
-                },
+              child: Align(
+                alignment: Alignment.bottomCenter,
+                child: ListView.builder(
+                  itemCount: _messages.length,
+                  itemBuilder: (context, index) {
+                    final message = _messages[_messages.length - index - 1];
+                    final bool isMe = message.author == homeModel.me.uuid;
+                    return ChatBubble(
+                        key: Key(message.uuid),
+                        text: message.content,
+                        image: message.image == null
+                            ? null
+                            : Image(
+                                width: 200,
+                                image: UuidImageProvider(
+                                    uuid: message.image!,
+                                    homeModel: homeModel)),
+                        isMe: isMe,
+                        timestamp: DateTime.fromMillisecondsSinceEpoch(
+                            message.sentAt * 1000));
+                  },
+                  reverse: true,
+                  shrinkWrap: true,
+                ),
               ),
             ),
             Container(
@@ -246,7 +270,8 @@ class ChatScreenState extends State<ChatScreen> {
           ),
           IconButton(
             icon: const Icon(Icons.send),
-            onPressed: _sendMessage,
+            onPressed: _isSendButtonEnabled ? _sendMessage : null,
+            color: _isSendButtonEnabled ? null : Colors.grey,
           ),
           if (!kIsWeb)
             IconButton(

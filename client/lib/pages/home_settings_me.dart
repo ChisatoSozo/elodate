@@ -75,9 +75,8 @@ class SettingsPageMeState extends State<SettingsPageMe> {
     }
 
     _genderController = GenderPickerController(
-        percentMale: (homeModel.me.preferences.percentMale as double) / 100,
-        percentFemale:
-            (homeModel.me.preferences.percentFemale as double) / 100);
+        percentMale: (homeModel.me.properties.percentMale as double) / 100,
+        percentFemale: (homeModel.me.properties.percentFemale as double) / 100);
 
     _additionalPropertiesControllers = homeModel.preferencesConfig.additional
         .map((pref) => ValueSliderFormFieldController(homeModel

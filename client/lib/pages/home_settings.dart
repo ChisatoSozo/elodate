@@ -5,6 +5,7 @@ import 'package:client/api/pkg/lib/api.dart';
 import 'package:client/models/home_model.dart';
 import 'package:client/pages/home_settings_matches.dart';
 import 'package:client/pages/home_settings_me.dart';
+import 'package:client/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -18,7 +19,7 @@ class SettingsPage extends StatefulWidget {
 class SettingsPageState extends State<SettingsPage> {
   late UserWithImagesUserPreferenceController _preferencesController;
   late SettingsPageMeController _meController;
-  bool _hasError = false;
+  String? _error;
   bool _hasChanges = false; // Track if changes have been made
   final bool _saving = false;
 
@@ -70,40 +71,32 @@ class SettingsPageState extends State<SettingsPage> {
       });
     } catch (error) {
       setState(() {
-        _hasError = true;
+        _error = formatApiError(error.toString());
       });
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_hasError) {
-      return const Center(child: Text("Error loading data"));
+    if (_error != null) {
+      return Center(child: Text(_error!));
     }
 
     var fit = _numUsersIPrefer == 1 ? "fits" : "fit";
     var prefer = _numUsersMutuallyPrefer == 1 ? "prefers" : "prefer";
     var user = _numUsersIPrefer == 1 ? "user" : "users";
 
-    var homeModel = Provider.of<HomeModel>(context, listen: true);
-
     return DefaultTabController(
       length: 2,
       child: Scaffold(
-        appBar: AppBar(
-          title: !homeModel.me.published
-              ? const Text("Optional profile set-up")
-              : const Text("Settings"),
-          automaticallyImplyLeading: false,
-          bottom: const TabBar(
-            tabs: [
-              Tab(text: "Me"),
-              Tab(text: "Matches"),
-            ],
-          ),
-        ),
         body: Column(
           children: [
+            const TabBar(
+              tabs: [
+                Tab(text: "Me"),
+                Tab(text: "Matches"),
+              ],
+            ),
             Expanded(
               child: TabBarView(
                 children: [
@@ -222,8 +215,9 @@ class SettingsPageState extends State<SettingsPage> {
         _hasChanges = false; // Reset change flag
       });
     } catch (error) {
-      print(error.toString());
-      //TODO: handle error
+      setState(() {
+        _error = formatApiError(error.toString());
+      });
     }
   }
 
@@ -246,7 +240,9 @@ class SettingsPageState extends State<SettingsPage> {
               .toList());
       await homeModel.updateMe(unpublishedUser);
     } catch (error) {
-      print(error.toString());
+      setState(() {
+        _error = formatApiError(error.toString());
+      });
     }
   }
 }

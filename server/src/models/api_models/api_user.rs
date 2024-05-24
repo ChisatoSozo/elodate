@@ -8,7 +8,10 @@ use crate::{
     models::internal_models::{
         internal_chat::InternalChat,
         internal_image::{Access, InternalImage},
-        internal_preferences::{Preferences, Properties},
+        internal_preferences::{
+            LabeledPreferenceRange, LabeledProperty, PreferenceRange, Preferences, Properties,
+            ADDITIONAL_PREFERENCES_CONFIG,
+        },
         internal_user::InternalUser,
         shared::{InternalUuid, Save},
     },
@@ -120,7 +123,7 @@ pub struct ApiUserWritable {
 }
 
 impl ApiUserWritable {
-    pub fn to_internal(self, db: &DB) -> Result<InternalUser, Box<dyn Error>> {
+    pub fn to_internal(mut self, db: &DB) -> Result<InternalUser, Box<dyn Error>> {
         let internal_uuid: InternalUuid<InternalUser> = self.uuid.into();
         let internal_user = internal_uuid.load(db)?;
 
@@ -138,6 +141,9 @@ impl ApiUserWritable {
             }
         }
 
+        let preview_image = self.images[0].clone().to_preview(Access::Everyone)?;
+        let preview_image_uuid = preview_image.save(db)?;
+
         let mut internal_images = vec![];
 
         for image in self.images {
@@ -145,12 +151,42 @@ impl ApiUserWritable {
             internal_images.push(internal_image.save(db)?);
         }
 
+        //fill properties.additional with default values up to ADDITIONAL_PREFERENCES_CARDINALITY, from the index of the last filled value
+        let last_filled = self.properties.additional_properties.len();
+        for i in last_filled..ADDITIONAL_PREFERENCES_CONFIG.len() {
+            self.properties.additional_properties.push(LabeledProperty {
+                name: ADDITIONAL_PREFERENCES_CONFIG[i].name.to_string(),
+                value: -32768,
+            });
+        }
+        assert!(self.properties.additional_properties.len() == ADDITIONAL_PREFERENCES_CONFIG.len());
+
+        //fill preferences.additional with default values up to ADDITIONAL_PREFERENCES_CARDINALITY, from the index of the last filled value
+        let last_filled = self.preferences.additional_preferences.len();
+        for i in last_filled..ADDITIONAL_PREFERENCES_CONFIG.len() {
+            self.preferences
+                .additional_preferences
+                .push(LabeledPreferenceRange {
+                    name: ADDITIONAL_PREFERENCES_CONFIG[i].name.to_string(),
+                    range: PreferenceRange {
+                        min: -32768,
+                        max: 32767,
+                    },
+                });
+        }
+
+        assert!(
+            self.preferences.additional_preferences.len() == ADDITIONAL_PREFERENCES_CONFIG.len()
+        );
+
         Ok(InternalUser {
-            uuid: internal_uuid,
+            uuid: internal_uuid.clone(),
             hashed_password,
             elo: internal_user.as_ref().map_or(elo_min(), |u| u.elo.clone()),
             ratings: internal_user.as_ref().map_or(vec![], |u| u.ratings.clone()),
-            seen: internal_user.as_ref().map_or(vec![], |u| u.seen.clone()),
+            seen: internal_user
+                .as_ref()
+                .map_or(vec![internal_uuid.clone()], |u| u.seen.clone()),
             chats: internal_user.as_ref().map_or(vec![], |u| u.chats.clone()),
             images: internal_images,
             username: self.username,
@@ -160,6 +196,7 @@ impl ApiUserWritable {
             preferences: self.preferences,
             properties: self.properties,
             published: self.published,
+            preview_image: preview_image_uuid,
         })
     }
 }

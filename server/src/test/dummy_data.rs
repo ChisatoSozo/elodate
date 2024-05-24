@@ -22,9 +22,9 @@ fn insert_dummy_data() -> Result<(), Box<dyn std::error::Error>> {
     let mut uuids = vec![];
 
     let start_time = std::time::Instant::now();
-    let count = 10000;
+    let count = 1000;
     for i in 0..count {
-        if i % 1000 == 0 {
+        if i % 100 == 0 {
             println!("Inserted {} users, {}%", i, i as f64 / 1000.0);
         }
         let user: InternalUser = InternalUser::gen(&db);

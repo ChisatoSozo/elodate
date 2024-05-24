@@ -15,6 +15,8 @@ class ChatPageState extends State<ChatPage> {
   @override
   void initState() {
     super.initState();
+    var homeModel = Provider.of<HomeModel>(context, listen: false);
+    homeModel.initChats(homeModel.me);
   }
 
   @override
@@ -22,10 +24,6 @@ class ChatPageState extends State<ChatPage> {
     var chats = Provider.of<HomeModel>(context).chats;
     var homeModel = Provider.of<HomeModel>(context);
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Chats"),
-        automaticallyImplyLeading: false,
-      ),
       body: ListView.builder(
         itemCount: chats.length,
         itemBuilder: (context, index) {
@@ -39,7 +37,10 @@ class ChatPageState extends State<ChatPage> {
             title: Text(user.displayName,
                 style:
                     const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            subtitle: Text(chat.mostRecentMessage,
+            subtitle: Text(
+                chat.mostRecentSender == homeModel.me.uuid
+                    ? "You: ${chat.mostRecentMessage}"
+                    : "${user.displayName}: ${chat.mostRecentMessage}",
                 style: const TextStyle(fontSize: 14)),
             onTap: () {
               Navigator.push(

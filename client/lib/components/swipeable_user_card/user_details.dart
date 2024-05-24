@@ -1,17 +1,17 @@
+import 'package:client/api/pkg/lib/api.dart';
+import 'package:client/components/swipeable_user_card/user_gender.dart';
 import 'package:flutter/material.dart';
 
 class UserDetails extends StatelessWidget {
   final bool isCardExpanded;
   final Function toggleCard;
-  final String displayName;
-  final String description;
+  final ApiUser user;
 
   const UserDetails({
     super.key,
     required this.isCardExpanded,
     required this.toggleCard,
-    required this.displayName,
-    required this.description,
+    required this.user,
   });
 
   @override
@@ -51,10 +51,17 @@ class UserDetails extends StatelessWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
+                    GenderDisplay(
+                        maleValue:
+                            (user.properties.percentMale as double) / 100.0,
+                        femaleValue:
+                            (user.properties.percentFemale as double) / 100.0),
+                    const SizedBox(width: 10),
                     Text(
-                      displayName,
+                      user.displayName,
                       style: theme.textTheme.titleLarge,
                     ),
+                    const SizedBox(width: 10),
                     Icon(
                       isCardExpanded
                           ? Icons.keyboard_arrow_down
@@ -67,14 +74,15 @@ class UserDetails extends StatelessWidget {
             ),
             if (isCardExpanded)
               Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: SingleChildScrollView(
-                    child: Text(
-                      description,
-                      style: theme.textTheme.bodyMedium,
+                child: Column(
+                  children: [
+                    SingleChildScrollView(
+                      child: Text(
+                        user.description,
+                        style: theme.textTheme.bodyMedium,
+                      ),
                     ),
-                  ),
+                  ],
                 ),
               ),
           ],

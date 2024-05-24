@@ -2,13 +2,13 @@ import 'package:client/models/home_model.dart';
 import 'package:client/models/register_model.dart';
 import 'package:client/pages/login.dart';
 import 'package:flutter/material.dart';
+import 'package:localstorage/localstorage.dart';
 import 'package:provider/provider.dart';
 
 class AppColors {
   static const Color lightCoral = Color(0xFFF28B82);
-  static const Color gold = Color(0xFFFFD700);
+  static const Color gold = Color.fromARGB(255, 227, 183, 81);
   static const Color darkCoral = Color(0xFFE57373);
-  static const Color darkGold = Color(0xFFB8860B);
 }
 
 TextTheme appTextTheme(Color onBackground) {
@@ -95,7 +95,7 @@ final ThemeData lightTheme = ThemeData(
 final ThemeData darkTheme = ThemeData(
   colorScheme: ColorScheme.dark(
     primary: AppColors.darkCoral,
-    secondary: AppColors.darkGold,
+    secondary: AppColors.gold,
     background: Colors.grey[900]!,
     surface: Colors.grey[850]!,
     onPrimary: Colors.black,
@@ -108,11 +108,13 @@ final ThemeData darkTheme = ThemeData(
   inputDecorationTheme: appInputDecorationTheme(AppColors.darkCoral),
   iconTheme: appIconTheme(AppColors.darkCoral),
   cardTheme: appCardTheme(),
-  floatingActionButtonTheme: appFloatingActionButtonTheme(AppColors.darkGold),
+  floatingActionButtonTheme: appFloatingActionButtonTheme(AppColors.gold),
   visualDensity: VisualDensity.adaptivePlatformDensity,
 );
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await initLocalStorage();
   runApp(const MainApp());
 }
 

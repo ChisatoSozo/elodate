@@ -37,7 +37,7 @@ async fn login(db: web::Data<DB>, body: Json<LoginRequest>) -> Result<Json<Jwt>,
         actix_web::error::ErrorInternalServerError("Failed to verify password")
     })?;
     if !password_matches {
-        return Err(actix_web::error::ErrorBadRequest("Invalid password"));
+        return Err(actix_web::error::ErrorBadRequest("Incorrect password"));
     }
 
     make_jwt(&user.uuid)

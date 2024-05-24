@@ -1,8 +1,9 @@
+import 'package:client/components/uuid_image_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:preload_page_view/preload_page_view.dart';
 
 class SwipeableImageView extends StatelessWidget {
-  final List<MemoryImage> images;
+  final List<UuidImageProvider> images;
   final PreloadPageController controller;
   final Function(int) onPageChanged;
 

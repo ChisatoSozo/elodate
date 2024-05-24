@@ -111,11 +111,14 @@ impl Properties {
         vector[3] = self.latitude;
         vector[4] = self.longitude;
 
-        let mut index = 0; // Start from the 6th element in the array
+        let mut index = 5; // Start from the 6th element in the array
 
-        while index < ADDITIONAL_PREFERENCE_CARDINALITY {
-            vector[index + MANDATORY_PREFERENCES_CARDINALITY] =
-                self.additional_properties.get(index).unwrap().value;
+        while index < TOTAL_PREFERENCES_CARDINALITY {
+            if let Some(preference) = self.additional_properties.get(index - 5) {
+                vector[index] = preference.value;
+            } else {
+                vector[index] = -32768;
+            }
             index += 1;
         }
 
@@ -199,7 +202,7 @@ impl Preferences {
         // Adding the additional preferences
         let mut index = 5; // Start from the 6th element in the array
 
-        while index < ADDITIONAL_PREFERENCE_CARDINALITY {
+        while index < TOTAL_PREFERENCES_CARDINALITY {
             if let Some(preference) = self.additional_preferences.get(index - 5) {
                 min_vals[index] = preference.range.min;
                 max_vals[index] = preference.range.max;
@@ -574,7 +577,7 @@ pub struct LinearMapping {
 }
 
 //TODO: on a database of 10000 only 9998 are returned with no preference
-const P_NONE: f64 = 0.92;
+const P_NONE: f64 = 1.0;
 const P_NONE_PROP: f64 = 0.05;
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema, Clone, PartialEq)]
 #[serde(bound(deserialize = "'de: 'a"))]

@@ -1,14 +1,13 @@
 import 'package:client/api/pkg/lib/api.dart';
-import 'package:client/components/elo_badge.dart';
 import 'package:client/components/swipeable_user_card/page_indicator.dart';
+import 'package:client/components/swipeable_user_card/swipe_overlay.dart';
+import 'package:client/components/swipeable_user_card/swipeable_image_view.dart';
 import 'package:client/components/swipeable_user_card/user_details.dart';
 import 'package:client/components/uuid_image_provider.dart';
 import 'package:client/models/home_model.dart';
 import 'package:flutter/material.dart';
 import 'package:preload_page_view/preload_page_view.dart';
 import 'package:provider/provider.dart';
-
-import 'swipe_overlay.dart';
 
 class SwipeableUserCard extends StatefulWidget {
   final ApiUser user;
@@ -28,7 +27,7 @@ class SwipeableUserCardState extends State<SwipeableUserCard>
     with SingleTickerProviderStateMixin {
   late PreloadPageController _pageController;
   late int _currentIndex;
-  final List<UuidImageProvider> _cachedImages = [];
+  List<UuidImageProvider>? _cachedImages;
   bool _isCardExpanded = false;
 
   // Variables for swipe animation
@@ -56,12 +55,16 @@ class SwipeableUserCardState extends State<SwipeableUserCard>
 
   void _preloadImages() {
     var homeModel = Provider.of<HomeModel>(context, listen: false);
+    var newCachedImages = <UuidImageProvider>[];
     for (var image in widget.user.images) {
-      _cachedImages.add(UuidImageProvider(
+      newCachedImages.add(UuidImageProvider(
         uuid: image,
         homeModel: homeModel,
       ));
     }
+    setState(() {
+      _cachedImages = newCachedImages;
+    });
   }
 
   void _onPanUpdate(DragUpdateDetails details) {
@@ -134,19 +137,17 @@ class SwipeableUserCardState extends State<SwipeableUserCard>
             children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(20.0),
-                child: PreloadPageView.builder(
-                  controller: _pageController,
-                  itemCount: widget.user.images.length,
-                  preloadPagesCount: 3,
-                  itemBuilder: (context, index) {
-                    return Image(
-                      image: _cachedImages[index],
-                      fit: BoxFit.cover,
-                      width: double.infinity,
-                      height: double.infinity,
-                    );
-                  },
-                ),
+                child: _cachedImages == null
+                    ? const Center(child: CircularProgressIndicator())
+                    : SwipeableImageView(
+                        images: _cachedImages!,
+                        controller: _pageController,
+                        onPageChanged: (index) {
+                          setState(() {
+                            _currentIndex = index;
+                          });
+                        },
+                      ),
               ),
               SwipeOverlay(
                 overlayColor: _isLiked
@@ -157,7 +158,7 @@ class SwipeableUserCardState extends State<SwipeableUserCard>
                 swipeOffset: _cardOffset.dx,
               ),
               Positioned(
-                bottom: 60.0, // Changed to avoid conflict
+                bottom: 60.0,
                 left: 0,
                 right: 0,
                 child: PageIndicator(
@@ -170,17 +171,15 @@ class SwipeableUserCardState extends State<SwipeableUserCard>
                 left: 0,
                 right: 0,
                 child: UserDetails(
-                  isCardExpanded: _isCardExpanded,
-                  toggleCard: _toggleCard,
-                  displayName: widget.user.displayName,
-                  description: widget.user.description,
-                ),
+                    isCardExpanded: _isCardExpanded,
+                    toggleCard: _toggleCard,
+                    user: widget.user),
               ),
-              Positioned(
-                top: 16,
-                right: 16,
-                child: EloBadge(eloLabel: widget.user.elo),
-              ),
+              // Positioned(
+              //   top: 0,
+              //   right: 16,
+              //   child: EloBadge(eloLabel: widget.user.elo),
+              // ),
             ],
           ),
         ),

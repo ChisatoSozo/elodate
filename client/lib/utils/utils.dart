@@ -70,3 +70,12 @@ double decodeFromI16(
   double decodedLon = decodeFromI16(quantizedLon, minLon, maxLon, null, null);
   return (decodedLat, decodedLon);
 }
+
+String formatApiError(String s) {
+  //get rid of "ApiException xxx: "
+  var match = RegExp(r'ApiException \d+: (.*)').firstMatch(s);
+  if (match != null) {
+    return match.group(1)!;
+  }
+  return s;
+}

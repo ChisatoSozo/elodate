@@ -1,5 +1,5 @@
-#[cfg(test)]
-mod tests {
+#[test]
+fn run_test_suite() {
     const SEED: Seed = Seed::unsafe_new(0x1234_5678_9abc_def0);
     use std::collections::HashSet;
 
@@ -8,7 +8,7 @@ mod tests {
         shared::{Bbox, LabelPairBbox, LabelPairVec},
     };
 
-    const CARDINALITIES: [usize; 3] = [1000, 10000, 100000];
+    const CARDINALITIES: [usize; 1] = [1000000];
 
     use crate::vec::shared::VectorSearch;
 
@@ -113,39 +113,35 @@ mod tests {
         );
     }
 
-    #[test]
-    fn run_test_suite() {
-        let max_cardinality = *CARDINALITIES.iter().max().unwrap();
-        let mut rng = Random::from_seed(SEED);
-        let vecs10 = make_n_k_dimensional_vecs_i16_with_labels::<10>(max_cardinality, &mut rng);
-        let bboxes10 = make_n_k_dimensional_bboxes_i16_with_labels::<10>(max_cardinality, &mut rng);
-        let vecs30 = make_n_k_dimensional_vecs_i16_with_labels::<30>(max_cardinality, &mut rng);
-        let bboxes30 = make_n_k_dimensional_bboxes_i16_with_labels::<30>(max_cardinality, &mut rng);
-        let vecs100 = make_n_k_dimensional_vecs_i16_with_labels::<100>(max_cardinality, &mut rng);
-        let bboxes100 =
-            make_n_k_dimensional_bboxes_i16_with_labels::<100>(max_cardinality, &mut rng);
-        for n in &CARDINALITIES {
-            let vecs10_this_cardinality = vecs10.iter().take(*n).cloned().collect();
-            let bboxes10_this_cardinality = bboxes10.iter().take(*n).cloned().collect();
-            let vecs30_this_cardinality = vecs30.iter().take(*n).cloned().collect();
-            let bboxes30_this_cardinality = bboxes30.iter().take(*n).cloned().collect();
-            let vecs100_this_cardinality = vecs100.iter().take(*n).cloned().collect();
-            let bboxes100_this_cardinality = bboxes100.iter().take(*n).cloned().collect();
-            let (_, _) = run_search_tests::<10, LinearSearch<10>>(
-                &vecs10_this_cardinality,
-                &bboxes10_this_cardinality,
-                "Linear",
-            );
-            let (_, _) = run_search_tests::<30, LinearSearch<30>>(
-                &vecs30_this_cardinality,
-                &bboxes30_this_cardinality,
-                "Linear",
-            );
-            let (_, _) = run_search_tests::<100, LinearSearch<100>>(
-                &vecs100_this_cardinality,
-                &bboxes100_this_cardinality,
-                "Linear",
-            );
-        }
+    let max_cardinality = *CARDINALITIES.iter().max().unwrap();
+    let mut rng = Random::from_seed(SEED);
+    let vecs10 = make_n_k_dimensional_vecs_i16_with_labels::<10>(max_cardinality, &mut rng);
+    let bboxes10 = make_n_k_dimensional_bboxes_i16_with_labels::<10>(max_cardinality, &mut rng);
+    let vecs30 = make_n_k_dimensional_vecs_i16_with_labels::<30>(max_cardinality, &mut rng);
+    let bboxes30 = make_n_k_dimensional_bboxes_i16_with_labels::<30>(max_cardinality, &mut rng);
+    let vecs100 = make_n_k_dimensional_vecs_i16_with_labels::<100>(max_cardinality, &mut rng);
+    let bboxes100 = make_n_k_dimensional_bboxes_i16_with_labels::<100>(max_cardinality, &mut rng);
+    for n in &CARDINALITIES {
+        let vecs10_this_cardinality = vecs10.iter().take(*n).cloned().collect();
+        let bboxes10_this_cardinality = bboxes10.iter().take(*n).cloned().collect();
+        let vecs30_this_cardinality = vecs30.iter().take(*n).cloned().collect();
+        let bboxes30_this_cardinality = bboxes30.iter().take(*n).cloned().collect();
+        let vecs100_this_cardinality = vecs100.iter().take(*n).cloned().collect();
+        let bboxes100_this_cardinality = bboxes100.iter().take(*n).cloned().collect();
+        let (_, _) = run_search_tests::<10, LinearSearch<10>>(
+            &vecs10_this_cardinality,
+            &bboxes10_this_cardinality,
+            "Linear",
+        );
+        let (_, _) = run_search_tests::<30, LinearSearch<30>>(
+            &vecs30_this_cardinality,
+            &bboxes30_this_cardinality,
+            "Linear",
+        );
+        let (_, _) = run_search_tests::<100, LinearSearch<100>>(
+            &vecs100_this_cardinality,
+            &bboxes100_this_cardinality,
+            "Linear",
+        );
     }
 }

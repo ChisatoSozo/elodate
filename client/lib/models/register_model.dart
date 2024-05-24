@@ -1,6 +1,8 @@
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:client/api/pkg/lib/api.dart';
+import 'package:client/models/home_model.dart';
 import 'package:client/models/image_model.dart';
 import 'package:client/pages/home.dart';
 import 'package:client/pages/register_birthdate.dart';
@@ -173,17 +175,25 @@ class RegisterModel extends ChangeNotifier {
             additionalProperties: []),
         published: false,
         username: _username!,
+        password: _password!,
+        images: _images
+            .map((e) => ApiUserWritableImagesInner(
+                b64Content: base64Encode(e.data),
+                imageType: mimeToType(e.mimeType)))
+            .toList(),
         uuid: '');
-    var jwt = await DefaultApi(ApiClient(basePath: 'http://localhost:8080'))
-        .signupPost(input);
+    var jwt = constructClient(null).signupPost(input);
 
     return jwt;
   }
 
-  Future<Jwt?> login(String username, String password) async {
+  Future<Jwt> login(String username, String password) async {
     var input = LoginRequest(username: username, password: password);
-    var jwt = await DefaultApi(ApiClient(basePath: 'http://localhost:8080'))
-        .loginPost(input);
+    var jwt = await constructClient(null).loginPost(input);
+
+    if (jwt == null) {
+      throw Exception('Failed to login');
+    }
 
     return jwt;
   }

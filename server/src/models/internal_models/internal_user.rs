@@ -40,6 +40,7 @@ pub struct InternalUser {
     pub seen: Vec<InternalUuid<InternalUser>>,
     pub chats: Vec<InternalUuid<InternalChat>>,
     pub images: Vec<InternalUuid<InternalImage>>,
+    pub preview_image: InternalUuid<InternalImage>,
     pub username: String,
     pub display_name: String,
     pub description: String,
@@ -105,6 +106,9 @@ impl Gen<DB> for InternalUser {
             uuids.push(img_uuid);
         }
         let images = uuids;
+
+        let preview_image = InternalImage::gen_preview().save(db).unwrap();
+
         let is_male = rng.gen_bool(0.5);
         let percent_male = is_male as i16 * 100;
         let percent_female = (is_male == false) as i16 * 100;
@@ -112,9 +116,11 @@ impl Gen<DB> for InternalUser {
         let display_name = fake::faker::name::en::Name().fake();
         let description = fake::faker::lorem::en::Paragraph(1..3).fake();
         let birthdate = rand_age_between_18_and_99();
-        let latitude = rng.gen_range(-90.0..90.0);
+        // let latitude = rng.gen_range(-90.0..90.0);
+        let latitude = 45.501690;
         let latitudei16 = to_i16(latitude, -90.0, 90.0);
-        let longitude = rng.gen_range(-180.0..180.0);
+        // let longitude = rng.gen_range(-180.0..180.0);
+        let longitude = -73.567253;
         let longitudei16 = to_i16(longitude, -180.0, 180.0);
         let properties = Properties {
             age: get_age(birthdate),
@@ -170,6 +176,7 @@ impl Gen<DB> for InternalUser {
             preferences,
             properties,
             published: true,
+            preview_image: preview_image,
         }
     }
 }
@@ -201,7 +208,7 @@ impl DB {
         let uuid = self.read_index::<InternalUser>("user.username", username)?;
         match uuid {
             Some(uuid) => uuid.load(self),
-            None => Err("User not found".into()),
+            None => Ok(None),
         }
     }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:simple_shadow/simple_shadow.dart';
 
 class EloBadge extends StatelessWidget {
   final String eloLabel;
@@ -9,37 +10,15 @@ class EloBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     String baseRank = eloLabel.split(' ')[0].toLowerCase();
-    int rankLevel = int.parse(eloLabel.split(' ')[1]) - 1;
+    int rankLevel = int.parse(eloLabel.split(' ')[1]);
+    String path = 'images/elo_icons/$baseRank$rankLevel.svg';
 
-    // Path to the base rank SVG file
-    String baseSvgPath = 'images/elo_icons/$baseRank.svg';
-
-    return Column(
-      children: [
-        SvgPicture.asset(
-          baseSvgPath,
-          width: 100.0,
-          height: 100.0,
-        ),
-        if (rankLevel >= 1) _buildChevronLines(rankLevel),
-      ],
-    );
-  }
-
-  Widget _buildChevronLines(int rankLevel) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: List.generate(
-        rankLevel,
-        (index) => Container(
-          margin: const EdgeInsets.symmetric(vertical: 2.0),
-          width: 60.0,
-          height: 6.0,
-          decoration: BoxDecoration(
-            color: Colors.black,
-            borderRadius: BorderRadius.circular(3.0),
-          ),
-        ),
+    return SimpleShadow(
+      opacity: 0.8,
+      child: SvgPicture.asset(
+        path,
+        width: 100.0,
+        height: 200.0,
       ),
     );
   }

@@ -1,6 +1,7 @@
 import 'package:client/models/register_model.dart';
 import 'package:client/pages/home.dart';
 import 'package:client/pages/register_start.dart';
+import 'package:client/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:localstorage/localstorage.dart';
 import 'package:provider/provider.dart';
@@ -14,7 +15,7 @@ class LoginPage extends StatefulWidget {
 
 class LoginPageState extends State<LoginPage> {
   bool loggingIn = false;
-  String? loginError;
+  String? _error;
   TextEditingController usernameController = TextEditingController();
   TextEditingController passwordController = TextEditingController();
   final formKey = GlobalKey<FormState>();
@@ -79,10 +80,10 @@ class LoginPageState extends State<LoginPage> {
                     ),
                   ],
                 ),
-                if (loginError != null) ...[
+                if (_error != null) ...[
                   const SizedBox(height: 20),
                   Text(
-                    loginError!,
+                    _error!,
                     style: const TextStyle(color: Colors.red),
                   ),
                 ],
@@ -100,14 +101,13 @@ class LoginPageState extends State<LoginPage> {
       setState(() {
         loggingIn = true;
       });
+
       var jwt = await Provider.of<RegisterModel>(context, listen: false).login(
         usernameController.text,
         passwordController.text,
       );
-      if (jwt == null) {
-        throw Exception('Failed to login');
-      }
       localStorage.setItem("jwt", jwt.jwt);
+      localStorage.setItem("uuid", jwt.uuid);
       if (!context.mounted) return;
       Navigator.push(
         context,
@@ -115,7 +115,7 @@ class LoginPageState extends State<LoginPage> {
       );
     } catch (e) {
       setState(() {
-        loginError = e.toString();
+        _error = formatApiError(e.toString());
       });
     } finally {
       setState(() {

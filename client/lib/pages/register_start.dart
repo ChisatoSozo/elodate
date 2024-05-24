@@ -1,5 +1,6 @@
 import 'package:client/api/pkg/lib/api.dart';
 import 'package:client/components/responseive_scaffold.dart';
+import 'package:client/models/home_model.dart';
 import 'package:client/models/register_model.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -86,9 +87,8 @@ class RegisterStartPageState extends State<RegisterStartPage> {
   }
 
   Future<bool> _validateUsername(String username) async {
-    var response =
-        await DefaultApi(ApiClient(basePath: 'http://localhost:8080'))
-            .checkUsernamePost(CheckUsernameInput(username: username));
+    var response = await constructClient(null)
+        .checkUsernamePost(CheckUsernameInput(username: username));
 
     return response != null && response.available;
   }

@@ -1,3 +1,4 @@
+use image::imageops::crop;
 use image::{GenericImageView, ImageFormat};
 use paperclip::actix::Apiv2Schema;
 use serde::{Deserialize, Serialize};
@@ -74,18 +75,69 @@ impl ApiImageWritable {
         let content = base64::decode(&self.b64_content)?;
         let img = image::load_from_memory_with_format(&content, self.image_type.into())?;
 
-        // Crop to rectangle with largest area that fits in 1:2 aspect ratio and max 500x1000 pixels
+        //resize such that the largest dimension is 1024, preserving aspect ratio
+
         let (width, height) = img.dimensions();
-        let (new_width, new_height) = if width as f32 / height as f32 > 1.0 / 2.0 {
-            (height * 2, height)
+        let (new_width, new_height) = if width > height {
+            (1024, 1024 * height / width)
         } else {
-            (width, width / 2)
+            (1024 * width / height, 1024)
         };
 
         let img = img.resize(new_width, new_height, image::imageops::FilterType::Lanczos3);
 
         //save image to new buffer as webp with lowest quality that still looks good
         let mut buf = Vec::new();
+        //use cursor
+        let mut cursor = Cursor::new(&mut buf);
+        img.write_to(&mut cursor, ImageFormat::WebP)?;
+
+        Ok(InternalImage {
+            uuid: InternalUuid::new(),
+            content: buf,
+            access,
+        })
+    }
+
+    pub fn to_preview(self, access: Access) -> Result<InternalImage, Box<dyn std::error::Error>> {
+        //same as to_internal, but crop and resize to 128x128
+        #[allow(deprecated)]
+        let content = base64::decode(&self.b64_content)?;
+        let mut img = image::load_from_memory_with_format(&content, self.image_type.into())?;
+
+        //crop to 128:128 aspect ratio, crop width if it's too wide, crop height if it's too tall, for any crop, center the crop
+        //then resize to 128x128
+
+        let (width, height) = img.dimensions();
+        let (new_width, new_height) = if width as f32 / height as f32 > 128.0 / 128.0 {
+            //crop width
+            let new_width = height * 128 / 128;
+            (new_width, height)
+        } else {
+            //crop height
+            let new_height = width * 128 / 128;
+            (width, new_height)
+        };
+
+        //crop_and_resize isn't a thing, so we have to do it in two steps, crop x and y are the top left corner of the crop
+        let img = crop(
+            &mut img,
+            (width - new_width) / 2,
+            (height - new_height) / 2,
+            new_width,
+            new_height,
+        );
+
+        //convert subimage to image
+        let img = img.to_image();
+        //convert image buffer to image
+        let img: image::DynamicImage = img.into();
+
+        let img = img.resize(128, 128, image::imageops::FilterType::Lanczos3);
+
+        //save image to new buffer as webp with lowest quality that still looks good
+        let mut buf = Vec::new();
+
         //use cursor
         let mut cursor = Cursor::new(&mut buf);
         img.write_to(&mut cursor, ImageFormat::WebP)?;

@@ -34,6 +34,15 @@ async fn signup(db: web::Data<DB>, body: Json<ApiUserWritable>) -> Result<Json<J
         Err(actix_web::error::ErrorBadRequest("Username already taken"))?;
     }
 
+    if inner.images.len() > 6 {
+        return Err(actix_web::error::ErrorBadRequest("Too many images"));
+    }
+    if inner.images.len() < 1 {
+        return Err(actix_web::error::ErrorBadRequest(
+            "You must have at least one image",
+        ));
+    }
+
     let internal_user = inner.to_internal(&db).map_err(|e| {
         println!("Failed to convert user to internal {:?}", e);
         actix_web::error::ErrorInternalServerError("Failed to convert user to internal")
