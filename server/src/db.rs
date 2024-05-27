@@ -16,7 +16,7 @@ use std::{
 };
 
 use crate::models::internal_models::{
-    internal_preferences::TOTAL_PREFERENCES_CARDINALITY, shared::InternalUuid,
+    internal_preferences::PREFERENCES_CARDINALITY, shared::InternalUuid,
 };
 use crate::vec::search_linear::LinearSearch;
 use crate::vec::shared::VectorSearch;
@@ -26,7 +26,7 @@ pub type DefaultSerializer = AllocSerializer<SCRATCH_SPACE_SIZE>;
 
 pub struct DB {
     pub store: Store,
-    pub vec_index: Arc<Mutex<LinearSearch<TOTAL_PREFERENCES_CARDINALITY>>>,
+    pub vec_index: Arc<Mutex<LinearSearch<PREFERENCES_CARDINALITY>>>,
     pub path: String,
 }
 

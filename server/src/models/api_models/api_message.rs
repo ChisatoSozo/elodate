@@ -4,15 +4,12 @@ use serde::{Deserialize, Serialize};
 use crate::{
     db::DB,
     models::internal_models::{
-        internal_chat::InternalChat,
-        internal_image::{Access, InternalImage},
-        internal_message::InternalMessage,
-        internal_user::InternalUser,
-        shared::{InternalUuid, Save},
+        internal_chat::InternalChat, internal_image::InternalImage,
+        internal_message::InternalMessage, internal_user::InternalUser, shared::InternalUuid,
     },
 };
 
-use super::{api_image::ApiImageWritable, shared::ApiUuid};
+use super::shared::ApiUuid;
 
 #[derive(Debug, Clone, Serialize, Apiv2Schema)]
 pub struct ApiMessage {
@@ -43,7 +40,7 @@ impl From<InternalMessage> for ApiMessage {
 pub struct ApiMessageWritable {
     pub uuid: ApiUuid<InternalMessage>,
     pub content: String,
-    pub image: Option<ApiImageWritable>,
+    pub image: Option<ApiUuid<InternalImage>>,
 }
 
 impl ApiMessageWritable {
@@ -83,16 +80,37 @@ impl ApiMessageWritable {
                 content: self.content,
                 edited: false,
                 image: None,
-                read_by: vec![user.uuid],
+                read_by: vec![user.uuid.clone()],
             },
         };
-        let internal_image = self
-            .image
-            .map(|i| i.to_internal(Access::UserList(chat.users.clone())));
-        if let Some(internal_image) = internal_image {
-            let image_uuid = internal_image?.save(db)?;
-            message.image = Some(image_uuid);
+
+        //is there an image
+        match self.image {
+            Some(image) => {
+                //does image exist
+                let internal_uuid: InternalUuid<InternalImage> = image.into();
+                let archived = internal_uuid.load(db).map_err(|e| {
+                    println!("Failed to get image {:?}", e);
+                    actix_web::error::ErrorInternalServerError("Failed to get image")
+                })?;
+                match archived {
+                    Some(image) => {
+                        //permissions?
+                        if !image.access.can_access(&user.uuid) {
+                            return Err(actix_web::error::ErrorBadRequest("No access to image"));
+                        }
+                        message.image = Some(image.uuid);
+                    }
+                    None => {
+                        return Err(actix_web::error::ErrorBadRequest(
+                            "Image does not exist, api_message",
+                        ));
+                    }
+                }
+            }
+            None => (),
         }
+
         Ok(message)
     }
 }

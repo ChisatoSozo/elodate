@@ -1,9 +1,12 @@
+use crate::test::fake::Gen;
 use crate::vec::shared::VectorSearch;
 use std::array;
 use std::collections::HashSet;
 
 use super::internal_user::InternalUser;
-use super::shared::{Gen, InternalUuid};
+use super::shared::GetBbox;
+use super::shared::GetVector;
+use super::shared::InternalUuid;
 use paperclip::actix::Apiv2Schema;
 use rand::rngs::ThreadRng;
 use rand::Rng;
@@ -56,161 +59,57 @@ pub struct LabeledPreferenceRange {
     Apiv2Schema,
 )]
 #[archive(compare(PartialEq), check_bytes)]
-pub struct Preferences {
-    pub age: PreferenceRange,
-    pub percent_male: PreferenceRange,
-    pub percent_female: PreferenceRange,
-    pub latitude: PreferenceRange,
-    pub longitude: PreferenceRange,
-    pub additional_preferences: Vec<LabeledPreferenceRange>,
-}
-
-#[derive(
-    Debug,
-    Clone,
-    rkyv::Archive,
-    rkyv::Serialize,
-    rkyv::Deserialize,
-    Serialize,
-    Deserialize,
-    Apiv2Schema,
-)]
-#[archive(compare(PartialEq), check_bytes)]
 pub struct LabeledProperty {
     pub name: String,
     pub value: i16,
 }
 
-#[derive(
-    Debug,
-    Clone,
-    rkyv::Archive,
-    rkyv::Serialize,
-    rkyv::Deserialize,
-    Serialize,
-    Deserialize,
-    Apiv2Schema,
-)]
-#[archive(compare(PartialEq), check_bytes)]
-pub struct Properties {
-    pub age: i16,
-    pub percent_male: i16,
-    pub percent_female: i16,
-    pub latitude: i16,
-    pub longitude: i16,
-    pub additional_properties: Vec<LabeledProperty>,
-}
+impl GetVector for Vec<LabeledProperty> {
+    fn get_vector(&self) -> [i16; PREFERENCES_CARDINALITY] {
+        let mut vector = [-32768 as i16; PREFERENCES_CARDINALITY];
 
-impl Properties {
-    pub fn get_vector(&self) -> [i16; TOTAL_PREFERENCES_CARDINALITY] {
-        let mut vector = [0 as i16; TOTAL_PREFERENCES_CARDINALITY];
-
-        vector[0] = self.age;
-        vector[1] = self.percent_male;
-        vector[2] = self.percent_female;
-        vector[3] = self.latitude;
-        vector[4] = self.longitude;
-
-        let mut index = 5; // Start from the 6th element in the array
-
-        while index < TOTAL_PREFERENCES_CARDINALITY {
-            if let Some(preference) = self.additional_properties.get(index - 5) {
+        for index in 0..PREFERENCES_CARDINALITY {
+            if let Some(preference) = self.get(index) {
                 vector[index] = preference.value;
-            } else {
-                vector[index] = -32768;
             }
-            index += 1;
         }
 
         vector
     }
 }
 
-impl Gen<Properties> for Preferences {
-    fn gen(user: &Properties) -> Self {
+impl Gen<'_, Vec<LabeledProperty>> for Vec<LabeledPreferenceRange> {
+    fn gen(properties: &Vec<LabeledProperty>) -> Self {
         let mut rng = rand::thread_rng();
-        let age = sample_range_from_additional_preference_and_prop(
-            &MANDATORY_PREFERENCES_CONFIG.age,
-            user.age,
-            &mut rng,
-        );
-        let percent_male = sample_range_from_additional_preference_and_prop(
-            &MANDATORY_PREFERENCES_CONFIG.percent_male,
-            user.percent_male,
-            &mut rng,
-        );
-        let percent_female = sample_range_from_additional_preference_and_prop(
-            &MANDATORY_PREFERENCES_CONFIG.percent_female,
-            user.percent_female,
-            &mut rng,
-        );
-        let latitude = PreferenceRange {
-            min: -32768,
-            max: 32767,
-        };
-        let longitude = PreferenceRange {
-            min: -32768,
-            max: 32767,
-        };
 
-        let additional_preferences = (0..(ADDITIONAL_PREFERENCE_CARDINALITY))
+        let preferences = (0..(PREFERENCES_CARDINALITY))
             .map(|i| {
-                let additional_preference = &ADDITIONAL_PREFERENCES_CONFIG[i];
-                let range = sample_range_from_additional_preference_and_prop(
-                    additional_preference,
-                    user.additional_properties.get(i).unwrap().value,
+                let preference = &PREFERENCES_CONFIG[i];
+                let range = sample_range_from_preference_and_prop(
+                    preference,
+                    properties.get(i).unwrap().value,
                     &mut rng,
                 );
                 LabeledPreferenceRange {
-                    name: additional_preference.name.to_string(),
+                    name: preference.name.to_string(),
                     range,
                 }
             })
             .collect();
-        Preferences {
-            age,
-            percent_male,
-            percent_female,
-            latitude,
-            longitude,
-            additional_preferences,
-        }
+        preferences
     }
 }
 
-impl Preferences {
-    pub fn get_bbox(&self) -> Bbox<TOTAL_PREFERENCES_CARDINALITY> {
-        let mut min_vals = [0 as i16; TOTAL_PREFERENCES_CARDINALITY];
-        let mut max_vals = [0 as i16; TOTAL_PREFERENCES_CARDINALITY];
+impl GetBbox for Vec<LabeledPreferenceRange> {
+    fn get_bbox(&self) -> Bbox<PREFERENCES_CARDINALITY> {
+        let mut min_vals = [-32768 as i16; PREFERENCES_CARDINALITY];
+        let mut max_vals = [32767 as i16; PREFERENCES_CARDINALITY];
 
-        // Adding the core preferences
-        min_vals[0] = self.age.min;
-        max_vals[0] = self.age.max;
-
-        min_vals[1] = self.percent_male.min;
-        max_vals[1] = self.percent_male.max;
-
-        min_vals[2] = self.percent_female.min;
-        max_vals[2] = self.percent_female.max;
-
-        min_vals[3] = self.latitude.min;
-        max_vals[3] = self.latitude.max;
-
-        min_vals[4] = self.longitude.min;
-        max_vals[4] = self.longitude.max;
-
-        // Adding the additional preferences
-        let mut index = 5; // Start from the 6th element in the array
-
-        while index < TOTAL_PREFERENCES_CARDINALITY {
-            if let Some(preference) = self.additional_preferences.get(index - 5) {
+        for index in 0..PREFERENCES_CARDINALITY {
+            if let Some(preference) = self.get(index) {
                 min_vals[index] = preference.range.min;
                 max_vals[index] = preference.range.max;
-            } else {
-                min_vals[index] = -32768;
-                max_vals[index] = 32767;
             }
-            index += 1;
         }
 
         Bbox {
@@ -223,7 +122,7 @@ impl Preferences {
 impl DB {
     fn get_users_who_prefer_me_direct(
         &self,
-        properties: &Properties,
+        properties: &Vec<LabeledProperty>,
         seen: &Vec<InternalUuid<InternalUser>>,
     ) -> Result<HashSet<InternalUuid<InternalUser>>, Box<dyn std::error::Error>> {
         let arc_clone = self.vec_index.clone();
@@ -244,7 +143,7 @@ impl DB {
 
     fn get_users_who_i_prefer_direct(
         &self,
-        preferences: &Preferences,
+        preferences: &Vec<LabeledPreferenceRange>,
         seen: &Vec<InternalUuid<InternalUser>>,
     ) -> Result<HashSet<InternalUuid<InternalUser>>, Box<dyn std::error::Error>> {
         let arc_clone = self.vec_index.clone();
@@ -265,8 +164,8 @@ impl DB {
 
     pub fn get_mutual_preference_users_direct(
         &self,
-        properties: &Properties,
-        preferences: &Preferences,
+        properties: &Vec<LabeledProperty>,
+        preferences: &Vec<LabeledPreferenceRange>,
         seen: &Vec<InternalUuid<InternalUser>>,
     ) -> Result<Vec<InternalUser>, Box<dyn std::error::Error>> {
         let users_who_prefer_me = self.get_users_who_prefer_me_direct(properties, &seen)?;
@@ -285,8 +184,8 @@ impl DB {
 
     pub fn get_mutual_preference_users_count_direct(
         &self,
-        properties: &Properties,
-        preference: &Preferences,
+        properties: &Vec<LabeledProperty>,
+        preference: &Vec<LabeledPreferenceRange>,
         seen: &Vec<InternalUuid<InternalUser>>,
     ) -> Result<usize, Box<dyn std::error::Error>> {
         let users_who_prefer_me = self.get_users_who_prefer_me_direct(properties, &seen)?;
@@ -299,7 +198,7 @@ impl DB {
 
     pub fn get_users_i_prefer_count_direct(
         &self,
-        preference: &Preferences,
+        preference: &Vec<LabeledPreferenceRange>,
         seen: &Vec<InternalUuid<InternalUser>>,
     ) -> Result<usize, Box<dyn std::error::Error>> {
         Ok(self.get_users_who_i_prefer_direct(preference, &seen)?.len())
@@ -345,11 +244,37 @@ impl DB {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Apiv2Schema, Clone, PartialEq)]
+#[derive(Debug, Serialize, Apiv2Schema, Clone, PartialEq)]
+pub enum UIElement {
+    Slider,
+    GenderPicker,
+    LocationPicker,
+}
+
+#[derive(Debug, Serialize, Apiv2Schema, Clone, PartialEq)]
+pub enum Category {
+    Mandatory,
+    Financial,
+    Physical,
+    Future,
+    Lgbt,
+    Beliefs,
+    Hobbies,
+    Diet,
+    Sexual,
+    Substances,
+    Lifestyle,
+}
+
+#[derive(Debug, Apiv2Schema, Clone, PartialEq)]
 pub struct PreferenceConfig<'a> {
     pub name: &'a str,
     pub display: &'a str,
-    pub category: &'a str,
+    pub category: Category,
+    pub group: &'a str,
+    pub ui_element: UIElement,
+    pub value_question: &'a str,
+    pub range_question: &'a str,
     pub min: i16,
     pub max: i16,
     pub mean: f64,
@@ -367,7 +292,11 @@ impl PreferenceConfig<'_> {
         PreferenceConfigPublic {
             name: self.name.to_string(),
             display: self.display.to_string(),
-            category: self.category.to_string(),
+            category: self.category.clone(),
+            group: self.group.to_string(),
+            ui_element: self.ui_element.clone(),
+            value_question: self.value_question.to_string(),
+            range_question: self.range_question.to_string(),
             min: self.min,
             max: self.max,
             linear_mapping: self.linear_mapping.clone(),
@@ -383,11 +312,15 @@ impl PreferenceConfig<'_> {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Apiv2Schema, Clone, PartialEq)]
+#[derive(Debug, Serialize, Apiv2Schema, Clone, PartialEq)]
 pub struct PreferenceConfigPublic {
     pub name: String,
     pub display: String,
-    pub category: String,
+    pub category: Category,
+    pub group: String,
+    pub ui_element: UIElement,
+    pub value_question: String,
+    pub range_question: String,
     pub min: i16,
     pub max: i16,
     pub linear_mapping: Option<LinearMapping>,
@@ -395,8 +328,8 @@ pub struct PreferenceConfigPublic {
     pub optional: bool,
 }
 
-fn f64_to_i16(value: f64, additional_preference: &PreferenceConfig) -> i16 {
-    if let Some(linear_mapping) = &additional_preference.linear_mapping {
+fn f64_to_i16(value: f64, preference: &PreferenceConfig) -> i16 {
+    if let Some(linear_mapping) = &preference.linear_mapping {
         let real_min = linear_mapping.real_min;
         let real_max = linear_mapping.real_max;
         let value = (value - real_min) / (real_max - real_min) * 32767.0;
@@ -406,23 +339,23 @@ fn f64_to_i16(value: f64, additional_preference: &PreferenceConfig) -> i16 {
     }
 }
 
-fn sample_range_from_additional_preference_and_prop(
-    additional_preference: &PreferenceConfig,
+fn sample_range_from_preference_and_prop(
+    preference: &PreferenceConfig,
     prop: i16,
     rng: &mut ThreadRng,
 ) -> PreferenceRange {
     //get if none
-    if rng.gen_range(0.0..1.0) < additional_preference.probability_to_be_none {
+    if rng.gen_range(0.0..1.0) < preference.probability_to_be_none {
         return PreferenceRange {
             min: i16::MIN,
             max: i16::MAX,
         };
     }
 
-    let mut mean = f64_to_i16(additional_preference.mean, additional_preference) as f64;
-    let mut std_dev = f64_to_i16(additional_preference.std_dev, additional_preference) as f64;
+    let mut mean = f64_to_i16(preference.mean, preference) as f64;
+    let mut std_dev = f64_to_i16(preference.std_dev, preference) as f64;
 
-    match &additional_preference.mean_alteration {
+    match &preference.mean_alteration {
         MeanAlteration::Increase => mean += prop as f64,
         MeanAlteration::Decrease => mean -= prop as f64,
         MeanAlteration::Set => mean = prop as f64,
@@ -430,7 +363,7 @@ fn sample_range_from_additional_preference_and_prop(
         _ => (),
     }
 
-    match &additional_preference.std_dev_alteration {
+    match &preference.std_dev_alteration {
         StdDevAlteration::FromMean(linear) => {
             std_dev = linear.slope * mean as f64 + linear.intercept
         }
@@ -442,8 +375,8 @@ fn sample_range_from_additional_preference_and_prop(
 
     let normal = Normal::new(mean, std_dev).unwrap();
     // sample 5 times and get the min and max
-    let mut min = additional_preference.max;
-    let mut max = additional_preference.min;
+    let mut min = preference.max;
+    let mut max = preference.min;
     for _ in 0..5 {
         let sample = normal.sample(rng) as i16;
         if sample < min {
@@ -460,12 +393,12 @@ fn sample_range_from_additional_preference_and_prop(
         min = temp;
     }
 
-    if min < additional_preference.min {
-        min = additional_preference.min;
+    if min < preference.min {
+        min = preference.min;
     }
 
-    if max > additional_preference.max {
-        max = additional_preference.max;
+    if max > preference.max {
+        max = preference.max;
     }
 
     PreferenceRange { min, max }
@@ -492,29 +425,18 @@ impl<'a> PreferenceConfig<'a> {
         }
     }
 
-    pub fn sample_range(&self, properties: &Properties, rng: &mut ThreadRng) -> PreferenceRange {
-        let prop;
+    pub fn sample_range(
+        &self,
+        properties: &Vec<LabeledProperty>,
+        rng: &mut ThreadRng,
+    ) -> PreferenceRange {
+        let prop = properties
+            .iter()
+            .find(|p| p.name == self.name)
+            .unwrap()
+            .value;
 
-        if self.name == "age" {
-            prop = properties.age;
-        } else if self.name == "percent_male" {
-            prop = properties.percent_male;
-        } else if self.name == "percent_female" {
-            prop = properties.percent_female;
-        } else if self.name == "latitude" {
-            prop = properties.latitude;
-        } else if self.name == "longitude" {
-            prop = properties.longitude;
-        } else {
-            prop = properties
-                .additional_properties
-                .iter()
-                .find(|p| p.name == self.name)
-                .unwrap()
-                .value;
-        }
-
-        sample_range_from_additional_preference_and_prop(self, prop, rng)
+        sample_range_from_preference_and_prop(self, prop, rng)
     }
 }
 
@@ -579,21 +501,16 @@ pub struct LinearMapping {
 //TODO: on a database of 10000 only 9998 are returned with no preference
 const P_NONE: f64 = 1.0;
 const P_NONE_PROP: f64 = 0.05;
-#[derive(Debug, Serialize, Deserialize, Apiv2Schema, Clone, PartialEq)]
-#[serde(bound(deserialize = "'de: 'a"))]
-pub struct MandatoryPreferencesConfig<'a> {
-    pub age: PreferenceConfig<'a>,
-    pub percent_male: PreferenceConfig<'a>,
-    pub percent_female: PreferenceConfig<'a>,
-    pub latitude: PreferenceConfig<'a>,
-    pub longitude: PreferenceConfig<'a>,
-}
 
-pub static MANDATORY_PREFERENCES_CONFIG: MandatoryPreferencesConfig = MandatoryPreferencesConfig {
-    age: PreferenceConfig {
+pub static PREFERENCES_CONFIG: [PreferenceConfig; PREFERENCES_CARDINALITY] = [
+    PreferenceConfig {
         name: "age",
+        group: "age",
+        ui_element: UIElement::Slider,
         display: "Age",
-        category: "mandatory",
+        category: Category::Mandatory,
+        value_question: "",
+        range_question: "How old do you want your partner to be?",
         min: 18,
         max: 120,
         mean: 35.0,
@@ -608,14 +525,18 @@ pub static MANDATORY_PREFERENCES_CONFIG: MandatoryPreferencesConfig = MandatoryP
         labels: None,
         probability_to_be_none: 0.0,
     },
-    percent_male: PreferenceConfig {
+    PreferenceConfig {
         name: "percent_male",
+        group: "gender",
+        ui_element: UIElement::GenderPicker,
         display: "Percent Male",
-        category: "mandatory",
+        category: Category::Mandatory,
+        value_question: "What's your gender?",
+        range_question: "What gender are you interested in?",
         min: 0,
         max: 100,
         mean: 50.0,
-        std_dev: 25.0,
+        std_dev: 1000.0,
         mean_alteration: MeanAlteration::FromValue(Linear {
             slope: -1.0,
             intercept: 100.0,
@@ -626,14 +547,18 @@ pub static MANDATORY_PREFERENCES_CONFIG: MandatoryPreferencesConfig = MandatoryP
         labels: None,
         probability_to_be_none: 0.0,
     },
-    percent_female: PreferenceConfig {
+    PreferenceConfig {
         name: "percent_female",
+        group: "gender",
+        ui_element: UIElement::GenderPicker,
         display: "Percent Female",
-        category: "mandatory",
+        category: Category::Mandatory,
+        value_question: "What's your gender?",
+        range_question: "What gender are you interested in?",
         min: 0,
         max: 100,
         mean: 50.0,
-        std_dev: 25.0,
+        std_dev: 100000.0,
         mean_alteration: MeanAlteration::FromValue(Linear {
             slope: -1.0,
             intercept: 100.0,
@@ -644,14 +569,18 @@ pub static MANDATORY_PREFERENCES_CONFIG: MandatoryPreferencesConfig = MandatoryP
         labels: None,
         probability_to_be_none: 0.0,
     },
-    latitude: PreferenceConfig {
+    PreferenceConfig {
         name: "latitude",
+        group: "location",
+        ui_element: UIElement::LocationPicker,
         display: "Latitude",
-        category: "mandatory",
+        category: Category::Mandatory,
+        value_question: "Where are ya?",
+        range_question: "How far away are you willing to go to meet someone?",
         min: -32767,
         max: 32767,
         mean: 0.0,
-        std_dev: 10000.0,
+        std_dev: 1000000.0,
         mean_alteration: MeanAlteration::Set,
         std_dev_alteration: StdDevAlteration::None,
         linear_mapping: Some(LinearMapping {
@@ -662,10 +591,14 @@ pub static MANDATORY_PREFERENCES_CONFIG: MandatoryPreferencesConfig = MandatoryP
         labels: None,
         probability_to_be_none: 0.0,
     },
-    longitude: PreferenceConfig {
+    PreferenceConfig {
         name: "longitude",
+        group: "location",
+        ui_element: UIElement::LocationPicker,
         display: "Longitude",
-        category: "mandatory",
+        category: Category::Mandatory,
+        value_question: "Where are ya?",
+        range_question: "How far away are you willing to go to meet someone?",
         min: -32767,
         max: 32767,
         mean: 0.0,
@@ -680,15 +613,14 @@ pub static MANDATORY_PREFERENCES_CONFIG: MandatoryPreferencesConfig = MandatoryP
         labels: None,
         probability_to_be_none: 0.0,
     },
-};
-
-const MANDATORY_PREFERENCES_CARDINALITY: usize = 5;
-
-pub static ADDITIONAL_PREFERENCES_CONFIG: [PreferenceConfig; ADDITIONAL_PREFERENCE_CARDINALITY] = [
     PreferenceConfig {
         name: "salary_per_year",
+        group: "salary_per_year",
+        ui_element: UIElement::Slider,
         display: "Salary per Year",
-        category: "financial",
+        category: Category::Financial,
+        value_question: "How much do you make per year?",
+        range_question: "How much do you want your partner to make?",
         min: 0,
         max: 100,
         mean: 50000.0,
@@ -708,8 +640,12 @@ pub static ADDITIONAL_PREFERENCES_CONFIG: [PreferenceConfig; ADDITIONAL_PREFEREN
     },
     PreferenceConfig {
         name: "height_cm",
+        group: "height_cm",
+        ui_element: UIElement::Slider,
         display: "Height (cm)",
-        category: "physical",
+        category: Category::Physical,
+        value_question: "How tall are you?",
+        range_question: "How tall do you want your partner to be?",
         min: 0,
         max: 250,
         mean: 175.0,
@@ -726,8 +662,12 @@ pub static ADDITIONAL_PREFERENCES_CONFIG: [PreferenceConfig; ADDITIONAL_PREFEREN
     },
     PreferenceConfig {
         name: "bmi",
+        group: "bmi",
+        ui_element: UIElement::Slider,
         display: "BMI",
-        category: "physical",
+        category: Category::Physical,
+        value_question: "What's your BMI?",
+        range_question: "What BMI do you want your partner to have?",
         min: 0,
         max: 100,
         mean: 25.0,
@@ -744,8 +684,12 @@ pub static ADDITIONAL_PREFERENCES_CONFIG: [PreferenceConfig; ADDITIONAL_PREFEREN
     },
     PreferenceConfig {
         name: "number_of_times_a_week_you_want_to_have_sex",
+        group: "number_of_times_a_week_you_want_to_have_sex",
+        ui_element: UIElement::Slider,
         display: "Number of Times a Week You Want to Have Sex",
-        category: "personal",
+        category: Category::Sexual,
+        value_question: "How many times a week do you want to have Sex?",
+        range_question: "How many times a week do you want your partner to want to have Sex?",
         min: 0,
         max: 100,
         mean: 2.0,
@@ -759,8 +703,31 @@ pub static ADDITIONAL_PREFERENCES_CONFIG: [PreferenceConfig; ADDITIONAL_PREFEREN
     },
     PreferenceConfig {
         name: "is_trans",
+        group: "is_trans",
+        ui_element: UIElement::Slider,
         display: "Is Transgender",
-        category: "personal",
+        category: Category::Lgbt,
+        value_question: "Are you trans?",
+        range_question: "Do you want your partner to be trans?",
+        min: 0,
+        max: 1,
+        mean: 0.0,
+        std_dev: 0.4,
+        mean_alteration: MeanAlteration::Set,
+        std_dev_alteration: StdDevAlteration::None,
+        linear_mapping: None,
+        optional: true,
+        labels: None,
+        probability_to_be_none: P_NONE,
+    },
+    PreferenceConfig {
+        name: "is_queer",
+        group: "is_queer",
+        ui_element: UIElement::Slider,
+        display: "Is Queer",
+        category: Category::Lgbt,
+        value_question: "Are you queer?",
+        range_question: "Do you want your partner to be queer?",
         min: 0,
         max: 1,
         mean: 0.0,
@@ -774,8 +741,12 @@ pub static ADDITIONAL_PREFERENCES_CONFIG: [PreferenceConfig; ADDITIONAL_PREFEREN
     },
     PreferenceConfig {
         name: "political_affiliation",
+        group: "political_affiliation",
+        ui_element: UIElement::Slider,
         display: "Political Affiliation",
-        category: "beliefs",
+        category: Category::Beliefs,
+        value_question: "What's your political affiliation?",
+        range_question: "What political affiliation do you want your partner to have?",
         min: 0,
         max: 4,
         mean: 2.0,
@@ -795,8 +766,12 @@ pub static ADDITIONAL_PREFERENCES_CONFIG: [PreferenceConfig; ADDITIONAL_PREFEREN
     },
     PreferenceConfig {
         name: "fitness_level",
+        group: "fitness_level",
+        ui_element: UIElement::Slider,
         display: "Fitness Level",
-        category: "physical",
+        category: Category::Physical,
+        value_question: "What's your fitness level?",
+        range_question: "What fitness level do you want your partner to have?",
         min: 0,
         max: 4,
         mean: 2.0,
@@ -810,8 +785,12 @@ pub static ADDITIONAL_PREFERENCES_CONFIG: [PreferenceConfig; ADDITIONAL_PREFEREN
     },
     PreferenceConfig {
         name: "number_of_children",
+        group: "number_of_children",
+        ui_element: UIElement::Slider,
         display: "Number of Children You Have",
-        category: "personal",
+        category: Category::Lifestyle,
+        value_question: "How many children do you have?",
+        range_question: "How many children do you want your partner to have?",
         min: 0,
         max: 10,
         mean: 1.0,
@@ -825,8 +804,12 @@ pub static ADDITIONAL_PREFERENCES_CONFIG: [PreferenceConfig; ADDITIONAL_PREFEREN
     },
     PreferenceConfig {
         name: "number_of_dogs",
+        group: "number_of_dogs",
+        ui_element: UIElement::Slider,
         display: "Number of Dogs You Have",
-        category: "personal",
+        category: Category::Lifestyle,
+        value_question: "How many dogs do you have?",
+        range_question: "How many dogs do you want your partner to have?",
         min: 0,
         max: 10,
         mean: 0.0,
@@ -840,8 +823,12 @@ pub static ADDITIONAL_PREFERENCES_CONFIG: [PreferenceConfig; ADDITIONAL_PREFEREN
     },
     PreferenceConfig {
         name: "number_of_cats",
+        group: "number_of_cats",
+        ui_element: UIElement::Slider,
         display: "Number of Cats You Have",
-        category: "personal",
+        category: Category::Lifestyle,
+        value_question: "How many cats do you have?",
+        range_question: "How many cats do you want your partner to have?",
         min: 0,
         max: 10,
         mean: 0.0,
@@ -855,8 +842,12 @@ pub static ADDITIONAL_PREFERENCES_CONFIG: [PreferenceConfig; ADDITIONAL_PREFEREN
     },
     PreferenceConfig {
         name: "vegetarianness",
+        group: "vegetarianness",
+        ui_element: UIElement::Slider,
         display: "Vegetarianness",
-        category: "diet",
+        category: Category::Diet,
+        value_question: "How vegetarian are you?",
+        range_question: "How vegetarian do you want your partner to be?",
         min: 0,
         max: 4,
         mean: 2.0,
@@ -876,8 +867,12 @@ pub static ADDITIONAL_PREFERENCES_CONFIG: [PreferenceConfig; ADDITIONAL_PREFEREN
     },
     PreferenceConfig {
         name: "gamerness_level",
+        group: "gamerness_level",
+        ui_element: UIElement::Slider,
         display: "Gamerness Level",
-        category: "hobbies",
+        category: Category::Hobbies,
+        value_question: "How much of a gamer are you?",
+        range_question: "How much of a gamer do you want your partner to be?",
         min: 0,
         max: 4,
         mean: 2.0,
@@ -897,8 +892,12 @@ pub static ADDITIONAL_PREFERENCES_CONFIG: [PreferenceConfig; ADDITIONAL_PREFEREN
     },
     PreferenceConfig {
         name: "extroversion_level",
+        group: "extroversion_level",
+        ui_element: UIElement::Slider,
         display: "Extroversion Level",
-        category: "personality",
+        category: Category::Lifestyle,
+        value_question: "How extroverted are you?",
+        range_question: "How extroverted do you want your partner to be?",
         min: 0,
         max: 4,
         mean: 2.0,
@@ -918,8 +917,12 @@ pub static ADDITIONAL_PREFERENCES_CONFIG: [PreferenceConfig; ADDITIONAL_PREFEREN
     },
     PreferenceConfig {
         name: "how_much_you_want_to_go_outside",
+        group: "how_much_you_want_to_go_outside",
+        ui_element: UIElement::Slider,
         display: "How Much You Want to Go Outside",
-        category: "hobbies",
+        category: Category::Hobbies,
+        value_question: "How much do you want to go outside?",
+        range_question: "How much do you want your partner to want to go outside?",
         min: 0,
         max: 4,
         mean: 2.0,
@@ -939,8 +942,12 @@ pub static ADDITIONAL_PREFERENCES_CONFIG: [PreferenceConfig; ADDITIONAL_PREFEREN
     },
     PreferenceConfig {
         name: "how_much_you_want_to_travel",
+        group: "how_much_you_want_to_travel",
+        ui_element: UIElement::Slider,
         display: "How Much You Want to Travel",
-        category: "hobbies",
+        category: Category::Hobbies,
+        value_question: "How much do you want to travel?",
+        range_question: "How much do you want your partner to want to travel?",
         min: 0,
         max: 4,
         mean: 2.0,
@@ -960,8 +967,12 @@ pub static ADDITIONAL_PREFERENCES_CONFIG: [PreferenceConfig; ADDITIONAL_PREFEREN
     },
     PreferenceConfig {
         name: "how_cleanly_are_you",
+        group: "how_cleanly_are_you",
+        ui_element: UIElement::Slider,
         display: "How Cleanly Are You",
-        category: "personality",
+        category: Category::Lifestyle,
+        value_question: "How cleanly are you?",
+        range_question: "How cleanly do you want your partner to be?",
         min: 0,
         max: 4,
         mean: 2.0,
@@ -981,8 +992,12 @@ pub static ADDITIONAL_PREFERENCES_CONFIG: [PreferenceConfig; ADDITIONAL_PREFEREN
     },
     PreferenceConfig {
         name: "hoarder_level",
+        group: "hoarder_level",
+        ui_element: UIElement::Slider,
         display: "Hoarder Level",
-        category: "personality",
+        category: Category::Lifestyle,
+        value_question: "How much of a hoarder are you?",
+        range_question: "How much of a hoarder do you want your partner to be?",
         min: 0,
         max: 4,
         mean: 2.0,
@@ -996,8 +1011,12 @@ pub static ADDITIONAL_PREFERENCES_CONFIG: [PreferenceConfig; ADDITIONAL_PREFEREN
     },
     PreferenceConfig {
         name: "how_much_you_want_to_have_children",
+        group: "how_much_you_want_to_have_children",
+        ui_element: UIElement::Slider,
         display: "How Much You Want to Have Children",
-        category: "personal",
+        category: Category::Future,
+        value_question: "How much do you want to have children?",
+        range_question: "How much do you want your partner to want to have children?",
         min: 0,
         max: 4,
         mean: 2.0,
@@ -1017,8 +1036,12 @@ pub static ADDITIONAL_PREFERENCES_CONFIG: [PreferenceConfig; ADDITIONAL_PREFEREN
     },
     PreferenceConfig {
         name: "how_much_you_want_to_get_married",
+        group: "how_much_you_want_to_get_married",
+        ui_element: UIElement::Slider,
         display: "How Much You Want to Get Married",
-        category: "personal",
+        category: Category::Future,
+        value_question: "How much do you want to get married?",
+        range_question: "How much do you want your partner to want to get married?",
         min: 0,
         max: 4,
         mean: 2.0,
@@ -1038,8 +1061,12 @@ pub static ADDITIONAL_PREFERENCES_CONFIG: [PreferenceConfig; ADDITIONAL_PREFEREN
     },
     PreferenceConfig {
         name: "drinks_consumed_per_week",
+        group: "drinks_consumed_per_week",
+        ui_element: UIElement::Slider,
         display: "Drinks Consumed per Week",
-        category: "diet",
+        category: Category::Substances,
+        value_question: "How many drinks do you have a week?",
+        range_question: "How many drinks do you want your partner to have a week?",
         min: 0,
         max: 50,
         mean: 5.0,
@@ -1056,8 +1083,12 @@ pub static ADDITIONAL_PREFERENCES_CONFIG: [PreferenceConfig; ADDITIONAL_PREFEREN
     },
     PreferenceConfig {
         name: "smokes_per_day",
+        group: "smokes_per_day",
+        ui_element: UIElement::Slider,
         display: "Smokes per Day",
-        category: "diet",
+        category: Category::Substances,
+        value_question: "How many cigarettes do you smoke a day?",
+        range_question: "How many cigarettes do you want your partner to smoke a day?",
         min: 0,
         max: 50,
         mean: 2.0,
@@ -1074,8 +1105,12 @@ pub static ADDITIONAL_PREFERENCES_CONFIG: [PreferenceConfig; ADDITIONAL_PREFEREN
     },
     PreferenceConfig {
         name: "marajuana_consumed_per_week_joints",
+        group: "marajuana_consumed_per_week_joints",
+        ui_element: UIElement::Slider,
         display: "Marijuana Consumed per Week (Joints)",
-        category: "diet",
+        category: Category::Substances,
+        value_question: "How much weed do you smoke a week, if you were to measure it in joints?",
+        range_question: "How much weed do you want your partner to smoke a week, if they were to measure it in joints?",
         min: 0,
         max: 50,
         mean: 2.0,
@@ -1092,8 +1127,12 @@ pub static ADDITIONAL_PREFERENCES_CONFIG: [PreferenceConfig; ADDITIONAL_PREFEREN
     },
     PreferenceConfig {
         name: "hours_a_day_spent_on_social_media",
+        group: "hours_a_day_spent_on_social_media",
+        ui_element: UIElement::Slider,
         display: "Hours a Day Spent on Social Media",
-        category: "personal",
+        category: Category::Hobbies,
+        value_question: "How many hours a day do you spend on social media?",
+        range_question: "How many hours a day do you want your partner to spend on social media?",
         min: 0,
         max: 24,
         mean: 2.0,
@@ -1110,8 +1149,12 @@ pub static ADDITIONAL_PREFERENCES_CONFIG: [PreferenceConfig; ADDITIONAL_PREFEREN
     },
     PreferenceConfig {
         name: "pubic_hair_length",
+        group: "pubic_hair_length",
+        ui_element: UIElement::Slider,
         display: "Pubic Hair Length",
-        category: "physical",
+        category: Category::Sexual,
+        value_question: "How long is your pubic hair?",
+        range_question: "How long do you want your partner's pubic hair to be?",
         min: 0,
         max: 4,
         mean: 2.0,
@@ -1125,21 +1168,4 @@ pub static ADDITIONAL_PREFERENCES_CONFIG: [PreferenceConfig; ADDITIONAL_PREFEREN
     },
 ];
 
-#[derive(Debug, Serialize, Deserialize, Apiv2Schema, Clone, PartialEq)]
-#[serde(bound(deserialize = "'de: 'a"))]
-pub struct PreferencesConfig<'a> {
-    pub mandatory: MandatoryPreferencesConfig<'a>,
-    pub additional: Vec<PreferenceConfig<'a>>,
-}
-
-pub fn preferences_config() -> PreferencesConfig<'static> {
-    PreferencesConfig {
-        mandatory: MANDATORY_PREFERENCES_CONFIG.clone(),
-        additional: ADDITIONAL_PREFERENCES_CONFIG.iter().cloned().collect(),
-    }
-}
-
-pub const ADDITIONAL_PREFERENCE_CARDINALITY: usize = 24;
-
-pub const TOTAL_PREFERENCES_CARDINALITY: usize =
-    MANDATORY_PREFERENCES_CARDINALITY + ADDITIONAL_PREFERENCE_CARDINALITY;
+pub const PREFERENCES_CARDINALITY: usize = 30;

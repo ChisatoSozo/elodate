@@ -42,7 +42,7 @@ pub fn get_images(
 
         let api_images: Vec<ApiImage> = images
             .into_iter()
-            .map(|image| ApiImage::from_internal(image, &user))
+            .map(|image| ApiImage::from_internal(image, Some(&user)))
             .collect::<Result<Vec<_>, _>>()?;
         Ok(api_images)
     })

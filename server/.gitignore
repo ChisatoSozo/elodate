@@ -5,3 +5,4 @@ access_codes.txt
 images
 tmp
 flamegraph.svg
+cargo-flamegraph.stacks

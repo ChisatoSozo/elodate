@@ -1,3 +1,5 @@
-pub trait FakeGen<T> {
-    fn fake_gen(arg: &T) -> Self;
+use serde::Deserialize;
+
+pub trait Gen<'a, T>: Deserialize<'a> {
+    fn gen(arg: &T) -> Self;
 }

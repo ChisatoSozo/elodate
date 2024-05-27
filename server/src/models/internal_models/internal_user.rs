@@ -1,24 +1,14 @@
-use crate::{
-    elo::{ELO_SCALE, ELO_SHIFT},
-    util::to_i16,
-    vec::shared::VectorSearch,
-};
+use crate::vec::shared::VectorSearch;
 
-use fake::Fake;
 use std::error::Error;
-
-use rand::Rng;
 
 //TODO: recalc age on day change
 
 use super::{
     internal_chat::InternalChat,
     internal_image::InternalImage,
-    internal_preferences::{
-        LabeledPreferenceRange, LabeledProperty, Preferences, Properties,
-        ADDITIONAL_PREFERENCES_CONFIG, MANDATORY_PREFERENCES_CONFIG,
-    },
-    shared::{Gen, InternalUuid, Save},
+    internal_preferences::{LabeledPreferenceRange, LabeledProperty},
+    shared::{GetBbox, GetVector, InternalUuid, Save},
 };
 
 use crate::db::DB;
@@ -45,8 +35,9 @@ pub struct InternalUser {
     pub display_name: String,
     pub description: String,
     pub birthdate: i64,
-    pub preferences: Preferences,
-    pub properties: Properties,
+    pub preferences: Vec<LabeledPreferenceRange>,
+    pub properties: Vec<LabeledProperty>,
+    pub owned_images: Vec<InternalUuid<InternalImage>>,
     pub published: bool,
 }
 
@@ -87,117 +78,6 @@ impl Save for InternalUser {
         lock.add_bbox(&self.preferences.get_bbox(), &self.uuid.id);
         Ok(self.uuid)
     }
-}
-
-impl Gen<DB> for InternalUser {
-    fn gen(db: &DB) -> Self {
-        let mut rng = rand::thread_rng();
-        let uuid = InternalUuid::<InternalUser>::new();
-        let hashed_password = "asdfasdf".to_string();
-        let elo =
-            (ELO_SCALE / (ELO_SHIFT - rand::rngs::ThreadRng::default().gen_range(0.0..1.0))) as u32;
-        let ratings = vec![];
-        let seen = vec![];
-        let chats = vec![];
-        let mut uuids = Vec::with_capacity(6);
-        for _ in 0..2 {
-            let image = InternalImage::gen(&true);
-            let img_uuid = image.save(db).unwrap();
-            uuids.push(img_uuid);
-        }
-        let images = uuids;
-
-        let preview_image = InternalImage::gen_preview().save(db).unwrap();
-
-        let is_male = rng.gen_bool(0.5);
-        let percent_male = is_male as i16 * 100;
-        let percent_female = (is_male == false) as i16 * 100;
-        let username = fake::faker::phone_number::en::PhoneNumber().fake();
-        let display_name = fake::faker::name::en::Name().fake();
-        let description = fake::faker::lorem::en::Paragraph(1..3).fake();
-        let birthdate = rand_age_between_18_and_99();
-        // let latitude = rng.gen_range(-90.0..90.0);
-        let latitude = 45.501690;
-        let latitudei16 = to_i16(latitude, -90.0, 90.0);
-        // let longitude = rng.gen_range(-180.0..180.0);
-        let longitude = -73.567253;
-        let longitudei16 = to_i16(longitude, -180.0, 180.0);
-        let properties = Properties {
-            age: get_age(birthdate),
-            percent_male,
-            percent_female,
-            latitude: latitudei16,
-            longitude: longitudei16,
-            additional_properties: ADDITIONAL_PREFERENCES_CONFIG
-                .iter()
-                .map(|config| LabeledProperty {
-                    name: config.name.to_string(),
-                    value: config.sample(&mut rng),
-                })
-                .collect(),
-        };
-        let preferences = Preferences {
-            age: MANDATORY_PREFERENCES_CONFIG
-                .age
-                .sample_range(&properties, &mut rng),
-            percent_male: MANDATORY_PREFERENCES_CONFIG
-                .percent_male
-                .sample_range(&properties, &mut rng),
-            percent_female: MANDATORY_PREFERENCES_CONFIG
-                .percent_female
-                .sample_range(&properties, &mut rng),
-            latitude: MANDATORY_PREFERENCES_CONFIG
-                .latitude
-                .sample_range(&properties, &mut rng),
-            longitude: MANDATORY_PREFERENCES_CONFIG
-                .longitude
-                .sample_range(&properties, &mut rng),
-            additional_preferences: ADDITIONAL_PREFERENCES_CONFIG
-                .iter()
-                .map(|config| LabeledPreferenceRange {
-                    name: config.name.to_string(),
-                    range: config.sample_range(&properties, &mut rng),
-                })
-                .collect(),
-        };
-
-        InternalUser {
-            uuid,
-            hashed_password,
-            elo,
-            ratings,
-            seen,
-            chats,
-            images,
-            username,
-            display_name,
-            description,
-            birthdate,
-            preferences,
-            properties,
-            published: true,
-            preview_image: preview_image,
-        }
-    }
-}
-
-fn get_age(birthdate: i64) -> i16 {
-    let birthdate = chrono::DateTime::from_timestamp(birthdate, 0).unwrap();
-    let now = chrono::Utc::now();
-    let age = now - birthdate;
-    (age.num_days() / 365) as i16
-}
-
-fn rand_date_between(min: i64, max: i64) -> i64 {
-    let mut rng = rand::thread_rng();
-    rng.gen_range(min..max)
-}
-
-fn rand_age_between_18_and_99() -> i64 {
-    let now = chrono::Utc::now();
-    let min_year = now - chrono::TimeDelta::weeks(99 * 52);
-    let max_year = now - chrono::TimeDelta::weeks(18 * 52);
-    rand_date_between(min_year.timestamp(), max_year.timestamp())
 }
 
 impl DB {

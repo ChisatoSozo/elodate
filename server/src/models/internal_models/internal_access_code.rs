@@ -1,4 +1,4 @@
-use super::shared::{Gen, InternalUuid};
+use super::shared::InternalUuid;
 use rand::Rng;
 
 #[derive(Debug, Clone, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
@@ -9,8 +9,8 @@ pub struct InternalAccessCode {
     pub used: bool,
 }
 
-impl Gen<bool> for InternalAccessCode {
-    fn gen(_options: &bool) -> InternalAccessCode {
+impl InternalAccessCode {
+    pub fn gen(_options: &bool) -> InternalAccessCode {
         let letters = (0..8).map(|_| {
             let mut rng = rand::thread_rng();
             rng.gen_range(65..91) as u8 as char

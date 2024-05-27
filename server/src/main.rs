@@ -12,7 +12,8 @@ use routes::{
     get_preferences_config::get_preferences_config, get_users::get_users,
     get_users_i_perfer_count_dry_run::get_users_i_perfer_count_dry_run,
     get_users_mutual_perfer_count_dry_run::get_users_mutual_perfer_count_dry_run, login::login,
-    put_user::put_user, rate::rate, send_message::send_message, signup::signup,
+    put_image::put_image, put_user::put_user, rate::rate, send_message::send_message,
+    signup::signup,
 };
 
 pub mod constants;
@@ -61,6 +62,7 @@ async fn main() -> std::io::Result<()> {
             .service(get_users_mutual_perfer_count_dry_run)
             .service(get_next_users)
             .service(get_images)
+            .service(put_image)
             .service(rate)
             .with_json_spec_at(JSON_SPEC_PATH)
             .build()

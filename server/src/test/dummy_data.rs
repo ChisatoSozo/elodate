@@ -1,12 +1,17 @@
 #[test]
 fn insert_dummy_data() -> Result<(), Box<dyn std::error::Error>> {
     use crate::{
+        models::{api_models::api_user::ApiUserWritable, internal_models::shared::Save},
+        test::fake::Gen,
+    };
+
+    use crate::{
         db::DB,
         models::internal_models::{
             internal_chat::InternalChat,
             internal_message::InternalMessage,
             internal_user::{InternalRating, InternalUser},
-            shared::{Gen, InternalUuid, Save},
+            shared::InternalUuid,
         },
     };
     use fake::Fake;
@@ -22,12 +27,13 @@ fn insert_dummy_data() -> Result<(), Box<dyn std::error::Error>> {
     let mut uuids = vec![];
 
     let start_time = std::time::Instant::now();
-    let count = 1000;
+    let count = 100;
     for i in 0..count {
-        if i % 100 == 0 {
-            println!("Inserted {} users, {}%", i, i as f64 / 1000.0);
+        if i % 10 == 0 {
+            println!("Inserted {} users", i);
         }
-        let user: InternalUser = InternalUser::gen(&db);
+        let user: ApiUserWritable = ApiUserWritable::gen(&db);
+        let user: InternalUser = user.to_internal(&db)?;
 
         uuids.push(user.uuid.clone());
         user.save(&db)?;
@@ -40,8 +46,23 @@ fn insert_dummy_data() -> Result<(), Box<dyn std::error::Error>> {
         count as f64 / end_time.as_secs_f64()
     );
 
+    let size_on_disk = db.store.size_on_disk().unwrap();
+    //format as kb/mb/gb
+    let size_on_disk = if size_on_disk < 1024 {
+        format!("{} bytes", size_on_disk)
+    } else if size_on_disk < 1024 * 1024 {
+        format!("{:.2} kb", size_on_disk as f64 / 1024.0)
+    } else if size_on_disk < 1024 * 1024 * 1024 {
+        format!("{:.2} mb", size_on_disk as f64 / 1024.0 / 1024.0)
+    } else {
+        format!("{:.2} gb", size_on_disk as f64 / 1024.0 / 1024.0 / 1024.0)
+    };
+
+    println!("Database size on disk: {}", size_on_disk);
+
     //upsert main user
-    let mut user: InternalUser = InternalUser::gen(&db);
+    let user: ApiUserWritable = ApiUserWritable::gen(&db);
+    let mut user: InternalUser = user.to_internal(&db).unwrap();
     user.username = "asdf".to_string();
     user.hashed_password = hash("asdfasdf", 4)?;
 

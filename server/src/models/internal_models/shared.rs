@@ -1,13 +1,12 @@
 use crate::db::DB;
+use crate::vec::shared::Bbox;
 use rkyv::validation::validators::DefaultValidator;
 use rkyv::{Deserialize, Infallible};
 use std::error::Error;
 use std::marker::PhantomData;
 use uuid::Uuid;
 
-pub trait Gen<T> {
-    fn gen(arg: &T) -> Self;
-}
+use super::internal_preferences::PREFERENCES_CARDINALITY;
 
 #[derive(Debug, Clone, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
 #[archive(compare(PartialEq), check_bytes)]
@@ -70,4 +69,12 @@ impl<T> From<String> for InternalUuid<T> {
 
 pub trait Save: Sized {
     fn save(self, db: &DB) -> Result<InternalUuid<Self>, Box<dyn Error>>;
+}
+
+pub trait GetBbox {
+    fn get_bbox(&self) -> Bbox<PREFERENCES_CARDINALITY>;
+}
+
+pub trait GetVector {
+    fn get_vector(&self) -> [i16; PREFERENCES_CARDINALITY];
 }

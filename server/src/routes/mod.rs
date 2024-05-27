@@ -10,6 +10,7 @@ pub mod get_users;
 pub mod get_users_i_perfer_count_dry_run;
 pub mod get_users_mutual_perfer_count_dry_run;
 pub mod login;
+pub mod put_image;
 pub mod put_user;
 pub mod rate;
 pub mod send_message;

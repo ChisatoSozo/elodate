@@ -6,7 +6,7 @@ use paperclip::actix::{
 };
 
 use crate::{
-    db::DB, models::internal_models::internal_preferences::Preferences,
+    db::DB, models::internal_models::internal_preferences::LabeledPreferenceRange,
     routes::shared::route_body_mut_db,
 };
 
@@ -15,7 +15,7 @@ use crate::{
 pub fn get_users_i_perfer_count_dry_run(
     db: web::Data<DB>,
     req: HttpRequest,
-    body: Json<Preferences>,
+    body: Json<Vec<LabeledPreferenceRange>>,
 ) -> Result<Json<usize>, Error> {
     route_body_mut_db(db, req, body, |db, user, body| {
         let users_i_perfer_count = db.get_users_i_prefer_count_direct(&body, &user.seen)?;

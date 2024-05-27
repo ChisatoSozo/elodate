@@ -9,14 +9,14 @@ use serde::Deserialize;
 
 use crate::{
     db::DB,
-    models::internal_models::internal_preferences::{Preferences, Properties},
+    models::internal_models::internal_preferences::{LabeledPreferenceRange, LabeledProperty},
     routes::shared::route_body_mut_db,
 };
 
 #[derive(Debug, Clone, Deserialize, Apiv2Schema)]
 pub struct PropsAndPrefs {
-    pub properties: Properties,
-    pub preferences: Preferences,
+    pub properties: Vec<LabeledProperty>,
+    pub preferences: Vec<LabeledPreferenceRange>,
 }
 
 #[api_v2_operation]
