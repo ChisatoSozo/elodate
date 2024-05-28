@@ -1,17 +1,17 @@
 import 'dart:convert';
 import 'dart:ui' as ui;
 
-import 'package:client/models/home_model.dart';
+import 'package:client/models/user_model.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 class UuidImageProvider extends ImageProvider<UuidImageProvider> {
   final String uuid;
-  final HomeModel homeModel;
+  final UserModel userModel;
 
   UuidImageProvider({
     required this.uuid,
-    required this.homeModel,
+    required this.userModel,
   });
 
   @override
@@ -30,10 +30,10 @@ class UuidImageProvider extends ImageProvider<UuidImageProvider> {
 
   Future<ui.Codec> _loadAsync(
       UuidImageProvider input, ImageDecoderCallback decode) async {
-    var homeModel = input.homeModel;
+    var userModel = input.userModel;
     var uuid = input.uuid;
-    var image = await homeModel.getImage(uuid);
-    var b64 = image.b64Content;
+    var image = await userModel.getImage(uuid);
+    var b64 = image.content;
     final Uint8List bytes = base64Decode(b64);
     if (bytes.isEmpty) {
       throw Exception('Failed to load image for UUID: $uuid');

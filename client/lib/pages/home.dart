@@ -1,7 +1,6 @@
-import 'package:client/components/responsive_container.dart';
-import 'package:client/models/home_model.dart';
+import 'package:client/components/responsive_scaffold.dart';
+import 'package:client/models/user_model.dart';
 import 'package:client/pages/home_chat.dart';
-import 'package:client/pages/home_settings.dart';
 import 'package:client/pages/home_swipe.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -17,19 +16,19 @@ class HomePageState extends State<HomePage> {
   int _selectedIndex = 1; // Default index for the center tab
 
   static final List<Widget> _widgetOptions = <Widget>[
-    const SettingsPage(),
-    const SwipePage(),
-    const ChatPage(),
+    Container(),
+    const ResponsiveContainer(scrollable: false, child: SwipePage()),
+    const ResponsiveContainer(scrollable: false, child: ChatPage()),
   ];
 
   @override
   void initState() {
     super.initState();
 
-    var homeModel = Provider.of<HomeModel>(context, listen: false);
+    var userModel = Provider.of<UserModel>(context, listen: false);
 
-    if (!homeModel.isLoading && !homeModel.isLoaded) {
-      homeModel.initAll();
+    if (!userModel.isLoading && !userModel.isLoaded) {
+      userModel.initAll();
     }
   }
 
@@ -41,13 +40,13 @@ class HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    var isLoaded = Provider.of<HomeModel>(context, listen: true).isLoaded;
+    var isLoaded = Provider.of<UserModel>(context, listen: true).isLoaded;
 
     if (!isLoaded) {
       return const CircularProgressIndicator();
     }
 
-    var me = Provider.of<HomeModel>(context, listen: true).me;
+    var me = Provider.of<UserModel>(context, listen: true).me;
 
     if (!me.published) {
       if (_selectedIndex != 0) {
@@ -56,11 +55,7 @@ class HomePageState extends State<HomePage> {
     }
 
     return Scaffold(
-      body: Center(
-        child: ResponsiveContainer(
-          child: _widgetOptions.elementAt(_selectedIndex),
-        ),
-      ),
+      body: _widgetOptions.elementAt(_selectedIndex),
       bottomNavigationBar: me.published
           ? BottomNavigationBar(
               items: const <BottomNavigationBarItem>[

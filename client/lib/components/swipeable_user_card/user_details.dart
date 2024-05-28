@@ -1,5 +1,6 @@
 import 'package:client/api/pkg/lib/api.dart';
 import 'package:client/components/swipeable_user_card/user_gender.dart';
+import 'package:client/utils/preference_utils.dart';
 import 'package:flutter/material.dart';
 
 class UserDetails extends StatelessWidget {
@@ -53,9 +54,13 @@ class UserDetails extends StatelessWidget {
                   children: [
                     GenderDisplay(
                         maleValue:
-                            (user.properties.percentMale as double) / 100.0,
+                            (getPropByName(user.properties, "percent_male")
+                                    .value as double) /
+                                100.0,
                         femaleValue:
-                            (user.properties.percentFemale as double) / 100.0),
+                            (getPropByName(user.properties, "percent_female")
+                                    .value as double) /
+                                100.0),
                     const SizedBox(width: 10),
                     Text(
                       user.displayName,

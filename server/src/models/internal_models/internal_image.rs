@@ -38,7 +38,7 @@ impl InternalImage {
         //same as to_internal, but crop and resize to 128x128
         #[allow(deprecated)]
         let content = self.content;
-        let mut img = image::load_from_memory_with_format(&content, ImageFormat::WebP)?;
+        let mut img = image::load_from_memory_with_format(&content, ImageFormat::Jpeg)?;
 
         //crop to 128:128 aspect ratio, crop width if it's too wide, crop height if it's too tall, for any crop, center the crop
         //then resize to 128x128
@@ -70,12 +70,12 @@ impl InternalImage {
 
         let img = img.resize(128, 128, image::imageops::FilterType::Lanczos3);
 
-        //save image to new buffer as webp with lowest quality that still looks good
+        //save image to new buffer as jpg with lowest quality that still looks good
         let mut buf = Vec::new();
 
         //use cursor
         let mut cursor = Cursor::new(&mut buf);
-        img.write_to(&mut cursor, ImageFormat::WebP)?;
+        img.into_rgb8().write_to(&mut cursor, ImageFormat::Jpeg)?;
 
         Ok(InternalImage {
             uuid: InternalUuid::new(),

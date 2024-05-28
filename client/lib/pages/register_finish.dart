@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:client/components/responseive_scaffold.dart';
+import 'package:client/components/responsive_scaffold.dart';
 import 'package:client/models/register_model.dart';
 import 'package:flutter/material.dart';
 //import local storage package

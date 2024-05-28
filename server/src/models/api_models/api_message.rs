@@ -38,7 +38,7 @@ impl From<InternalMessage> for ApiMessage {
 
 #[derive(Debug, Clone, Deserialize, Apiv2Schema)]
 pub struct ApiMessageWritable {
-    pub uuid: ApiUuid<InternalMessage>,
+    pub uuid: Option<ApiUuid<InternalMessage>>,
     pub content: String,
     pub image: Option<ApiUuid<InternalImage>>,
 }
@@ -51,15 +51,21 @@ impl ApiMessageWritable {
         db: &DB,
     ) -> Result<InternalMessage, actix_web::Error> {
         //does it exist?
-        let internal_uuid: InternalUuid<InternalMessage> = self.uuid.into();
-        let message = internal_uuid.load(db).map_err(|e| {
-            println!("Failed to get message {:?}", e);
-            actix_web::error::ErrorInternalServerError("Failed to get message")
-        })?;
 
         //if it already exists, are you the author
-        let mut message = match message {
+        let mut message = match self.uuid {
             Some(message) => {
+                let internal_uuid: InternalUuid<InternalMessage> = message.into();
+                let message = internal_uuid.load(db).map_err(|e| {
+                    println!("Failed to get message {:?}", e);
+                    actix_web::error::ErrorInternalServerError("Failed to get message")
+                })?;
+                let message = match message {
+                    Some(message) => message,
+                    None => {
+                        return Err(actix_web::error::ErrorBadRequest("Message does not exist"));
+                    }
+                };
                 if message.author != user.uuid {
                     return Err(actix_web::error::ErrorBadRequest("Not the author"));
                 }

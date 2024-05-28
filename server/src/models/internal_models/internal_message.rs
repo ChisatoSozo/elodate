@@ -29,7 +29,13 @@ impl InternalMessage {
         //does the chat already have this message?
         if !chat.messages.contains(&self.uuid) {
             chat.messages.push(self.uuid.clone());
-            chat.most_recent_message = self.content.clone();
+            chat.most_recent_message = match self.content.len() {
+                0 => match self.image {
+                    Some(_) => "Sent an image".to_string(),
+                    None => "Sent an empty message (somehow)".to_string(),
+                },
+                _ => self.content.clone(),
+            };
             chat.most_recent_sender = Some(self.author.clone());
             chat.save(db)?;
         };

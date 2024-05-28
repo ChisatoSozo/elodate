@@ -1,5 +1,6 @@
-import 'package:client/models/home_model.dart';
+import 'package:client/models/page_state_model.dart';
 import 'package:client/models/register_model.dart';
+import 'package:client/models/user_model.dart';
 import 'package:client/pages/login.dart';
 import 'package:flutter/material.dart';
 import 'package:localstorage/localstorage.dart';
@@ -123,16 +124,19 @@ class MainApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider<HomeModel>(
-      create: (context) => HomeModel(),
-      child: ChangeNotifierProvider<RegisterModel>(
-        create: (context) => RegisterModel(),
-        child: MaterialApp(
-          title: 'Competitive Dating App',
-          theme: lightTheme,
-          darkTheme: darkTheme,
-          themeMode: ThemeMode.system,
-          home: const LoginPage(),
+    return ChangeNotifierProvider<UserModel>(
+      create: (context) => UserModel(),
+      child: ChangeNotifierProvider<PageStateModel>(
+        create: (context) => PageStateModel(),
+        child: ChangeNotifierProvider<RegisterModel>(
+          create: (context) => RegisterModel(),
+          child: MaterialApp(
+            title: 'Competitive Dating App',
+            theme: lightTheme,
+            darkTheme: darkTheme,
+            themeMode: ThemeMode.system,
+            home: const LoginPage(),
+          ),
         ),
       ),
     );

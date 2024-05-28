@@ -1,68 +1,41 @@
-import 'dart:math';
-
 import 'package:client/api/pkg/lib/api.dart';
-import 'package:client/utils/utils.dart';
 
-int calculateInitialDistance(ApiUserMe user) {
-  final userLatLng =
-      decodeLatLongFromI16(user.properties.latitude, user.properties.longitude);
-  final preferenceMinLatLng = decodeLatLongFromI16(
-      user.preferences.latitude.min, user.preferences.longitude.min);
-  final preferenceMaxLatLng = decodeLatLongFromI16(
-      user.preferences.latitude.max, user.preferences.longitude.max);
+const int minI16 = -32768;
+const int maxI16 = 32767;
 
-  double deltaLat = (preferenceMaxLatLng.$1 - preferenceMinLatLng.$1) / 2;
-  double deltaLng = (preferenceMaxLatLng.$2 - preferenceMinLatLng.$2) / 2;
-
-  const double earthRadiusKm = 6371.0;
-  double distance = sqrt(pow(deltaLat * pi / 180 * earthRadiusKm, 2) +
-      pow(deltaLng * pi / 180 * earthRadiusKm * cos(userLatLng.$1 * pi / 180),
-          2));
-
-  return distance.round();
+ApiUserPropertiesInner getPropByName(
+    List<ApiUserPropertiesInner> properties, String name) {
+  return properties.firstWhere((element) => element.name == name);
 }
 
-int findClosestDistanceIndex(int distance, List<int> presetDistances) {
-  int closestIndex = 0;
-  int closestDifference = (distance - presetDistances[0]).abs();
-  for (int i = 1; i < presetDistances.length; i++) {
-    int difference = (distance - presetDistances[i]).abs();
-    if (difference < closestDifference) {
-      closestIndex = i;
-      closestDifference = difference;
-    }
-  }
-  return closestIndex;
+ApiUserPreferencesInner getPrefByName(
+    List<ApiUserPreferencesInner> preferences, String name) {
+  return preferences.firstWhere((element) => element.name == name);
 }
 
-(
-  ApiUserPreferencesAdditionalPreferencesInnerRange,
-  ApiUserPreferencesAdditionalPreferencesInnerRange
-) getLatLngRange(
-  ApiUser user,
-  int distanceInKm,
-) {
-  final userLatLng =
-      decodeLatLongFromI16(user.properties.latitude, user.properties.longitude);
+int encodeToI16(double value, double minValue, double maxValue, int? minI16In,
+    int? maxI16In) {
+  var minI16Use = minI16In ?? minI16;
+  var maxI16Use = maxI16In ?? maxI16;
+  // Normalize the value to a range between 0 and 1
+  double normalized = (value - minValue) / (maxValue - minValue);
 
-  const double earthRadiusKm = 6371.0;
+  // Scale the normalized value to the i16 range
+  int quantized = ((normalized * (maxI16Use - minI16Use)).round() + minI16Use)
+      .clamp(minI16Use, maxI16Use);
 
-  double deltaLat = distanceInKm / earthRadiusKm;
-  double deltaLng =
-      distanceInKm / (earthRadiusKm * cos(userLatLng.$1 * pi / 180));
+  return quantized;
+}
 
-  double minLat = userLatLng.$1 - deltaLat * 180 / pi;
-  double maxLat = userLatLng.$1 + deltaLat * 180 / pi;
-  double minLng = userLatLng.$2 - deltaLng * 180 / pi;
-  double maxLng = userLatLng.$2 + deltaLng * 180 / pi;
+double decodeFromI16(
+    int value, double minValue, double maxValue, int? minI16In, int? maxI16In) {
+  // Normalize the value back to a range between 0 and 1
+  var minI16Use = minI16In ?? minI16;
+  var maxI16Use = maxI16In ?? maxI16;
+  double normalized = (value - minI16Use) / (maxI16Use - minI16Use);
 
-  final minLatLng = encodeLatLongToI16(minLat, minLng);
-  final maxLatLng = encodeLatLongToI16(maxLat, maxLng);
+  // Scale the normalized value back to the original range
+  double decoded = normalized * (maxValue - minValue) + minValue;
 
-  return (
-    ApiUserPreferencesAdditionalPreferencesInnerRange(
-        min: minLatLng.$1, max: maxLatLng.$1),
-    ApiUserPreferencesAdditionalPreferencesInnerRange(
-        min: minLatLng.$2, max: maxLatLng.$2)
-  );
+  return decoded;
 }

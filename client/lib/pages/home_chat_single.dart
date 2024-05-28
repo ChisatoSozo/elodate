@@ -1,20 +1,18 @@
-import 'dart:async'; // Add this import
+import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:client/api/pkg/lib/api.dart';
 import 'package:client/components/chat_bubble.dart';
-import 'package:client/components/responsive_container.dart';
+import 'package:client/components/responsive_scaffold.dart';
 import 'package:client/components/uuid_image_provider.dart';
-import 'package:client/models/home_model.dart';
+import 'package:client/models/user_model.dart';
 import 'package:client/utils/utils.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
-import 'package:uuid/uuid.dart';
 
 class ChatScreen extends StatefulWidget {
   final String chatId;
@@ -28,130 +26,36 @@ class ChatScreen extends StatefulWidget {
 }
 
 class ChatScreenState extends State<ChatScreen> {
+  final GlobalKey<FormState> formKey = GlobalKey<FormState>();
   final TextEditingController _controller = TextEditingController();
   final ImagePicker _picker = ImagePicker();
   final FocusNode _focusNode = FocusNode();
-  ApiChat? _chat;
   final List<ApiMessage> _messages = [];
+  ApiChat? _chat;
   Uint8List? _selectedImage;
-  String? _selectedImageMimeType;
-  Timer? _timer; // Declare a Timer
-  bool _isSendButtonEnabled = false; // New variable
+  Timer? _timer;
+  bool _isSendButtonEnabled = false;
 
   @override
   void initState() {
     super.initState();
-    _fetchChat(); // Initial fetch
-    _timer = Timer.periodic(const Duration(seconds: 5), (timer) {
-      _fetchChat();
-    });
-    _controller.addListener(_updateSendButtonState); // Add listener
+    _focusNode.requestFocus();
+    _initChat();
   }
 
   @override
   void dispose() {
-    _timer?.cancel(); // Cancel the timer when disposing
-    _controller.removeListener(_updateSendButtonState); // Remove listener
+    _timer?.cancel();
+    _controller.removeListener(_updateSendButtonState);
     _controller.dispose();
     _focusNode.dispose();
     super.dispose();
   }
 
-  void _updateSendButtonState() {
-    setState(() {
-      _isSendButtonEnabled =
-          _controller.text.isNotEmpty || _selectedImage != null;
-    });
-  }
-
-  void _fetchChat() async {
-    var chat = await Provider.of<HomeModel>(context, listen: false)
-        .getChat(widget.chatId);
-    //is there new messages, if so, fetch the new ones
-    if (_chat != null && chat.messages.length > _chat!.messages.length) {
-      var newMessages = chat.messages
-          .sublist(_chat!.messages.length, chat.messages.length)
-          .toList();
-      _chat = chat;
-      _fetchMessages(newMessages);
-    }
-    if (_chat == null) {
-      _chat = chat;
-      _fetchMessages(chat.messages);
-    }
-    _chat = chat;
-  }
-
-  void _fetchMessages(List<String> newMessages) async {
-    var messages = await Provider.of<HomeModel>(context, listen: false)
-        .getMessages(widget.chatId, newMessages);
-    setState(() {
-      _messages.addAll(messages);
-    });
-  }
-
-  void _sendMessage() async {
-    Provider.of<HomeModel>(context, listen: false)
-        .sendChatMessage(
-          widget.chatId,
-          SendMessageInputMessage(
-            uuid: const Uuid().v4(),
-            content: _controller.text,
-            image: _selectedImage == null
-                ? null
-                : ApiUserWritableImagesInner(
-                    b64Content: base64Encode(_selectedImage!),
-                    imageType: mimeToType(_selectedImageMimeType!),
-                  ),
-          ),
-        )
-        .then((value) => {
-              _fetchChat(),
-            });
-
-    setState(() {
-      _controller.clear();
-      _selectedImage = null;
-      _selectedImageMimeType = null;
-      _isSendButtonEnabled = false; // Reset send button state
-    });
-    _focusNode.requestFocus();
-  }
-
-  Future<void> _pickImage(ImageSource source) async {
-    if (kIsWeb) {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['jpg', 'png', 'webp'],
-        withData: true,
-      );
-
-      if (result != null && result.files.single.bytes != null) {
-        setState(() {
-          _selectedImage = result.files.single.bytes;
-          _selectedImageMimeType = result.files.single.extension;
-          _isSendButtonEnabled = true; // Enable send button
-        });
-      }
-    } else {
-      final pickedFile = await _picker.pickImage(source: source);
-      if (pickedFile != null) {
-        setState(() {
-          _selectedImage = File(pickedFile.path).readAsBytesSync();
-          _selectedImageMimeType = pickedFile.mimeType;
-          _isSendButtonEnabled = true; // Enable send button
-        });
-      }
-    }
-  }
-
-  void _removeSelectedImage() {
-    setState(() {
-      _selectedImage = null;
-      _selectedImageMimeType = null;
-      _isSendButtonEnabled =
-          _controller.text.isNotEmpty; // Update send button state
-    });
+  void _initChat() {
+    _fetchChat();
+    _timer = Timer.periodic(const Duration(seconds: 5), (_) => _fetchChat());
+    _controller.addListener(_updateSendButtonState);
   }
 
   @override
@@ -159,91 +63,112 @@ class ChatScreenState extends State<ChatScreen> {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final chatBarColor = isDarkMode ? Colors.grey[850] : Colors.grey[300];
     final inputFieldColor = isDarkMode ? Colors.grey[800] : Colors.grey[200];
-    final homeModel = Provider.of<HomeModel>(context);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.displayName),
-      ),
-      body: ResponsiveContainer(
-        child: Column(
+    return Form(
+      key: formKey,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(widget.displayName),
+        ),
+        body: Column(
           children: <Widget>[
-            Expanded(
-              child: Align(
-                alignment: Alignment.bottomCenter,
-                child: ListView.builder(
-                  itemCount: _messages.length,
-                  itemBuilder: (context, index) {
-                    final message = _messages[_messages.length - index - 1];
-                    final bool isMe = message.author == homeModel.me.uuid;
-                    return ChatBubble(
-                        key: Key(message.uuid),
-                        text: message.content,
-                        image: message.image == null
-                            ? null
-                            : Image(
-                                width: 200,
-                                image: UuidImageProvider(
-                                    uuid: message.image!,
-                                    homeModel: homeModel)),
-                        isMe: isMe,
-                        timestamp: DateTime.fromMillisecondsSinceEpoch(
-                            message.sentAt * 1000));
-                  },
-                  reverse: true,
-                  shrinkWrap: true,
-                ),
-              ),
-            ),
-            Container(
-              decoration: BoxDecoration(
-                color: chatBarColor,
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(16.0),
-                  topRight: Radius.circular(16.0),
-                ),
-              ),
-              padding: const EdgeInsets.all(8.0),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (_selectedImage != null)
-                    Stack(
-                      children: [
-                        Container(
-                          alignment: Alignment.centerLeft,
-                          child: Image.memory(
-                            _selectedImage!,
-                            height: 100,
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                        Positioned(
-                          top: 8,
-                          right: 8,
-                          child: GestureDetector(
-                            onTap: _removeSelectedImage,
-                            child: const MouseRegion(
-                              cursor: SystemMouseCursors.click,
-                              child: CircleAvatar(
-                                backgroundColor: Colors.black54,
-                                child: Icon(
-                                  Icons.close,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  _buildMessageInput(inputFieldColor!),
-                ],
-              ),
-            ),
+            _buildMessageList(context),
+            _buildInputSection(chatBarColor!, inputFieldColor!),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildMessageList(BuildContext context) {
+    final userModel = Provider.of<UserModel>(context, listen: false);
+    return Expanded(
+      child: Align(
+        alignment: Alignment.bottomCenter,
+        child: ResponsiveContainer(
+          child: ListView.builder(
+            itemCount: _messages.length,
+            itemBuilder: (context, index) {
+              final message = _messages[_messages.length - index - 1];
+              final isMe = message.author == userModel.me.uuid;
+              return ChatBubble(
+                key: Key(message.uuid),
+                text: message.content,
+                image: _buildMessageImage(message, userModel),
+                isMe: isMe,
+                timestamp: DateTime.fromMillisecondsSinceEpoch(
+                  message.sentAt * 1000,
+                ),
+              );
+            },
+            reverse: true,
+            shrinkWrap: true,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Image? _buildMessageImage(ApiMessage message, UserModel userModel) {
+    return message.image == null
+        ? null
+        : Image(
+            width: 200,
+            image:
+                UuidImageProvider(uuid: message.image!, userModel: userModel),
+          );
+  }
+
+  Widget _buildInputSection(Color chatBarColor, Color inputFieldColor) {
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 400),
+      decoration: BoxDecoration(
+        color: chatBarColor,
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(16.0),
+          topRight: Radius.circular(16.0),
+        ),
+      ),
+      padding: const EdgeInsets.all(8.0),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (_selectedImage != null) _buildSelectedImagePreview(),
+          _buildMessageInput(inputFieldColor),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSelectedImagePreview() {
+    return Stack(
+      children: [
+        Container(
+          alignment: Alignment.centerLeft,
+          child: Image.memory(
+            _selectedImage!,
+            height: 100,
+            fit: BoxFit.cover,
+          ),
+        ),
+        Positioned(
+          top: 8,
+          right: 8,
+          child: GestureDetector(
+            onTap: _removeSelectedImage,
+            child: const MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: CircleAvatar(
+                backgroundColor: Colors.black54,
+                child: Icon(
+                  Icons.close,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -285,5 +210,118 @@ class ChatScreenState extends State<ChatScreen> {
         ],
       ),
     );
+  }
+
+  void _updateSendButtonState() {
+    setState(() {
+      _isSendButtonEnabled =
+          _controller.text.isNotEmpty || _selectedImage != null;
+    });
+  }
+
+  Future<void> _fetchChat() async {
+    var chat = await _getChat(widget.chatId);
+    if (_chat != null && chat.messages.length > _chat!.messages.length) {
+      var newMessages = chat.messages.sublist(_chat!.messages.length);
+      _fetchMessages(newMessages);
+    }
+    if (_chat == null) {
+      _chat = chat;
+      _fetchMessages(chat.messages);
+    }
+    setState(() {
+      _chat = chat;
+    });
+  }
+
+  Future<void> _fetchMessages(List<String> newMessages) async {
+    var userModel = Provider.of<UserModel>(context, listen: false);
+    var messages = await userModel.client.getMessagesPost(
+        GetMessagesInput(chatUuid: _chat!.uuid, messages: newMessages));
+
+    if (messages == null) {
+      throw Exception('Failed to get messages');
+    }
+
+    setState(() {
+      _messages.addAll(messages);
+    });
+  }
+
+  Future<void> _sendMessage() async {
+    var userModel = Provider.of<UserModel>(context, listen: false);
+    var client = userModel.client;
+    String? uuid;
+
+    if (_selectedImage != null) {
+      var compressed = await compressImage(_selectedImage!);
+      uuid = await client.putImagePost(PutImageInput(
+          content: base64Encode(compressed!), access: _chat!.users));
+      //trim first and last quotes
+      uuid = uuid!.substring(1, uuid.length - 1);
+    }
+
+    await client.sendMessagePost(SendMessageInput(
+      chatUuid: _chat!.uuid,
+      message: SendMessageInputMessage(content: _controller.text, image: uuid),
+    ));
+
+    await _fetchChat();
+
+    setState(() {
+      _controller.clear();
+      _selectedImage = null;
+      _isSendButtonEnabled = false;
+    });
+
+    _focusNode.requestFocus();
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    if (kIsWeb) {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['jpg', 'png', 'webp'],
+        withData: true,
+      );
+
+      if (result != null && result.files.single.bytes != null) {
+        setState(() {
+          _selectedImage = result.files.single.bytes;
+          _isSendButtonEnabled = true;
+        });
+      }
+    } else {
+      final pickedFile = await _picker.pickImage(source: source);
+      if (pickedFile != null) {
+        var selectedImage = await pickedFile.readAsBytes();
+        setState(() {
+          _selectedImage = selectedImage;
+          _isSendButtonEnabled = true;
+        });
+      }
+    }
+  }
+
+  void _removeSelectedImage() {
+    setState(() {
+      _selectedImage = null;
+      _isSendButtonEnabled = _controller.text.isNotEmpty;
+    });
+  }
+
+  Future<ApiChat> _getChat(String chatUuid) async {
+    var client = Provider.of<UserModel>(context, listen: false).client;
+    var chat = await client.getChatsPost([chatUuid]);
+
+    if (chat == null || chat.isEmpty) {
+      throw Exception('Chat not found');
+    }
+
+    if (chat.length > 1) {
+      throw Exception('Too many chats found');
+    }
+
+    return chat.first;
   }
 }

@@ -1,4 +1,4 @@
-import 'package:client/components/responseive_scaffold.dart';
+import 'package:client/components/responsive_scaffold.dart';
 import 'package:client/models/register_model.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -89,7 +89,7 @@ class RegisterBirthdatePageState extends State<RegisterBirthdatePage> {
     if (!mounted) return;
 
     Provider.of<RegisterModel>(context, listen: false)
-        .setBirthdate(selectedDate!);
+        .setBirthdate(selectedDate!.millisecondsSinceEpoch ~/ 1000);
     nextPage(context, widget);
   }
 }

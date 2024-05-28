@@ -63,7 +63,7 @@ fn put_image(
             actix_web::error::ErrorInternalServerError("Failed to save user")
         })?;
 
-        user.images.push(uuid.clone());
+        user.owned_images.push(uuid.clone());
 
         user.save(db).map_err(|e| {
             println!("Failed to save user {:?}", e);

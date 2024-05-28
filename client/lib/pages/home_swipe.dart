@@ -1,6 +1,6 @@
 import 'package:client/api/pkg/lib/api.dart';
 import 'package:client/components/swipeable_user_card/swipeable_user_card.dart';
-import 'package:client/models/home_model.dart';
+import 'package:client/models/user_model.dart';
 import 'package:client/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -14,6 +14,7 @@ class SwipePage extends StatefulWidget {
 
 class SwipePageState extends State<SwipePage> {
   final List<ApiUser?> _userStack = [null, null];
+  final List<ApiUser> _potentialMatches = [];
   bool _isLoading = true;
   String? _error;
 
@@ -30,8 +31,7 @@ class SwipePageState extends State<SwipePage> {
 
   Future<void> _loadNextUser(int index) async {
     try {
-      final user = await Provider.of<HomeModel>(context, listen: false)
-          .getPotentialMatch(index);
+      final user = await getPotentialMatch(index);
 
       setState(() {
         if (user == null) {
@@ -61,19 +61,16 @@ class SwipePageState extends State<SwipePage> {
   }
 
   Future<void> handleSwipe(ApiUser user, bool isLiked) async {
-    var homeModel = Provider.of<HomeModel>(context, listen: false);
     if (isLiked) {
-      var match = await homeModel.likeUser(user);
+      var match = await likeUser(user);
       if (match) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("It's a match!")),
         );
-        homeModel.chats = [];
-        homeModel.initChats(homeModel.me);
       }
     } else {
-      await homeModel.dislikeUser(user);
+      await dislikeUser(user);
     }
 
     setState(() {
@@ -109,5 +106,57 @@ class SwipePageState extends State<SwipePage> {
         );
       }).toList(),
     );
+  }
+
+  Future<ApiUser?> getPotentialMatch(int index) async {
+    if (_potentialMatches.length < 5) {
+      _fetchPotentialMatches()
+          .then((matches) => _potentialMatches.addAll(matches));
+    }
+    if (_potentialMatches.isEmpty) {
+      var matches = await _fetchPotentialMatches();
+      if (matches.isEmpty) {
+        return null;
+      }
+      _potentialMatches.addAll(matches);
+      return _potentialMatches[index];
+    }
+    return _potentialMatches[index];
+  }
+
+  Future<bool> likeUser(ApiUser user) async {
+    //pop the user from the potential matches
+    _potentialMatches.remove(user);
+    var client = Provider.of<UserModel>(context, listen: false).client;
+    var result = await client.ratePost(RatingWithTarget(
+        rating: RatingWithTargetRatingEnum.like, target: user.uuid));
+    if (result == null) {
+      throw Exception('Failed to like user');
+    }
+    return result;
+  }
+
+  Future<bool> dislikeUser(ApiUser user) async {
+    //pop the user from the potential matches
+    _potentialMatches.remove(user);
+
+    var client = Provider.of<UserModel>(context, listen: false).client;
+    var result = await client.ratePost(RatingWithTarget(
+        rating: RatingWithTargetRatingEnum.pass, target: user.uuid));
+    if (result == null) {
+      throw Exception('Failed to dislike user');
+    }
+    return result;
+  }
+
+  Future<List<ApiUser>> _fetchPotentialMatches() async {
+    var client = Provider.of<UserModel>(context, listen: false).client;
+    var matches = await client
+        .getNextUsersPost(_potentialMatches.map((e) => e.uuid).toList());
+    if (matches == null) {
+      throw Exception('Failed to get matches');
+    }
+
+    return matches.toList();
   }
 }

@@ -189,7 +189,7 @@ impl Gen<'_, DB> for ApiUserWritable {
         let mut rng = rand::thread_rng();
         let hashed_password = "asdfasdf".to_string();
         let mut uuids = Vec::with_capacity(6);
-        for _ in 0..6 {
+        for _ in 0..2 {
             let image = ApiImageWritable::gen(&true)
                 .to_internal(Access::Everyone)
                 .unwrap();

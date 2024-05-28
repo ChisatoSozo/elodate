@@ -4,7 +4,7 @@ import 'package:client/components/swipeable_user_card/swipe_overlay.dart';
 import 'package:client/components/swipeable_user_card/swipeable_image_view.dart';
 import 'package:client/components/swipeable_user_card/user_details.dart';
 import 'package:client/components/uuid_image_provider.dart';
-import 'package:client/models/home_model.dart';
+import 'package:client/models/user_model.dart';
 import 'package:flutter/material.dart';
 import 'package:preload_page_view/preload_page_view.dart';
 import 'package:provider/provider.dart';
@@ -54,12 +54,12 @@ class SwipeableUserCardState extends State<SwipeableUserCard>
   }
 
   void _preloadImages() {
-    var homeModel = Provider.of<HomeModel>(context, listen: false);
+    var userModel = Provider.of<UserModel>(context, listen: false);
     var newCachedImages = <UuidImageProvider>[];
     for (var image in widget.user.images) {
       newCachedImages.add(UuidImageProvider(
         uuid: image,
-        homeModel: homeModel,
+        userModel: userModel,
       ));
     }
     setState(() {
