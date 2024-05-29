@@ -1,16 +1,17 @@
 import 'package:client/api/pkg/lib/api.dart';
+import 'package:client/components/labeled_radio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 const maxGridSize = 300.0;
 
 class GenderPicker extends StatefulWidget {
-  final List<ApiUserPropertiesInner> properties;
+  final List<ApiUserPropsInner> props;
   final List<PreferenceConfigPublic> preferenceConfigs;
-  final Function(List<ApiUserPropertiesInner>) onUpdated;
+  final Function(List<ApiUserPropsInner>) onUpdated;
 
   const GenderPicker({
-    required this.properties,
+    required this.props,
     required this.preferenceConfigs,
     required this.onUpdated,
     super.key,
@@ -28,15 +29,15 @@ class GenderPickerState extends State<GenderPicker> {
   @override
   void initState() {
     super.initState();
-    if (widget.properties.length != 2) {
-      throw Exception('GenderPicker requires exactly two properties');
+    if (widget.props.length != 2) {
+      throw Exception('GenderPicker requires exactly two props');
     }
     if (widget.preferenceConfigs.length != 2) {
       throw Exception('GenderPicker requires exactly two preference config');
     }
 
-    percentMale = widget.properties[0].value.toDouble();
-    percentFemale = widget.properties[1].value.toDouble();
+    percentMale = widget.props[0].value.toDouble();
+    percentFemale = widget.props[1].value.toDouble();
     _preferenceConfig = widget.preferenceConfigs.first;
   }
 
@@ -51,9 +52,9 @@ class GenderPickerState extends State<GenderPicker> {
           _preferenceConfig.min;
     });
 
-    widget.properties[0].value = percentMale.round();
-    widget.properties[1].value = percentFemale.round();
-    widget.onUpdated(widget.properties);
+    widget.props[0].value = percentMale.round();
+    widget.props[1].value = percentFemale.round();
+    widget.onUpdated(widget.props);
   }
 
   Offset getOffset() {
@@ -85,61 +86,53 @@ class GenderPickerState extends State<GenderPicker> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        ListTile(
-          title: const Text('Male'),
-          leading: Radio<String>(
-            value: 'Male',
-            groupValue: getGenderValue(),
-            onChanged: (String? value) {
-              if (value != null) {
-                setState(() {
-                  percentMale = _preferenceConfig.max.toDouble();
-                  percentFemale = _preferenceConfig.min.toDouble();
-                });
-                widget.properties[0].value = percentMale.round();
-                widget.properties[1].value = percentFemale.round();
-                widget.onUpdated(widget.properties);
-              }
-            },
-          ),
+        LabeledRadio<String>(
+          label: 'Male',
+          value: 'Male',
+          groupValue: getGenderValue(),
+          onChanged: (String? value) {
+            if (value != null) {
+              setState(() {
+                percentMale = _preferenceConfig.max.toDouble();
+                percentFemale = _preferenceConfig.min.toDouble();
+              });
+              widget.props[0].value = _preferenceConfig.max;
+              widget.props[1].value = _preferenceConfig.min;
+              widget.onUpdated(widget.props);
+            }
+          },
         ),
-        ListTile(
-          title: const Text('Female'),
-          leading: Radio<String>(
-            value: 'Female',
-            groupValue: getGenderValue(),
-            onChanged: (String? value) {
-              if (value != null) {
-                setState(() {
-                  percentMale = _preferenceConfig.min.toDouble();
-                  percentFemale = _preferenceConfig.max.toDouble();
-                });
-                widget.properties[0].value = percentMale.round();
-                widget.properties[1].value = percentFemale.round();
-                widget.onUpdated(widget.properties);
-              }
-            },
-          ),
+        LabeledRadio<String>(
+          label: 'Female',
+          value: 'Female',
+          groupValue: getGenderValue(),
+          onChanged: (String? value) {
+            if (value != null) {
+              setState(() {
+                percentMale = _preferenceConfig.min.toDouble();
+                percentFemale = _preferenceConfig.max.toDouble();
+              });
+              widget.props[0].value = _preferenceConfig.min;
+              widget.props[1].value = _preferenceConfig.max;
+              widget.onUpdated(widget.props);
+            }
+          },
         ),
-        ListTile(
-          title: const Text('Advanced'),
-          leading: Radio<String>(
-            value: 'Advanced',
-            groupValue: getGenderValue(),
-            onChanged: (String? value) {
-              if (value != null) {
-                setState(() {
-                  percentMale =
-                      (_preferenceConfig.min + _preferenceConfig.max) / 2;
-                  percentFemale =
-                      (_preferenceConfig.min + _preferenceConfig.max) / 2;
-                });
-                widget.properties[0].value = percentMale.round();
-                widget.properties[1].value = percentFemale.round();
-                widget.onUpdated(widget.properties);
-              }
-            },
-          ),
+        LabeledRadio<String>(
+          label: 'Advanced',
+          value: 'Advanced',
+          groupValue: getGenderValue(),
+          onChanged: (String? value) {
+            if (value != null) {
+              setState(() {
+                percentMale = 50;
+                percentFemale = 50;
+              });
+              widget.props[0].value = 50;
+              widget.props[1].value = 50;
+              widget.onUpdated(widget.props);
+            }
+          },
         ),
         if (getGenderValue() == "Advanced") ...[
           const SizedBox(height: 20),
@@ -262,12 +255,12 @@ class GenderPainterWidget extends StatelessWidget {
 }
 
 class GenderRangePicker extends StatefulWidget {
-  final List<ApiUserPreferencesInner> preferences;
+  final List<ApiUserPrefsInner> prefs;
   final List<PreferenceConfigPublic> preferenceConfigs;
-  final Function(List<ApiUserPreferencesInner>) onUpdated;
+  final Function(List<ApiUserPrefsInner>) onUpdated;
 
   const GenderRangePicker({
-    required this.preferences,
+    required this.prefs,
     required this.preferenceConfigs,
     required this.onUpdated,
     super.key,
@@ -290,18 +283,18 @@ class GenderRangePickerState extends State<GenderRangePicker> {
   @override
   void initState() {
     super.initState();
-    if (widget.preferences.length != 2) {
-      throw Exception('GenderRangePicker requires exactly two preferences');
+    if (widget.prefs.length != 2) {
+      throw Exception('GenderRangePicker requires exactly two prefs');
     }
     if (widget.preferenceConfigs.length != 2) {
       throw Exception(
           'GenderRangePicker requires exactly two preference configs');
     }
 
-    maleMin = widget.preferences[0].range.min.toDouble();
-    maleMax = widget.preferences[0].range.max.toDouble();
-    femaleMin = widget.preferences[1].range.min.toDouble();
-    femaleMax = widget.preferences[1].range.max.toDouble();
+    maleMin = widget.prefs[0].range.min.toDouble();
+    maleMax = widget.prefs[0].range.max.toDouble();
+    femaleMin = widget.prefs[1].range.min.toDouble();
+    femaleMax = widget.prefs[1].range.max.toDouble();
     _preferenceConfig = (
       widget.preferenceConfigs.first,
       widget.preferenceConfigs.last,
@@ -360,11 +353,11 @@ class GenderRangePickerState extends State<GenderRangePicker> {
               femaleConfig.min;
     });
 
-    widget.preferences[0].range.min = maleMin.round();
-    widget.preferences[0].range.max = maleMax.round();
-    widget.preferences[1].range.min = femaleMin.round();
-    widget.preferences[1].range.max = femaleMax.round();
-    widget.onUpdated(widget.preferences);
+    widget.prefs[0].range.min = maleMin.round();
+    widget.prefs[0].range.max = maleMax.round();
+    widget.prefs[1].range.min = femaleMin.round();
+    widget.prefs[1].range.max = femaleMax.round();
+    widget.onUpdated(widget.prefs);
   }
 
   void _updateRangeDrag(Offset position, int cornerIndex) {
@@ -393,71 +386,65 @@ class GenderRangePickerState extends State<GenderRangePicker> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        ListTile(
-          title: const Text('Male'),
-          leading: Radio<String>(
-            value: 'Male',
-            groupValue: getGenderValue(),
-            onChanged: (String? value) {
-              if (value != null) {
-                setState(() {
-                  maleMin = 50;
-                  maleMax = 100;
-                  femaleMin = 0;
-                  femaleMax = 50;
-                });
-                widget.preferences[0].range.min = maleMin.round();
-                widget.preferences[0].range.max = maleMax.round();
-                widget.preferences[1].range.min = femaleMin.round();
-                widget.preferences[1].range.max = femaleMax.round();
-                widget.onUpdated(widget.preferences);
-              }
-            },
-          ),
+        LabeledRadio<String>(
+          label: 'Male',
+          value: 'Male',
+          groupValue: getGenderValue(),
+          onChanged: (String? value) {
+            if (value != null) {
+              setState(() {
+                maleMin = 50;
+                maleMax = 100;
+                femaleMin = 0;
+                femaleMax = 50;
+              });
+              widget.prefs[0].range.min = maleMin.round();
+              widget.prefs[0].range.max = maleMax.round();
+              widget.prefs[1].range.min = femaleMin.round();
+              widget.prefs[1].range.max = femaleMax.round();
+              widget.onUpdated(widget.prefs);
+            }
+          },
         ),
-        ListTile(
-          title: const Text('Female'),
-          leading: Radio<String>(
-            value: 'Female',
-            groupValue: getGenderValue(),
-            onChanged: (String? value) {
-              if (value != null) {
-                setState(() {
-                  maleMin = 0;
-                  maleMax = 50;
-                  femaleMin = 50;
-                  femaleMax = 100;
-                });
-                widget.preferences[0].range.min = maleMin.round();
-                widget.preferences[0].range.max = maleMax.round();
-                widget.preferences[1].range.min = femaleMin.round();
-                widget.preferences[1].range.max = femaleMax.round();
-                widget.onUpdated(widget.preferences);
-              }
-            },
-          ),
+        LabeledRadio<String>(
+          label: 'Female',
+          value: 'Female',
+          groupValue: getGenderValue(),
+          onChanged: (String? value) {
+            if (value != null) {
+              setState(() {
+                maleMin = 0;
+                maleMax = 50;
+                femaleMin = 50;
+                femaleMax = 100;
+              });
+              widget.prefs[0].range.min = maleMin.round();
+              widget.prefs[0].range.max = maleMax.round();
+              widget.prefs[1].range.min = femaleMin.round();
+              widget.prefs[1].range.max = femaleMax.round();
+              widget.onUpdated(widget.prefs);
+            }
+          },
         ),
-        ListTile(
-          title: const Text('Advanced'),
-          leading: Radio<String>(
-            value: 'Advanced',
-            groupValue: getGenderValue(),
-            onChanged: (String? value) {
-              if (value != null) {
-                setState(() {
-                  maleMin = 25;
-                  maleMax = 75;
-                  femaleMin = 25;
-                  femaleMax = 75;
-                });
-                widget.preferences[0].range.min = maleMin.round();
-                widget.preferences[0].range.max = maleMax.round();
-                widget.preferences[1].range.min = femaleMin.round();
-                widget.preferences[1].range.max = femaleMax.round();
-                widget.onUpdated(widget.preferences);
-              }
-            },
-          ),
+        LabeledRadio<String>(
+          label: 'Advanced',
+          value: 'Advanced',
+          groupValue: getGenderValue(),
+          onChanged: (String? value) {
+            if (value != null) {
+              setState(() {
+                maleMin = 25;
+                maleMax = 75;
+                femaleMin = 25;
+                femaleMax = 75;
+              });
+              widget.prefs[0].range.min = maleMin.round();
+              widget.prefs[0].range.max = maleMax.round();
+              widget.prefs[1].range.min = femaleMin.round();
+              widget.prefs[1].range.max = femaleMax.round();
+              widget.onUpdated(widget.prefs);
+            }
+          },
         ),
         if (getGenderValue() == "Advanced") ...[
           const SizedBox(height: 20),

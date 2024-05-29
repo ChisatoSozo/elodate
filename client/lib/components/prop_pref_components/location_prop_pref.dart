@@ -15,12 +15,12 @@ const double maxLat = 90.0;
 const double minLon = -180.0;
 const double maxLon = 180.0;
 
-int calculateInitialDistance(List<ApiUserPropertiesInner> properties,
-    List<ApiUserPreferencesInner> preferences) {
-  var lat = getPropByName(properties, "latitude").value;
-  var lng = getPropByName(properties, "longitude").value;
-  var latPref = getPrefByName(preferences, "latitude").range;
-  var lngPref = getPrefByName(preferences, "longitude").range;
+int calculateInitialDistance(
+    List<ApiUserPropsInner> props, List<ApiUserPrefsInner> prefs) {
+  var lat = getPropByName(props, "latitude").value;
+  var lng = getPropByName(props, "longitude").value;
+  var latPref = getPrefByName(prefs, "latitude").range;
+  var lngPref = getPrefByName(prefs, "longitude").range;
   final userLatLng = decodeLatLongFromI16(lat, lng);
   final preferenceMinLatLng = decodeLatLongFromI16(latPref.min, lngPref.min);
   final preferenceMaxLatLng = decodeLatLongFromI16(latPref.max, lngPref.max);
@@ -49,12 +49,12 @@ int findClosestDistanceIndex(int distance, List<int> presetDistances) {
   return closestIndex;
 }
 
-(ApiUserPreferencesInnerRange, ApiUserPreferencesInnerRange) getLatLngRange(
-  List<ApiUserPropertiesInner> properties,
+(ApiUserPrefsInnerRange, ApiUserPrefsInnerRange) getLatLngRange(
+  List<ApiUserPropsInner> props,
   int distanceInKm,
 ) {
-  var lat = getPropByName(properties, "latitude").value;
-  var lng = getPropByName(properties, "longitude").value;
+  var lat = getPropByName(props, "latitude").value;
+  var lng = getPropByName(props, "longitude").value;
 
   final userLatLng = decodeLatLongFromI16(lat, lng);
 
@@ -73,8 +73,8 @@ int findClosestDistanceIndex(int distance, List<int> presetDistances) {
   final maxLatLng = encodeLatLongToI16(maxLat, maxLng);
 
   return (
-    ApiUserPreferencesInnerRange(min: minLatLng.$1, max: maxLatLng.$1),
-    ApiUserPreferencesInnerRange(min: minLatLng.$2, max: maxLatLng.$2)
+    ApiUserPrefsInnerRange(min: minLatLng.$1, max: maxLatLng.$1),
+    ApiUserPrefsInnerRange(min: minLatLng.$2, max: maxLatLng.$2)
   );
 }
 
@@ -111,13 +111,13 @@ Future<Map<String, double>?> getCurrentPosition() async {
 }
 
 class LocationPicker extends StatefulWidget {
-  final List<ApiUserPropertiesInner> properties;
+  final List<ApiUserPropsInner> props;
   final List<PreferenceConfigPublic> preferenceConfigs;
-  final Function(List<ApiUserPropertiesInner>) onUpdated;
+  final Function(List<ApiUserPropsInner>) onUpdated;
 
   const LocationPicker({
     super.key,
-    required this.properties,
+    required this.props,
     required this.preferenceConfigs,
     required this.onUpdated,
   });
@@ -135,16 +135,16 @@ class LocationPickerState extends State<LocationPicker> {
   @override
   void initState() {
     super.initState();
-    if (widget.properties.length != 2) {
-      throw Exception('LocationPicker requires exactly two properties');
+    if (widget.props.length != 2) {
+      throw Exception('LocationPicker requires exactly two props');
     }
     if (widget.preferenceConfigs.length != 2) {
       throw Exception('LocationPicker requires exactly one preference config');
     }
 
     //get double from i16 input
-    var (lat, lon) = decodeLatLongFromI16(
-        widget.properties[0].value, widget.properties[1].value);
+    var (lat, lon) =
+        decodeLatLongFromI16(widget.props[0].value, widget.props[1].value);
 
     latitude = lat;
     longitude = lon;
@@ -231,48 +231,50 @@ class LocationPickerState extends State<LocationPicker> {
     //connvert to int
     var (lat, lon) = encodeLatLongToI16(latitude, longitude);
 
-    widget.properties[0].value = lat;
-    widget.properties[1].value = lon;
-    widget.onUpdated(widget.properties);
+    widget.props[0].value = lat;
+    widget.props[1].value = lon;
+    widget.onUpdated(widget.props);
   }
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        if (locationError != null)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 16.0),
-            child: Text(
-              locationError!,
-              style: const TextStyle(color: Colors.red, fontSize: 16),
-              textAlign: TextAlign.center,
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          if (locationError != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16.0),
+              child: Text(
+                locationError!,
+                style: const TextStyle(color: Colors.red, fontSize: 16),
+                textAlign: TextAlign.center,
+              ),
             ),
-          ),
-        if (isLoading) const CircularProgressIndicator(),
-        if (!isLoading) ...[
-          Text(
-            'Latitude: ${latitude.toStringAsFixed(3)}',
-            style: const TextStyle(fontSize: 18),
-          ),
-          Text(
-            'Longitude: ${longitude.toStringAsFixed(3)}',
-            style: const TextStyle(fontSize: 18),
-          ),
-          const SizedBox(height: 20),
-          ElevatedButton.icon(
-            onPressed: _getCurrentPosition,
-            icon: const Icon(Icons.location_on),
-            label: const Text('Get Location'),
-            style: ElevatedButton.styleFrom(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-              textStyle: const TextStyle(fontSize: 16),
+          if (isLoading) const CircularProgressIndicator(),
+          if (!isLoading) ...[
+            Text(
+              'Latitude: ${latitude.toStringAsFixed(3)}',
+              style: Theme.of(context).textTheme.titleMedium,
             ),
-          ),
+            Text(
+              'Longitude: ${longitude.toStringAsFixed(3)}',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              onPressed: _getCurrentPosition,
+              icon: const Icon(Icons.location_on),
+              label: const Text('Get Location'),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 16.0, vertical: 12.0),
+                textStyle: Theme.of(context).textTheme.titleMedium,
+              ),
+            ),
+          ],
         ],
-      ],
+      ),
     );
   }
 }
@@ -280,12 +282,12 @@ class LocationPickerState extends State<LocationPicker> {
 const List<int> presetDistances = [1, 2, 5, 10, 20, 50, 100, 250, 500, 25000];
 
 class LocationRangePicker extends StatefulWidget {
-  final List<ApiUserPreferencesInner> preferences;
+  final List<ApiUserPrefsInner> prefs;
   final List<PreferenceConfigPublic> preferenceConfigs;
-  final Function(List<ApiUserPreferencesInner>) onUpdated;
+  final Function(List<ApiUserPrefsInner>) onUpdated;
 
   const LocationRangePicker({
-    required this.preferences,
+    required this.prefs,
     required this.preferenceConfigs,
     required this.onUpdated,
     super.key,
@@ -305,8 +307,7 @@ class LocationRangePickerState extends State<LocationRangePicker> {
     var userModel = Provider.of<UserModel>(context, listen: false);
     var user = userModel.me;
     selectedDistanceIndex = findClosestDistanceIndex(
-        calculateInitialDistance(user.properties, widget.preferences),
-        presetDistances);
+        calculateInitialDistance(user.props, widget.prefs), presetDistances);
     selectedDistance = presetDistances[selectedDistanceIndex];
   }
 
@@ -316,12 +317,11 @@ class LocationRangePickerState extends State<LocationRangePicker> {
       selectedDistance = presetDistances[selectedDistanceIndex];
     });
 
-    var (latRange, lngRange) =
-        getLatLngRange(user.properties, selectedDistance);
+    var (latRange, lngRange) = getLatLngRange(user.props, selectedDistance);
 
-    widget.preferences.first.range = latRange;
-    widget.preferences.last.range = lngRange;
-    widget.onUpdated(widget.preferences);
+    widget.prefs.first.range = latRange;
+    widget.prefs.last.range = lngRange;
+    widget.onUpdated(widget.prefs);
   }
 
   @override
@@ -332,10 +332,6 @@ class LocationRangePickerState extends State<LocationRangePicker> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        Text(
-          'Selected Distance: $selectedDistance km',
-          style: const TextStyle(fontSize: 18),
-        ),
         Slider(
           value: selectedDistanceIndex.toDouble(),
           min: 0,
@@ -343,6 +339,10 @@ class LocationRangePickerState extends State<LocationRangePicker> {
           divisions: presetDistances.length - 1,
           label: '${presetDistances[selectedDistanceIndex]} km',
           onChanged: (value) => _onSliderChanged(value, user),
+        ),
+        Text(
+          'Selected Distance: $selectedDistance km',
+          style: Theme.of(context).textTheme.titleMedium,
         ),
       ],
     );

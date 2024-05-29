@@ -94,8 +94,7 @@ class SwipePageState extends State<SwipePage> {
     return Stack(
       children: _userStack.reversed.map((user) {
         if (user == null) {
-          return const Center(
-              child: Text('End of users, expand your preferences'));
+          return const Center(child: Text('End of users, expand your prefs'));
         }
         return Positioned.fill(
           child: SwipeableUserCard(

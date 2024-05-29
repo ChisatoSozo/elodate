@@ -53,18 +53,17 @@ class UserDetails extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     GenderDisplay(
-                        maleValue:
-                            (getPropByName(user.properties, "percent_male")
-                                    .value as double) /
-                                100.0,
+                        maleValue: (getPropByName(user.props, "percent_male")
+                                .value as double) /
+                            100.0,
                         femaleValue:
-                            (getPropByName(user.properties, "percent_female")
-                                    .value as double) /
+                            (getPropByName(user.props, "percent_female").value
+                                    as double) /
                                 100.0),
                     const SizedBox(width: 10),
                     Text(
                       user.displayName,
-                      style: theme.textTheme.titleLarge,
+                      style: Theme.of(context).textTheme.titleLarge,
                     ),
                     const SizedBox(width: 10),
                     Icon(
@@ -82,10 +81,8 @@ class UserDetails extends StatelessWidget {
                 child: Column(
                   children: [
                     SingleChildScrollView(
-                      child: Text(
-                        user.description,
-                        style: theme.textTheme.bodyMedium,
-                      ),
+                      child: Text(user.description,
+                          style: Theme.of(context).textTheme.bodyMedium),
                     ),
                   ],
                 ),

@@ -9,14 +9,14 @@ use serde::Deserialize;
 
 use crate::{
     db::DB,
-    models::internal_models::internal_preferences::{LabeledPreferenceRange, LabeledProperty},
+    models::internal_models::internal_prefs::{LabeledPreferenceRange, LabeledProperty},
     routes::shared::route_body_mut_db,
 };
 
 #[derive(Debug, Clone, Deserialize, Apiv2Schema)]
 pub struct PropsAndPrefs {
-    pub properties: Vec<LabeledProperty>,
-    pub preferences: Vec<LabeledPreferenceRange>,
+    pub props: Vec<LabeledProperty>,
+    pub prefs: Vec<LabeledPreferenceRange>,
 }
 
 #[api_v2_operation]
@@ -27,11 +27,8 @@ pub fn get_users_mutual_perfer_count_dry_run(
     body: Json<PropsAndPrefs>,
 ) -> Result<Json<usize>, Error> {
     route_body_mut_db(db, req, body, |db, user, body| {
-        let users_mutual_perfer_count = db.get_mutual_preference_users_count_direct(
-            &body.properties,
-            &body.preferences,
-            &user.seen,
-        )?;
+        let users_mutual_perfer_count =
+            db.get_mutual_preference_users_count_direct(&body.props, &body.prefs, &user.seen)?;
         Ok(users_mutual_perfer_count)
     })
 }

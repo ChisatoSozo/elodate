@@ -7,7 +7,7 @@ use std::error::Error;
 use super::{
     internal_chat::InternalChat,
     internal_image::InternalImage,
-    internal_preferences::{LabeledPreferenceRange, LabeledProperty},
+    internal_prefs::{LabeledPreferenceRange, LabeledProperty},
     shared::{GetBbox, GetVector, InternalUuid, Save},
 };
 
@@ -35,8 +35,8 @@ pub struct InternalUser {
     pub display_name: String,
     pub description: String,
     pub birthdate: i64,
-    pub preferences: Vec<LabeledPreferenceRange>,
-    pub properties: Vec<LabeledProperty>,
+    pub prefs: Vec<LabeledPreferenceRange>,
+    pub props: Vec<LabeledProperty>,
     pub owned_images: Vec<InternalUuid<InternalImage>>,
     pub published: bool,
 }
@@ -74,8 +74,8 @@ impl Save for InternalUser {
         let arc_clone = db.vec_index.clone();
         let mut lock = arc_clone.lock().map_err(|_| "Could not lock vec_index")?;
 
-        lock.add(&self.properties.get_vector(), &self.uuid.id);
-        lock.add_bbox(&self.preferences.get_bbox(), &self.uuid.id);
+        lock.add(&self.props.get_vector(), &self.uuid.id);
+        lock.add_bbox(&self.prefs.get_bbox(), &self.uuid.id);
         Ok(self.uuid)
     }
 }

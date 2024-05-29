@@ -1,6 +1,7 @@
 import 'package:client/components/responsive_scaffold.dart';
 import 'package:client/models/user_model.dart';
 import 'package:client/pages/home_chat.dart';
+import 'package:client/pages/home_settings.dart';
 import 'package:client/pages/home_swipe.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -16,7 +17,7 @@ class HomePageState extends State<HomePage> {
   int _selectedIndex = 1; // Default index for the center tab
 
   static final List<Widget> _widgetOptions = <Widget>[
-    Container(),
+    const ResponsiveContainer(scrollable: true, child: SettingsPage()),
     const ResponsiveContainer(scrollable: false, child: SwipePage()),
     const ResponsiveContainer(scrollable: false, child: ChatPage()),
   ];

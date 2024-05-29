@@ -6,7 +6,7 @@
 //   late DefaultApi _client;
 //   late ApiUserMe me;
 //   final List<ApiUser> _potentialMatches = [];
-//   late PreferencesConfig preferenceConfigs;
+//   late PrefsConfig preferenceConfigs;
 //   List<(ApiUser, ApiChat)> chats = [];
 //   bool isLoaded = false;
 //   bool isLoading = false;
@@ -24,7 +24,7 @@
 
 //     isLoading = true;
 //     await initClient(jwt);
-//     await Future.wait([initMe(), initAdditionalPreferences()]);
+//     await Future.wait([initMe(), initAdditionalPrefs()]);
 //     await initChats(me);
 //     isLoaded = true;
 //     isLoading = false;
@@ -44,10 +44,10 @@
 //     me = newMe;
 //   }
 
-//   Future<void> initAdditionalPreferences() async {
-//     var result = await _client.getPreferencesConfigPost(true);
+//   Future<void> initAdditionalPrefs() async {
+//     var result = await _client.getPrefsConfigPost(true);
 //     if (result == null) {
-//       throw Exception('Failed to get additional preferences');
+//       throw Exception('Failed to get additional prefs');
 //     }
 //     preferenceConfigs = result;
 //   }
@@ -87,14 +87,14 @@
 
 
 
-//   Future<int> getNumUsersIPreferDryRun(ApiUserPreferences prefs) async {
-//     var result = await _client.getUsersIPerferCountDryRunPost(Preferences(
+//   Future<int> getNumUsersIPreferDryRun(ApiUserPrefs prefs) async {
+//     var result = await _client.getUsersIPerferCountDryRunPost(Prefs(
 //         age: prefs.age,
 //         latitude: prefs.latitude,
 //         longitude: prefs.longitude,
 //         percentFemale: prefs.percentFemale,
 //         percentMale: prefs.percentMale,
-//         additionalPreferences: prefs.additionalPreferences));
+//         additionalPrefs: prefs.additionalPrefs));
 //     if (result == null) {
 //       throw Exception('Failed to get number of users');
 //     }
@@ -102,9 +102,9 @@
 //   }
 
 //   Future<int> getNumUsersMutuallyPreferDryRun(
-//       ApiUserProperties props, ApiUserPreferences prefs) async {
+//       ApiUserProps props, ApiUserPrefs prefs) async {
 //     var result = await _client.getUsersMutualPerferCountDryRunPost(
-//         PropsAndPrefs(preferences: prefs, properties: props));
+//         PropsAndPrefs(prefs: prefs, props: props));
 //     if (result == null) {
 //       throw Exception('Failed to get number of users');
 //     }

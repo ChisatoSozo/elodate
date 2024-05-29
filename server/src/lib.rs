@@ -4,13 +4,13 @@ use quote::quote;
 use syn::{parse_macro_input, Expr, ExprArray, FieldValue, ItemStatic, Member};
 
 #[proc_macro]
-pub fn generate_user_properties(input: TokenStream) -> TokenStream {
+pub fn generate_user_props(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as ItemStatic);
 
     if let Expr::Array(array) = *input.expr {
         let fields = process_array(array, "i16");
         let expanded = quote! {
-            struct UserProperties {
+            struct UserProps {
                 #(#fields),*
             }
         };
@@ -21,13 +21,13 @@ pub fn generate_user_properties(input: TokenStream) -> TokenStream {
 }
 
 #[proc_macro]
-pub fn generate_preferences(input: TokenStream) -> TokenStream {
+pub fn generate_prefs(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as ItemStatic);
 
     if let Expr::Array(array) = *input.expr {
         let fields = process_array(array, "PreferenceRange");
         let expanded = quote! {
-            struct Preferences {
+            struct Prefs {
                 #(#fields),*
             }
         };

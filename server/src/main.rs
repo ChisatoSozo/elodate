@@ -9,11 +9,11 @@ use paperclip::actix::{web, OpenApiExt};
 use routes::{
     check_username::check_username, get_chats::get_chats, get_images::get_images, get_me::get_me,
     get_messages::get_messages, get_next_users::get_next_users,
-    get_preferences_config::get_preferences_config, get_users::get_users,
+    get_prefs_config::get_prefs_config, get_users::get_users,
     get_users_i_perfer_count_dry_run::get_users_i_perfer_count_dry_run,
     get_users_mutual_perfer_count_dry_run::get_users_mutual_perfer_count_dry_run, login::login,
     put_image::put_image, put_user::put_user, rate::rate, send_message::send_message,
-    signup::signup,
+    set_published::set_published, signup::signup,
 };
 
 pub mod constants;
@@ -55,7 +55,7 @@ async fn main() -> std::io::Result<()> {
             .service(get_messages)
             .service(check_username)
             .service(send_message)
-            .service(get_preferences_config)
+            .service(get_prefs_config)
             .service(put_user)
             .service(get_me)
             .service(get_users_i_perfer_count_dry_run)
@@ -63,6 +63,7 @@ async fn main() -> std::io::Result<()> {
             .service(get_next_users)
             .service(get_images)
             .service(put_image)
+            .service(set_published)
             .service(rate)
             .with_json_spec_at(JSON_SPEC_PATH)
             .build()

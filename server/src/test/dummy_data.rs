@@ -63,6 +63,7 @@ fn insert_dummy_data() -> Result<(), Box<dyn std::error::Error>> {
     //upsert main user
     let user: ApiUserWritable = ApiUserWritable::gen(&db);
     let mut user: InternalUser = user.to_internal(&db).unwrap();
+    user.published = true;
     user.username = "asdf".to_string();
     user.hashed_password = hash("asdfasdf", 4)?;
 
@@ -115,6 +116,7 @@ fn insert_dummy_data() -> Result<(), Box<dyn std::error::Error>> {
         user.chats.push(chat.uuid.clone());
         chat.save(&db)?;
     }
+    user.published = true;
 
     user.save(&db).unwrap();
 

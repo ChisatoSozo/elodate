@@ -43,7 +43,7 @@ class ChatPageState extends State<ChatPage> {
                   : "${user.displayName}: ${chat.mostRecentMessage}",
               overflow: TextOverflow.ellipsis,
               maxLines: 1,
-              style: const TextStyle(fontSize: 14)),
+              style: Theme.of(context).textTheme.bodyMedium),
           onTap: () {
             Navigator.push(
                 context,

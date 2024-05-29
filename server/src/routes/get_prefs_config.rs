@@ -7,19 +7,19 @@ use paperclip::actix::{
 
 use crate::{
     db::DB,
-    models::internal_models::internal_preferences::{PreferenceConfigPublic, PREFERENCES_CONFIG},
+    models::internal_models::internal_prefs::{PreferenceConfigPublic, PREFS_CONFIG},
     routes::shared::route_body_mut_db,
 };
 
 #[api_v2_operation]
-#[post("/get_preferences_config")]
-pub fn get_preferences_config(
+#[post("/get_prefs_config")]
+pub fn get_prefs_config(
     db: web::Data<DB>,
     req: web::HttpRequest,
     body: Json<bool>,
 ) -> Result<Json<Vec<PreferenceConfigPublic>>, Error> {
     route_body_mut_db(db, req, body, |_, _, _| {
-        Ok(PREFERENCES_CONFIG
+        Ok(PREFS_CONFIG
             .iter()
             .cloned()
             .map(|p| p.get_public())

@@ -6,7 +6,7 @@ use paperclip::actix::{
 };
 
 use crate::{
-    db::DB, models::internal_models::internal_preferences::LabeledPreferenceRange,
+    db::DB, models::internal_models::internal_prefs::LabeledPreferenceRange,
     routes::shared::route_body_mut_db,
 };
 

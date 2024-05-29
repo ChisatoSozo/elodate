@@ -34,6 +34,12 @@ class UserModel extends ChangeNotifier {
   bool isLoading = false;
   bool isLoaded = false;
 
+  bool canLoad() {
+    var jwt = localStorage.getItem('jwt');
+    var uuid = localStorage.getItem('uuid');
+    return jwt != null && uuid != null;
+  }
+
   Future<UserModel> initAll() async {
     var jwt = localStorage.getItem('jwt');
     if (jwt == null) {
@@ -47,17 +53,17 @@ class UserModel extends ChangeNotifier {
 
     isLoading = true;
     await initClient(jwt);
-    await Future.wait([initMe(), initAdditionalPreferences()]);
+    await Future.wait([initMe(), initAdditionalPrefs()]);
     isLoading = false;
     isLoaded = true;
     notifyListeners();
     return this;
   }
 
-  Future<void> initAdditionalPreferences() async {
-    var result = await client.getPreferencesConfigPost(true);
+  Future<void> initAdditionalPrefs() async {
+    var result = await client.getPrefsConfigPost(true);
     if (result == null) {
-      throw Exception('Failed to get additional preferences');
+      throw Exception('Failed to get additional prefs');
     }
     preferenceConfigs = result;
   }
@@ -74,15 +80,40 @@ class UserModel extends ChangeNotifier {
     me = newMe;
   }
 
-  Future<void> setProperty(ApiUserPropertiesInner property, int index) async {
-    me.properties[index] = property;
+  Future<void> setProperty(ApiUserPropsInner property, int index) async {
+    me.props[index] = property;
     notifyListeners();
   }
 
-  Future<void> setPreference(
-      ApiUserPreferencesInner preference, int index) async {
-    me.preferences[index] = preference;
+  Future<void> setPreference(ApiUserPrefsInner preference, int index) async {
+    me.prefs[index] = preference;
     notifyListeners();
+  }
+
+  void setPropertyGroup(
+      List<ApiUserPropsInner> props, List<ApiUserPrefsInner> prefs, int index) {
+    var propIndex = 0;
+    for (var property in props) {
+      setProperty(property, index + propIndex);
+      propIndex++;
+    }
+
+    var prefIndex = 0;
+    for (var preference in prefs) {
+      setPreference(preference, index + prefIndex);
+      prefIndex++;
+    }
+    notifyListeners();
+  }
+
+  (List<ApiUserPropsInner>, List<ApiUserPrefsInner>) getPropertyGroup(
+      List<PreferenceConfigPublic> preferenceConfigs) {
+    var names = preferenceConfigs.map((e) => e.name);
+    var props =
+        me.props.where((element) => names.contains(element.name)).toList();
+    var prefs =
+        me.prefs.where((element) => names.contains(element.name)).toList();
+    return (props, prefs);
   }
 
   Future<String> putImage(Uint8List bytes, List<String>? access) async {

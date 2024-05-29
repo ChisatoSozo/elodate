@@ -3,14 +3,12 @@ import 'package:client/api/pkg/lib/api.dart';
 const int minI16 = -32768;
 const int maxI16 = 32767;
 
-ApiUserPropertiesInner getPropByName(
-    List<ApiUserPropertiesInner> properties, String name) {
-  return properties.firstWhere((element) => element.name == name);
+ApiUserPropsInner getPropByName(List<ApiUserPropsInner> props, String name) {
+  return props.firstWhere((element) => element.name == name);
 }
 
-ApiUserPreferencesInner getPrefByName(
-    List<ApiUserPreferencesInner> preferences, String name) {
-  return preferences.firstWhere((element) => element.name == name);
+ApiUserPrefsInner getPrefByName(List<ApiUserPrefsInner> prefs, String name) {
+  return prefs.firstWhere((element) => element.name == name);
 }
 
 int encodeToI16(double value, double minValue, double maxValue, int? minI16In,

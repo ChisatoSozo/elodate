@@ -1,7 +1,5 @@
-import 'package:client/api/pkg/lib/api.dart';
-import 'package:client/components/prop_pref_components/gender_prop_pref.dart';
-import 'package:client/components/prop_pref_components/location_prop_pref.dart';
-import 'package:client/components/prop_pref_components/slider_prop_pref.dart';
+import 'package:client/components/prop_pref_components/pref.dart';
+import 'package:client/components/prop_pref_components/prep.dart';
 import 'package:client/components/responsive_scaffold.dart';
 import 'package:client/models/page_state_model.dart';
 import 'package:client/models/user_model.dart';
@@ -33,7 +31,7 @@ class SettingsFlowPageState extends State<SettingsFlowPage> {
           setState(
             () {
               loaded = true;
-              pageStateModel.initPreferencesCategories(userModel);
+              pageStateModel.initPrefsCategories(userModel);
             },
           );
         },
@@ -60,7 +58,7 @@ class SettingsFlowPageState extends State<SettingsFlowPage> {
     var userModel = Provider.of<UserModel>(context, listen: false);
 
     var (_, configs, index) = pageStateModel.getCurrentGroup();
-    var (props, prefs) = pageStateModel.getPropertyGroup(configs, userModel);
+    var (props, prefs) = userModel.getPropertyGroup(configs);
 
     return PopScope(
       onPopInvoked: (_) => pageStateModel.revertGroup(context),
@@ -71,86 +69,26 @@ class SettingsFlowPageState extends State<SettingsFlowPage> {
           child: Column(
             children: [
               if (configs.first.valueQuestion.isNotEmpty) ...[
-                Text(
-                  configs.first.valueQuestion,
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                Text(configs.first.valueQuestion,
+                    style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 20),
-                if (configs.first.uiElement ==
-                    PreferenceConfigPublicUiElementEnum.slider)
-                  PropSlider(
-                    key: Key(configs.first.group),
-                    properties: props,
-                    preferenceConfigs: configs,
+                Prop(
+                    configs: configs,
+                    props: props,
                     onUpdated: (props) {
-                      pageStateModel.setPropertyGroup(
-                          props, prefs, index, userModel);
-                    },
-                  ),
-                if (configs.first.uiElement ==
-                    PreferenceConfigPublicUiElementEnum.genderPicker)
-                  GenderPicker(
-                      key: Key(configs.first.group),
-                      properties: props,
-                      preferenceConfigs: configs,
-                      onUpdated: (props) {
-                        pageStateModel.setPropertyGroup(
-                            props, prefs, index, userModel);
-                      }),
-                if (configs.first.uiElement ==
-                    PreferenceConfigPublicUiElementEnum.locationPicker)
-                  LocationPicker(
-                      key: Key(configs.first.group),
-                      properties: props,
-                      preferenceConfigs: configs,
-                      onUpdated: (props) {
-                        pageStateModel.setPropertyGroup(
-                            props, prefs, index, userModel);
-                      }),
+                      userModel.setPropertyGroup(props, prefs, index);
+                    }),
                 const SizedBox(height: 40),
               ],
-              Text(
-                configs.first.rangeQuestion,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+              Text(configs.first.rangeQuestion,
+                  style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 20),
-              if (configs.first.uiElement ==
-                  PreferenceConfigPublicUiElementEnum.slider)
-                PrefSlider(
-                  key: Key("${configs.first.group}pref"),
-                  preferences: prefs,
-                  preferenceConfigs: configs,
+              Pref(
+                  configs: configs,
+                  prefs: prefs,
                   onUpdated: (prefs) {
-                    pageStateModel.setPropertyGroup(
-                        props, prefs, index, userModel);
-                  },
-                ),
-              if (configs.first.uiElement ==
-                  PreferenceConfigPublicUiElementEnum.genderPicker)
-                GenderRangePicker(
-                    key: Key("${configs.first.group}pref"),
-                    preferences: prefs,
-                    preferenceConfigs: configs,
-                    onUpdated: (prefs) {
-                      pageStateModel.setPropertyGroup(
-                          props, prefs, index, userModel);
-                    }),
-              if (configs.first.uiElement ==
-                  PreferenceConfigPublicUiElementEnum.locationPicker)
-                LocationRangePicker(
-                    key: Key("${configs.first.group}pref"),
-                    preferences: prefs,
-                    preferenceConfigs: configs,
-                    onUpdated: (prefs) {
-                      pageStateModel.setPropertyGroup(
-                          props, prefs, index, userModel);
-                    }),
+                    userModel.setPropertyGroup(props, prefs, index);
+                  }),
               //next button
               const SizedBox(height: 40),
               ElevatedButton(

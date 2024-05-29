@@ -46,38 +46,6 @@ class PageStateModel extends ChangeNotifier {
         List<(String, List<PreferenceConfigPublic>, int)>
       )> categories;
 
-  void setPropertyGroup(
-      List<ApiUserPropertiesInner> properties,
-      List<ApiUserPreferencesInner> preferences,
-      int index,
-      UserModel userModel) {
-    var propIndex = 0;
-    for (var property in properties) {
-      userModel.setProperty(property, index + propIndex);
-      propIndex++;
-    }
-
-    var prefIndex = 0;
-    for (var preference in preferences) {
-      userModel.setPreference(preference, index + prefIndex);
-      prefIndex++;
-    }
-    notifyListeners();
-  }
-
-  (List<ApiUserPropertiesInner>, List<ApiUserPreferencesInner>)
-      getPropertyGroup(
-          List<PreferenceConfigPublic> preferenceConfigs, UserModel userModel) {
-    var names = preferenceConfigs.map((e) => e.name);
-    var properties = userModel.me.properties
-        .where((element) => names.contains(element.name))
-        .toList();
-    var preferences = userModel.me.preferences
-        .where((element) => names.contains(element.name))
-        .toList();
-    return (properties, preferences);
-  }
-
   void advanceGroup(BuildContext context) {
     if (_currentGroupIndex < categories[currentCategoryIndex].$2.length - 1) {
       _currentGroupIndex++;
@@ -110,7 +78,7 @@ class PageStateModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  void initPreferencesCategories(UserModel userModel) {
+  void initPrefsCategories(UserModel userModel) {
     categories =
         preferenceConfigsToCategoriesAndGroups(userModel.preferenceConfigs!);
     notifyListeners();

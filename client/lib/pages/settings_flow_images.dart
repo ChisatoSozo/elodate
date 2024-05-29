@@ -38,7 +38,7 @@ class SettingsFlowImagesPageState extends State<SettingsFlowImagesPage> {
           setState(
             () {
               loaded = true;
-              pageStateModel.initPreferencesCategories(userModel);
+              pageStateModel.initPrefsCategories(userModel);
             },
           );
         },

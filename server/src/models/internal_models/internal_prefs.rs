@@ -65,10 +65,10 @@ pub struct LabeledProperty {
 }
 
 impl GetVector for Vec<LabeledProperty> {
-    fn get_vector(&self) -> [i16; PREFERENCES_CARDINALITY] {
-        let mut vector = [-32768 as i16; PREFERENCES_CARDINALITY];
+    fn get_vector(&self) -> [i16; PREFS_CARDINALITY] {
+        let mut vector = [-32768 as i16; PREFS_CARDINALITY];
 
-        for index in 0..PREFERENCES_CARDINALITY {
+        for index in 0..PREFS_CARDINALITY {
             if let Some(preference) = self.get(index) {
                 vector[index] = preference.value;
             }
@@ -79,15 +79,15 @@ impl GetVector for Vec<LabeledProperty> {
 }
 
 impl Gen<'_, Vec<LabeledProperty>> for Vec<LabeledPreferenceRange> {
-    fn gen(properties: &Vec<LabeledProperty>) -> Self {
+    fn gen(props: &Vec<LabeledProperty>) -> Self {
         let mut rng = rand::thread_rng();
 
-        let preferences = (0..(PREFERENCES_CARDINALITY))
+        let prefs = (0..(PREFS_CARDINALITY))
             .map(|i| {
-                let preference = &PREFERENCES_CONFIG[i];
+                let preference = &PREFS_CONFIG[i];
                 let range = sample_range_from_preference_and_prop(
                     preference,
-                    properties.get(i).unwrap().value,
+                    props.get(i).unwrap().value,
                     &mut rng,
                 );
                 LabeledPreferenceRange {
@@ -96,16 +96,16 @@ impl Gen<'_, Vec<LabeledProperty>> for Vec<LabeledPreferenceRange> {
                 }
             })
             .collect();
-        preferences
+        prefs
     }
 }
 
 impl GetBbox for Vec<LabeledPreferenceRange> {
-    fn get_bbox(&self) -> Bbox<PREFERENCES_CARDINALITY> {
-        let mut min_vals = [-32768 as i16; PREFERENCES_CARDINALITY];
-        let mut max_vals = [32767 as i16; PREFERENCES_CARDINALITY];
+    fn get_bbox(&self) -> Bbox<PREFS_CARDINALITY> {
+        let mut min_vals = [-32768 as i16; PREFS_CARDINALITY];
+        let mut max_vals = [32767 as i16; PREFS_CARDINALITY];
 
-        for index in 0..PREFERENCES_CARDINALITY {
+        for index in 0..PREFS_CARDINALITY {
             if let Some(preference) = self.get(index) {
                 min_vals[index] = preference.range.min;
                 max_vals[index] = preference.range.max;
@@ -122,14 +122,14 @@ impl GetBbox for Vec<LabeledPreferenceRange> {
 impl DB {
     fn get_users_who_prefer_me_direct(
         &self,
-        properties: &Vec<LabeledProperty>,
+        props: &Vec<LabeledProperty>,
         seen: &Vec<InternalUuid<InternalUser>>,
     ) -> Result<HashSet<InternalUuid<InternalUser>>, Box<dyn std::error::Error>> {
         let arc_clone = self.vec_index.clone();
         let lock = arc_clone.lock().map_err(|_| "Error getting lock")?;
         let inv = {
             lock.search_inverse(
-                &properties.get_vector(),
+                &props.get_vector(),
                 Some(&seen.iter().map(|u| u.id.clone()).collect()),
             )
             .collect::<Vec<_>>()
@@ -143,14 +143,14 @@ impl DB {
 
     fn get_users_who_i_prefer_direct(
         &self,
-        preferences: &Vec<LabeledPreferenceRange>,
+        prefs: &Vec<LabeledPreferenceRange>,
         seen: &Vec<InternalUuid<InternalUser>>,
     ) -> Result<HashSet<InternalUuid<InternalUser>>, Box<dyn std::error::Error>> {
         let arc_clone = self.vec_index.clone();
         let lock = arc_clone.lock().map_err(|_| "Error getting lock")?;
         let inv = {
             lock.search(
-                &preferences.get_bbox(),
+                &prefs.get_bbox(),
                 Some(&seen.iter().map(|u| u.id.clone()).collect()),
             )
             .collect::<Vec<_>>()
@@ -164,12 +164,12 @@ impl DB {
 
     pub fn get_mutual_preference_users_direct(
         &self,
-        properties: &Vec<LabeledProperty>,
-        preferences: &Vec<LabeledPreferenceRange>,
+        props: &Vec<LabeledProperty>,
+        prefs: &Vec<LabeledPreferenceRange>,
         seen: &Vec<InternalUuid<InternalUser>>,
     ) -> Result<Vec<InternalUser>, Box<dyn std::error::Error>> {
-        let users_who_prefer_me = self.get_users_who_prefer_me_direct(properties, &seen)?;
-        let users_who_i_prefer = self.get_users_who_i_prefer_direct(preferences, &seen)?;
+        let users_who_prefer_me = self.get_users_who_prefer_me_direct(props, &seen)?;
+        let users_who_i_prefer = self.get_users_who_i_prefer_direct(prefs, &seen)?;
 
         let user_options = users_who_prefer_me
             .intersection(&users_who_i_prefer)
@@ -184,11 +184,11 @@ impl DB {
 
     pub fn get_mutual_preference_users_count_direct(
         &self,
-        properties: &Vec<LabeledProperty>,
+        props: &Vec<LabeledProperty>,
         preference: &Vec<LabeledPreferenceRange>,
         seen: &Vec<InternalUuid<InternalUser>>,
     ) -> Result<usize, Box<dyn std::error::Error>> {
-        let users_who_prefer_me = self.get_users_who_prefer_me_direct(properties, &seen)?;
+        let users_who_prefer_me = self.get_users_who_prefer_me_direct(props, &seen)?;
         let users_who_i_prefer = self.get_users_who_i_prefer_direct(preference, &seen)?;
 
         Ok(users_who_prefer_me
@@ -208,39 +208,35 @@ impl DB {
         &self,
         user: &InternalUser,
     ) -> Result<HashSet<InternalUuid<InternalUser>>, Box<dyn std::error::Error>> {
-        self.get_users_who_prefer_me_direct(&user.properties, &user.seen)
+        self.get_users_who_prefer_me_direct(&user.props, &user.seen)
     }
 
     pub fn get_users_who_i_prefer(
         &self,
         user: &InternalUser,
     ) -> Result<HashSet<InternalUuid<InternalUser>>, Box<dyn std::error::Error>> {
-        self.get_users_who_i_prefer_direct(&user.preferences, &user.seen)
+        self.get_users_who_i_prefer_direct(&user.prefs, &user.seen)
     }
 
     pub fn get_mutual_preference_users(
         &self,
         user: &InternalUser,
     ) -> Result<Vec<InternalUser>, Box<dyn std::error::Error>> {
-        self.get_mutual_preference_users_direct(&user.properties, &user.preferences, &user.seen)
+        self.get_mutual_preference_users_direct(&user.props, &user.prefs, &user.seen)
     }
 
     pub fn get_mutual_preference_users_count(
         &self,
         user: &InternalUser,
     ) -> Result<usize, Box<dyn std::error::Error>> {
-        self.get_mutual_preference_users_count_direct(
-            &user.properties,
-            &user.preferences,
-            &user.seen,
-        )
+        self.get_mutual_preference_users_count_direct(&user.props, &user.prefs, &user.seen)
     }
 
     pub fn get_users_i_prefer_count(
         &self,
         user: &InternalUser,
     ) -> Result<usize, Box<dyn std::error::Error>> {
-        self.get_users_i_prefer_count_direct(&user.preferences, &user.seen)
+        self.get_users_i_prefer_count_direct(&user.prefs, &user.seen)
     }
 }
 
@@ -427,14 +423,10 @@ impl<'a> PreferenceConfig<'a> {
 
     pub fn sample_range(
         &self,
-        properties: &Vec<LabeledProperty>,
+        props: &Vec<LabeledProperty>,
         rng: &mut ThreadRng,
     ) -> PreferenceRange {
-        let prop = properties
-            .iter()
-            .find(|p| p.name == self.name)
-            .unwrap()
-            .value;
+        let prop = props.iter().find(|p| p.name == self.name).unwrap().value;
 
         sample_range_from_preference_and_prop(self, prop, rng)
     }
@@ -502,7 +494,7 @@ pub struct LinearMapping {
 const P_NONE: f64 = 1.0;
 const P_NONE_PROP: f64 = 0.05;
 
-pub static PREFERENCES_CONFIG: [PreferenceConfig; PREFERENCES_CARDINALITY] = [
+pub static PREFS_CONFIG: [PreferenceConfig; PREFS_CARDINALITY] = [
     PreferenceConfig {
         name: "age",
         group: "age",
@@ -529,7 +521,7 @@ pub static PREFERENCES_CONFIG: [PreferenceConfig; PREFERENCES_CARDINALITY] = [
         name: "percent_male",
         group: "gender",
         ui_element: UIElement::GenderPicker,
-        display: "Percent Male",
+        display: "Gender",
         category: Category::Mandatory,
         value_question: "What's your gender?",
         range_question: "What gender are you interested in?",
@@ -549,7 +541,7 @@ pub static PREFERENCES_CONFIG: [PreferenceConfig; PREFERENCES_CARDINALITY] = [
     },
     PreferenceConfig {
         name: "percent_female",
-        group: "gender",
+        group: "Gender",
         ui_element: UIElement::GenderPicker,
         display: "Percent Female",
         category: Category::Mandatory,
@@ -573,7 +565,7 @@ pub static PREFERENCES_CONFIG: [PreferenceConfig; PREFERENCES_CARDINALITY] = [
         name: "latitude",
         group: "location",
         ui_element: UIElement::LocationPicker,
-        display: "Latitude",
+        display: "Location",
         category: Category::Mandatory,
         value_question: "Where are ya?",
         range_question: "How far away are you willing to go to meet someone?",
@@ -595,7 +587,7 @@ pub static PREFERENCES_CONFIG: [PreferenceConfig; PREFERENCES_CARDINALITY] = [
         name: "longitude",
         group: "location",
         ui_element: UIElement::LocationPicker,
-        display: "Longitude",
+        display: "Location",
         category: Category::Mandatory,
         value_question: "Where are ya?",
         range_question: "How far away are you willing to go to meet someone?",
@@ -617,7 +609,7 @@ pub static PREFERENCES_CONFIG: [PreferenceConfig; PREFERENCES_CARDINALITY] = [
         name: "salary_per_year",
         group: "salary_per_year",
         ui_element: UIElement::Slider,
-        display: "Salary per Year",
+        display: "Salary",
         category: Category::Financial,
         value_question: "How much do you make per year?",
         range_question: "How much do you want your partner to make?",
@@ -1166,6 +1158,80 @@ pub static PREFERENCES_CONFIG: [PreferenceConfig; PREFERENCES_CARDINALITY] = [
         labels: Some(["Shaved", "Trimmed", "Average", "Bushy", "Jungle"]),
         probability_to_be_none: P_NONE,
     },
+
+    PreferenceConfig {
+        name: "number_of_sexual_partners",
+        group: "number_of_sexual_partners",
+        ui_element: UIElement::Slider,
+        display: "Number of Sexual Partners",
+        category: Category::Sexual,
+        value_question: "How many sexual partners have you had?",
+        range_question: "How many sexual partners do you want your partner to have had?",
+        min: 0,
+        max: 100,
+        mean: 5.0,
+        std_dev: 5.0,
+        mean_alteration: MeanAlteration::Set,
+        std_dev_alteration: StdDevAlteration::FromValue(Linear {
+            slope: 1.0,
+            intercept: 0.0,
+        }),
+        linear_mapping: None,
+        optional: true,
+        labels: None,
+        probability_to_be_none: P_NONE,
+    },
+
+    PreferenceConfig {
+        name: "debt",
+        group: "debt",
+        ui_element: UIElement::Slider,
+        display: "Debt",
+        category: Category::Financial,
+        value_question: "How much debt do you have?",
+        range_question: "How much debt do you want your partner to have?",
+        min: 0,
+        max: 100,
+        mean: 5000.0,
+        std_dev: 5000.0,
+        mean_alteration: MeanAlteration::Set,
+        std_dev_alteration: StdDevAlteration::FromMean(Linear {
+            slope: 0.3,
+            intercept: 0.0,
+        }),
+        linear_mapping: Some(LinearMapping {
+            real_min: 0.0,
+            real_max: 1000000.0,
+        }),
+        optional: true,
+        labels: None,
+        probability_to_be_none: P_NONE,
+    },
+    PreferenceConfig {
+        name: "level_of_kink",
+        group: "level_of_kink",
+        ui_element: UIElement::Slider,
+        display: "Level of Kink",
+        category: Category::Sexual,
+        value_question: "How kinky are you?",
+        range_question: "How kinky do you want your partner to be?",
+        min: 0,
+        max: 4,
+        mean: 2.0,
+        std_dev: 1.0,
+        mean_alteration: MeanAlteration::Set,
+        std_dev_alteration: StdDevAlteration::None,
+        linear_mapping: None,
+        optional: true,
+        labels: Some([
+            "Vanilla",
+            "Open-minded",
+            "Adventurous",
+            "Kinky",
+            "Fetishist",
+        ]),
+        probability_to_be_none: P_NONE,
+    },
 ];
 
-pub const PREFERENCES_CARDINALITY: usize = 30;
+pub const PREFS_CARDINALITY: usize = 33;

@@ -6,7 +6,7 @@ use std::error::Error;
 use std::marker::PhantomData;
 use uuid::Uuid;
 
-use super::internal_preferences::PREFERENCES_CARDINALITY;
+use super::internal_prefs::PREFS_CARDINALITY;
 
 #[derive(Debug, Clone, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
 #[archive(compare(PartialEq), check_bytes)]
@@ -72,9 +72,9 @@ pub trait Save: Sized {
 }
 
 pub trait GetBbox {
-    fn get_bbox(&self) -> Bbox<PREFERENCES_CARDINALITY>;
+    fn get_bbox(&self) -> Bbox<PREFS_CARDINALITY>;
 }
 
 pub trait GetVector {
-    fn get_vector(&self) -> [i16; PREFERENCES_CARDINALITY];
+    fn get_vector(&self) -> [i16; PREFS_CARDINALITY];
 }

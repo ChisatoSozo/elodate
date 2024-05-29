@@ -5,9 +5,7 @@ use crate::{
     models::internal_models::{
         internal_chat::InternalChat,
         internal_image::{Access, InternalImage},
-        internal_preferences::{
-            LabeledPreferenceRange, LabeledProperty, PreferenceRange, PREFERENCES_CONFIG,
-        },
+        internal_prefs::{LabeledPreferenceRange, LabeledProperty, PreferenceRange, PREFS_CONFIG},
         internal_user::InternalUser,
         shared::{InternalUuid, Save},
     },
@@ -29,8 +27,8 @@ pub struct ApiUser {
     pub username: String,
     pub display_name: String,
     pub description: String,
-    pub preferences: Vec<LabeledPreferenceRange>,
-    pub properties: Vec<LabeledProperty>,
+    pub prefs: Vec<LabeledPreferenceRange>,
+    pub props: Vec<LabeledProperty>,
     pub birthdate: i64,
     pub published: bool,
     pub chats: Option<Vec<ApiUuid<InternalChat>>>,
@@ -48,8 +46,8 @@ impl ApiUser {
             username: user.username,
             display_name: user.display_name,
             description: user.description,
-            preferences: user.preferences,
-            properties: user.properties,
+            prefs: user.prefs,
+            props: user.props,
             birthdate: user.birthdate,
             published: user.published,
             chats: if requester.uuid == user.uuid {
@@ -69,10 +67,9 @@ pub struct ApiUserWritable {
     pub password: Option<String>,
     pub display_name: String,
     pub description: String,
-    pub preferences: Vec<LabeledPreferenceRange>,
-    pub properties: Vec<LabeledProperty>,
+    pub prefs: Vec<LabeledPreferenceRange>,
+    pub props: Vec<LabeledProperty>,
     pub birthdate: i64,
-    pub published: bool,
 }
 
 impl ApiUserWritable {
@@ -94,6 +91,12 @@ impl ApiUserWritable {
             }
         }
 
+        let published = if let Some(internal_user) = &internal_user {
+            internal_user.published
+        } else {
+            false
+        };
+
         let owned_images = if let Some(internal_user) = &internal_user {
             (&internal_user).owned_images.clone()
         } else {
@@ -106,21 +109,21 @@ impl ApiUserWritable {
         let preview_image = preview_image.to_preview(Access::Everyone)?;
         let preview_image_uuid = preview_image.save(db)?;
 
-        //fill properties.additional with default values up to PREFERENCES_CARDINALITY, from the index of the last filled value
-        let last_filled = self.properties.len();
-        for i in last_filled..PREFERENCES_CONFIG.len() {
-            self.properties.push(LabeledProperty {
-                name: PREFERENCES_CONFIG[i].name.to_string(),
+        //fill props.additional with default values up to PREFS_CARDINALITY, from the index of the last filled value
+        let last_filled = self.props.len();
+        for i in last_filled..PREFS_CONFIG.len() {
+            self.props.push(LabeledProperty {
+                name: PREFS_CONFIG[i].name.to_string(),
                 value: -32768,
             });
         }
-        assert!(self.properties.len() == PREFERENCES_CONFIG.len());
+        assert!(self.props.len() == PREFS_CONFIG.len());
 
-        //fill preferences.additional with default values up to PREFERENCES_CARDINALITY, from the index of the last filled value
-        let last_filled = self.preferences.len();
-        for i in last_filled..PREFERENCES_CONFIG.len() {
-            self.preferences.push(LabeledPreferenceRange {
-                name: PREFERENCES_CONFIG[i].name.to_string(),
+        //fill prefs.additional with default values up to PREFS_CARDINALITY, from the index of the last filled value
+        let last_filled = self.prefs.len();
+        for i in last_filled..PREFS_CONFIG.len() {
+            self.prefs.push(LabeledPreferenceRange {
+                name: PREFS_CONFIG[i].name.to_string(),
                 range: PreferenceRange {
                     min: -32768,
                     max: 32767,
@@ -156,9 +159,9 @@ impl ApiUserWritable {
             display_name: self.display_name,
             description: self.description,
             birthdate: self.birthdate,
-            preferences: self.preferences,
-            properties: self.properties,
-            published: self.published,
+            prefs: self.prefs,
+            props: self.props,
+            published: published,
             owned_images: owned_images,
             preview_image: preview_image_uuid,
         })
@@ -210,7 +213,7 @@ impl Gen<'_, DB> for ApiUserWritable {
         // let longitude = rng.gen_range(-180.0..180.0);
         let longitude = -73.567253;
         let longitudei16 = to_i16(longitude, -180.0, 180.0);
-        let mut properties = PREFERENCES_CONFIG
+        let mut props = PREFS_CONFIG
             .iter()
             .map(|config| LabeledProperty {
                 name: config.name.to_string(),
@@ -218,17 +221,17 @@ impl Gen<'_, DB> for ApiUserWritable {
             })
             .collect::<Vec<_>>();
 
-        properties[0].value = get_age(birthdate);
-        properties[1].value = percent_male;
-        properties[2].value = percent_female;
-        properties[3].value = latitudei16;
-        properties[4].value = longitudei16;
+        props[0].value = get_age(birthdate);
+        props[1].value = percent_male;
+        props[2].value = percent_female;
+        props[3].value = latitudei16;
+        props[4].value = longitudei16;
 
-        let preferences = PREFERENCES_CONFIG
+        let prefs = PREFS_CONFIG
             .iter()
             .map(|config| LabeledPreferenceRange {
                 name: config.name.to_string(),
-                range: config.sample_range(&properties, &mut rng),
+                range: config.sample_range(&props, &mut rng),
             })
             .collect();
 
@@ -237,9 +240,8 @@ impl Gen<'_, DB> for ApiUserWritable {
             display_name,
             description,
             birthdate,
-            preferences,
-            properties,
-            published: true,
+            prefs,
+            props,
             uuid: ApiUuid::<InternalUser>::new(),
             images: uuids.into_iter().map(|uuid| uuid.into()).collect(),
             password: Some(hashed_password),
