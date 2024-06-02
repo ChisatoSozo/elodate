@@ -1,6 +1,7 @@
 import 'package:client/models/user_model.dart';
 import 'package:client/pages/home.dart';
 import 'package:client/pages/login.dart';
+import 'package:client/pages/settings_flow_images.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -39,10 +40,19 @@ class RedirPageState extends State<RedirPage> {
       var isLoaded = userModel.isLoaded;
 
       if (isLoaded) {
+        if (!userModel.me.published) {
+          Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(
+                  builder: (context) => const SettingsFlowImagesPage()),
+              (route) => false);
+          return;
+        }
         Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(builder: (context) => const HomePage()),
             (route) => false);
+        return;
       }
     });
 

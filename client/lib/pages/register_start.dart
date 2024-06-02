@@ -18,37 +18,32 @@ class RegisterStartPageState extends State<RegisterStartPage> {
 
   @override
   Widget build(BuildContext context) {
-    return ResponsiveScaffold(
-      title: "Hello! Pick a username for logging in.",
-      child: Form(
-        key: formKey,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextFormField(
-              controller: usernameController,
-              decoration: const InputDecoration(
-                labelText: 'Username',
-                border: OutlineInputBorder(),
-              ),
-              onFieldSubmitted: (value) => _goNext(),
-              validator: (value) =>
-                  value!.isEmpty ? 'Username cannot be empty' : null,
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: _goNext,
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text('Next'),
-                  Icon(Icons.arrow_forward),
-                ],
-              ),
-            ),
-          ],
+    return ResponsiveForm(
+      formKey: formKey,
+      title: "Welcome! Pick a username",
+      children: [
+        TextFormField(
+          controller: usernameController,
+          decoration: const InputDecoration(
+            labelText: 'Username',
+            border: OutlineInputBorder(),
+          ),
+          onFieldSubmitted: (value) => _goNext(),
+          validator: (value) =>
+              value!.isEmpty ? 'Username cannot be empty' : null,
         ),
-      ),
+        const SizedBox(height: 20),
+        ElevatedButton(
+          onPressed: _goNext,
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Next'),
+              Icon(Icons.arrow_forward),
+            ],
+          ),
+        ),
+      ],
     );
   }
 

@@ -18,37 +18,32 @@ class RegisterBirthdatePageState extends State<RegisterBirthdatePage> {
 
   @override
   Widget build(BuildContext context) {
-    return ResponsiveScaffold(
+    return ResponsiveForm(
+      formKey: formKey,
       title:
           "Hello ${Provider.of<RegisterModel>(context).displayName}, please enter your birthdate.",
-      child: Form(
-        key: formKey,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextFormField(
-              controller: birthdateController,
-              decoration: const InputDecoration(
-                labelText: 'Birthdate (YYYY-MM-DD)',
-                border: OutlineInputBorder(),
-              ),
-              onTap: () => _selectDate(context),
-              validator: (value) => _validateBirthdate(value),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: _goNext,
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text('Next'),
-                  Icon(Icons.arrow_forward),
-                ],
-              ),
-            ),
-          ],
+      children: [
+        TextFormField(
+          controller: birthdateController,
+          decoration: const InputDecoration(
+            labelText: 'Birthdate (YYYY-MM-DD)',
+            border: OutlineInputBorder(),
+          ),
+          onTap: () => _selectDate(context),
+          validator: (value) => _validateBirthdate(value),
         ),
-      ),
+        const SizedBox(height: 20),
+        ElevatedButton(
+          onPressed: _goNext,
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Next'),
+              Icon(Icons.arrow_forward),
+            ],
+          ),
+        ),
+      ],
     );
   }
 

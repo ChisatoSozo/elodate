@@ -31,7 +31,7 @@ class LoginPageState extends State<LoginPage> {
             constraints: const BoxConstraints(maxWidth: 400),
             child: Column(
               mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
+              children: [
                 Image.asset(
                   'images/logo.png',
                   height: 100, // Adjust the height as needed
@@ -61,7 +61,7 @@ class LoginPageState extends State<LoginPage> {
                 const SizedBox(height: 20),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: <Widget>[
+                  children: [
                     ElevatedButton(
                       onPressed: () {
                         login(context);

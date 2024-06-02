@@ -140,4 +140,29 @@ class UserModel extends ChangeNotifier {
     }
     return result.first;
   }
+
+  Future<void> updateMe() async {
+    var result = await client.putUserPost(ApiUserWritable(
+        birthdate: me.birthdate,
+        description: me.description,
+        displayName: me.displayName,
+        username: me.username,
+        uuid: me.uuid,
+        prefs: me.prefs,
+        props: me.props,
+        images: me.images));
+
+    if (result == null) {
+      throw Exception('Failed to update me');
+    }
+
+    result = await client.setPublishedPost(true);
+
+    if (result == null) {
+      throw Exception('Failed to publish me');
+    }
+
+    await initMe();
+    notifyListeners();
+  }
 }

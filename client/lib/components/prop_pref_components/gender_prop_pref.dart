@@ -85,7 +85,7 @@ class GenderPickerState extends State<GenderPicker> {
   Widget build(BuildContext context) {
     return Column(
       mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
+      children: [
         LabeledRadio<String>(
           label: 'Male',
           value: 'Male',
@@ -385,7 +385,7 @@ class GenderRangePickerState extends State<GenderRangePicker> {
   Widget build(BuildContext context) {
     return Column(
       mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
+      children: [
         LabeledRadio<String>(
           label: 'Male',
           value: 'Male',

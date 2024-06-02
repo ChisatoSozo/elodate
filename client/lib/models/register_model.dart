@@ -1,5 +1,6 @@
 import 'package:client/api/pkg/lib/api.dart';
 import 'package:client/models/user_model.dart';
+import 'package:client/pages/redir.dart';
 import 'package:client/pages/register_birthdate.dart';
 import 'package:client/pages/register_finish.dart';
 import 'package:client/pages/register_name.dart';
@@ -30,7 +31,7 @@ void nextPage(BuildContext context, StatefulWidget page) {
     Navigator.pushAndRemoveUntil(
       context,
       PageRouteBuilder(
-        pageBuilder: (context, anim1, anim2) => Container(),
+        pageBuilder: (context, anim1, anim2) => const RedirPage(),
         transitionDuration: Duration.zero,
         reverseTransitionDuration: Duration.zero,
       ),

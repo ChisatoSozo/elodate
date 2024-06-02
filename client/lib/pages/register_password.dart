@@ -38,55 +38,48 @@ class RegisterPasswordPageState extends State<RegisterPasswordPage> {
 
   @override
   Widget build(BuildContext context) {
-    return ResponsiveScaffold(
+    return ResponsiveForm(
+      formKey: formKey,
       title: 'Pick a password. If it sucks and you get hacked that\'s on you.',
-      child: Form(
-        key: formKey,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextFormField(
-              controller: _passwordController,
-              obscureText: true,
-              decoration: const InputDecoration(
-                labelText: 'Password',
-                hintText: 'Enter your password',
-              ),
-              validator: (value) {
-                if (value == null ||
-                    value.isEmpty ||
-                    !_isPasswordValid(value)) {
-                  return 'Password must be at least 8 characters long';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 20),
-            TextFormField(
-              controller: _confirmPasswordController,
-              obscureText: true,
-              decoration: const InputDecoration(
-                labelText: 'Confirm Password',
-                hintText: 'Confirm your password',
-              ),
-              validator: (value) {
-                if (value == null ||
-                    value.isEmpty ||
-                    !_isPasswordValid(value) ||
-                    !_isPasswordConfirmed()) {
-                  return 'Passwords do not match';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 40),
-            ElevatedButton(
-              onPressed: _submit,
-              child: const Text('Register'),
-            ),
-          ],
+      children: [
+        TextFormField(
+          controller: _passwordController,
+          obscureText: true,
+          decoration: const InputDecoration(
+            labelText: 'Password',
+            hintText: 'Enter your password',
+          ),
+          validator: (value) {
+            if (value == null || value.isEmpty || !_isPasswordValid(value)) {
+              return 'Password must be at least 8 characters long';
+            }
+            return null;
+          },
         ),
-      ),
+        const SizedBox(height: 20),
+        TextFormField(
+          controller: _confirmPasswordController,
+          obscureText: true,
+          decoration: const InputDecoration(
+            labelText: 'Confirm Password',
+            hintText: 'Confirm your password',
+          ),
+          validator: (value) {
+            if (value == null ||
+                value.isEmpty ||
+                !_isPasswordValid(value) ||
+                !_isPasswordConfirmed()) {
+              return 'Passwords do not match';
+            }
+            return null;
+          },
+        ),
+        const SizedBox(height: 40),
+        ElevatedButton(
+          onPressed: _submit,
+          child: const Text('Register'),
+        ),
+      ],
     );
   }
 }

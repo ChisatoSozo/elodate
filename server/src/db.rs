@@ -15,7 +15,9 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use crate::models::internal_models::{internal_prefs::PREFS_CARDINALITY, shared::InternalUuid};
+use crate::models::internal_models::{
+    internal_prefs_config::PREFS_CARDINALITY, shared::InternalUuid,
+};
 use crate::vec::search_linear::LinearSearch;
 use crate::vec::shared::VectorSearch;
 

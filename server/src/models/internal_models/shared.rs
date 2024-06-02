@@ -6,7 +6,7 @@ use std::error::Error;
 use std::marker::PhantomData;
 use uuid::Uuid;
 
-use super::internal_prefs::PREFS_CARDINALITY;
+use super::internal_prefs_config::PREFS_CARDINALITY;
 
 #[derive(Debug, Clone, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
 #[archive(compare(PartialEq), check_bytes)]

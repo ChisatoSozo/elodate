@@ -71,7 +71,7 @@ class ChatScreenState extends State<ChatScreen> {
           title: Text(widget.displayName),
         ),
         body: Column(
-          children: <Widget>[
+          children: [
             _buildMessageList(context),
             _buildInputSection(chatBarColor!, inputFieldColor!),
           ],
@@ -86,6 +86,7 @@ class ChatScreenState extends State<ChatScreen> {
       child: Align(
         alignment: Alignment.bottomCenter,
         child: ResponsiveContainer(
+          scrollable: true,
           child: ListView.builder(
             itemCount: _messages.length,
             itemBuilder: (context, index) {
@@ -176,7 +177,7 @@ class ChatScreenState extends State<ChatScreen> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10.0),
       child: Row(
-        children: <Widget>[
+        children: [
           Expanded(
             child: TextField(
               controller: _controller,

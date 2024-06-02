@@ -7,7 +7,9 @@ use paperclip::actix::{
 
 use crate::{
     db::DB,
-    models::internal_models::internal_prefs::{PreferenceConfigPublic, PREFS_CONFIG},
+    models::internal_models::{
+        internal_prefs::PreferenceConfigPublic, internal_prefs_config::PREFS_CONFIG,
+    },
     routes::shared::route_body_mut_db,
 };
 

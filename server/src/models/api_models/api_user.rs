@@ -5,7 +5,8 @@ use crate::{
     models::internal_models::{
         internal_chat::InternalChat,
         internal_image::{Access, InternalImage},
-        internal_prefs::{LabeledPreferenceRange, LabeledProperty, PreferenceRange, PREFS_CONFIG},
+        internal_prefs::{LabeledPreferenceRange, LabeledProperty, PreferenceRange},
+        internal_prefs_config::PREFS_CONFIG,
         internal_user::InternalUser,
         shared::{InternalUuid, Save},
     },
@@ -74,6 +75,8 @@ pub struct ApiUserWritable {
 
 impl ApiUserWritable {
     pub fn to_internal(mut self, db: &DB) -> Result<InternalUser, Box<dyn Error>> {
+        self.fill_prefs();
+        self.fill_props();
         let internal_uuid: InternalUuid<InternalUser> = self.uuid.into();
         let internal_user = internal_uuid.load(db)?;
 
@@ -103,11 +106,20 @@ impl ApiUserWritable {
             vec![]
         };
 
-        let preview_uuid: InternalUuid<_> = self.images[0].clone().into();
-        let first_image = preview_uuid.load(db)?;
-        let preview_image = first_image.ok_or("No preview image")?;
-        let preview_image = preview_image.to_preview(Access::Everyone)?;
-        let preview_image_uuid = preview_image.save(db)?;
+        let preview_image_uuid: Option<Result<InternalUuid<_>, _>> =
+            self.images.get(0).map(|preview_uuid| {
+                let preview_uuid: InternalUuid<_> = preview_uuid.clone().into();
+                let first_image = preview_uuid.load(db)?;
+                let preview_image = first_image.ok_or("No preview image")?;
+                let preview_image = preview_image.to_preview(Access::Everyone)?;
+                preview_image.save(db)
+            });
+
+        let preview_image_uuid = match preview_image_uuid {
+            Some(Ok(preview_image_uuid)) => Some(preview_image_uuid),
+            Some(Err(e)) => return Err(e),
+            None => None,
+        };
 
         //fill props.additional with default values up to PREFS_CARDINALITY, from the index of the last filled value
         let last_filled = self.props.len();
@@ -165,6 +177,32 @@ impl ApiUserWritable {
             owned_images: owned_images,
             preview_image: preview_image_uuid,
         })
+    }
+
+    pub fn fill_props(&mut self) {
+        //fill props.additional with default values up to PREFS_CARDINALITY, from the index of the last filled value
+        let last_filled = self.props.len();
+        for i in last_filled..PREFS_CONFIG.len() {
+            self.props.push(LabeledProperty {
+                name: PREFS_CONFIG[i].name.to_string(),
+                value: -32768,
+            });
+        }
+        assert!(self.props.len() == PREFS_CONFIG.len());
+    }
+
+    pub fn fill_prefs(&mut self) {
+        //fill prefs.additional with default values up to PREFS_CARDINALITY, from the index of the last filled value
+        let last_filled = self.prefs.len();
+        for i in last_filled..PREFS_CONFIG.len() {
+            self.prefs.push(LabeledPreferenceRange {
+                name: PREFS_CONFIG[i].name.to_string(),
+                range: PreferenceRange {
+                    min: -32768,
+                    max: 32767,
+                },
+            });
+        }
     }
 }
 

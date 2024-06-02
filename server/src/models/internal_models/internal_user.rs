@@ -8,6 +8,7 @@ use super::{
     internal_chat::InternalChat,
     internal_image::InternalImage,
     internal_prefs::{LabeledPreferenceRange, LabeledProperty},
+    internal_prefs_config::PREFS_CONFIG,
     shared::{GetBbox, GetVector, InternalUuid, Save},
 };
 
@@ -30,7 +31,7 @@ pub struct InternalUser {
     pub seen: Vec<InternalUuid<InternalUser>>,
     pub chats: Vec<InternalUuid<InternalChat>>,
     pub images: Vec<InternalUuid<InternalImage>>,
-    pub preview_image: InternalUuid<InternalImage>,
+    pub preview_image: Option<InternalUuid<InternalImage>>,
     pub username: String,
     pub display_name: String,
     pub description: String,
@@ -64,6 +65,27 @@ impl InternalUser {
             chats.push(chat);
         }
         Ok(chats)
+    }
+
+    pub fn publishable_msg(&self) -> String {
+        if self.images.len() < 1 {
+            return "You must have at least one image".to_string();
+        }
+        if self.preview_image.is_none() {
+            return "You must have a preview image".to_string();
+        }
+        let mandatory_props = PREFS_CONFIG
+            .iter()
+            .filter(|p| !p.optional)
+            .map(|p| p.name)
+            .collect::<Vec<_>>();
+
+        for prop in mandatory_props {
+            if !self.props.iter().any(|p| p.name == prop) {
+                return format!("You must have the property {}", prop);
+            }
+        }
+        "".to_string()
     }
 }
 

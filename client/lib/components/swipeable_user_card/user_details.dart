@@ -1,6 +1,6 @@
 import 'package:client/api/pkg/lib/api.dart';
 import 'package:client/components/swipeable_user_card/user_gender.dart';
-import 'package:client/utils/preference_utils.dart';
+import 'package:client/utils/prefs_utils.dart';
 import 'package:flutter/material.dart';
 
 class UserDetails extends StatelessWidget {

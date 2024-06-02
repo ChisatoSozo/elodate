@@ -3,7 +3,7 @@ import 'dart:math';
 
 import 'package:client/api/pkg/lib/api.dart';
 import 'package:client/models/user_model.dart';
-import 'package:client/utils/preference_utils.dart';
+import 'package:client/utils/prefs_utils.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
@@ -241,7 +241,7 @@ class LocationPickerState extends State<LocationPicker> {
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
+        children: [
           if (locationError != null)
             Padding(
               padding: const EdgeInsets.only(bottom: 16.0),
@@ -331,7 +331,7 @@ class LocationRangePickerState extends State<LocationRangePicker> {
 
     return Column(
       mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
+      children: [
         Slider(
           value: selectedDistanceIndex.toDouble(),
           min: 0,

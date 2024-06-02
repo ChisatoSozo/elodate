@@ -1,7 +1,9 @@
 import 'package:client/api/pkg/lib/api.dart';
 import 'package:client/models/user_model.dart';
+import 'package:client/pages/redir.dart';
 import 'package:client/pages/settings_flow.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 List<
         (
@@ -53,7 +55,16 @@ class PageStateModel extends ChangeNotifier {
       _currentCategoryIndex++;
       _currentGroupIndex = 0;
     } else {
-      print("end");
+      var userModel = Provider.of<UserModel>(context, listen: false);
+      userModel.updateMe().then((value) => {
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const RedirPage(),
+              ),
+              (route) => false,
+            )
+          });
     }
     Navigator.push(
       context,
