@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 
-import 'package:image/image.dart' as img;
+import 'package:image_compression_flutter/image_compression_flutter.dart';
 
 String formatApiError(String s) {
   //get rid of "ApiException xxx: "
@@ -41,22 +41,23 @@ Future<T> retry<T>(
   }
 }
 
-Future<Uint8List?> compressImage(Uint8List imageBytes) async {
+Future<Uint8List> compressImage(Uint8List imageBytes) async {
   // Decode the image
-  img.Image? image = img.decodeImage(imageBytes);
+  try {
+    ImageFile input = ImageFile(filePath: "", rawBytes: imageBytes);
+    Configuration config = const Configuration(
+      outputType: ImageOutputType.jpg,
+      // can only be true for Android and iOS while using ImageOutputType.jpg or ImageOutputType.pngÏ
+      useJpgPngNativeCompressor: false,
+      // set quality between 0-100
+      quality: 75,
+    );
 
-  if (image == null) {
-    return null;
+    final param = ImageFileConfiguration(input: input, config: config);
+    final output = await compressor.compress(param);
+    return output.rawBytes;
+  } catch (e) {
+    print(e);
+    return imageBytes;
   }
-
-  // Resize the image
-  img.Image resizedImage = img.copyResize(
-    image,
-    width: 1024,
-    height: 1024,
-  );
-
-  List<int> jpgBytes = img.encodeJpg(resizedImage, quality: 80);
-
-  return Uint8List.fromList(jpgBytes);
 }

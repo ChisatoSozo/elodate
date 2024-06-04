@@ -256,8 +256,6 @@ class LocationPickerState extends State<LocationPicker> {
   @override
   Widget build(BuildContext context) {
     var unset = latitude == -90.0 && longitude == -180.0;
-    print('LocationPicker: $latitude, $longitude');
-    print(unset);
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,

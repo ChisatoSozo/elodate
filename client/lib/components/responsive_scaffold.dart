@@ -1,87 +1,9 @@
 import 'package:flutter/material.dart';
 
-// class ResponsiveScaffold extends StatelessWidget {
-//   final bool scrollable;
-//   final Widget child;
-//   final String? title; // Title property
-//   final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
-
-//   // Constructor to take child and title as parameters
-//   ResponsiveScaffold(
-//       {super.key,
-//       required this.child,
-//       required this.title,
-//       this.scrollable = true});
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       appBar: title != null
-//           ? AppBar(
-//               title: Text(title!),
-//             )
-//           : null,
-//       key: scaffoldKey,
-//       body: scrollable
-//           ? SingleChildScrollView(
-//               child: Center(
-//                 child: ConstrainedBox(
-//                   constraints: const BoxConstraints(
-//                       maxWidth: 400), // Set maximum width to 400
-//                   child: child,
-//                 ),
-//               ),
-//             )
-//           : Center(
-//               child: ConstrainedBox(
-//                 constraints: const BoxConstraints(
-//                     maxWidth: 400), // Set maximum width to 400
-//                 child: child,
-//               ),
-//             ),
-//     );
-//   }
-// }
-
-// class ResponsiveContainer extends StatelessWidget {
-//   final bool scrollable;
-//   final Widget child;
-//   final String? title; // Title property
-
-//   // Constructor to take child and title as parameters
-//   const ResponsiveContainer(
-//       {super.key, required this.child, this.scrollable = false, this.title});
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return scrollable
-//         ? SingleChildScrollView(
-//             child: Center(
-//               child: ConstrainedBox(
-//                 constraints: const BoxConstraints(
-//                     maxWidth: 400), // Set maximum width to 400
-//                 child: child,
-//               ),
-//             ),
-//           )
-//         : Center(
-//             child: ConstrainedBox(
-//               constraints: const BoxConstraints(
-//                   maxWidth: 400), // Set maximum width to 400
-//               child: Column(
-//                 children: [
-//                   if (title != null) Text(title!),
-//                   child,
-//                 ],
-//               ),
-//             ),
-//           );
-//   }
-// }
-
 class ResponsiveForm extends StatelessWidget {
   final List<Widget> children;
   final String? title; // Title property
+  final double? progress;
   final bool titleAtTop;
   final GlobalKey<FormState>? _formKey;
   final GlobalKey<FormState> _defaultFormKey = GlobalKey<FormState>();
@@ -90,6 +12,7 @@ class ResponsiveForm extends StatelessWidget {
   ResponsiveForm(
       {super.key,
       required this.children,
+      this.progress,
       this.title,
       this.titleAtTop = false,
       GlobalKey<FormState>? formKey})
@@ -103,6 +26,16 @@ class ResponsiveForm extends StatelessWidget {
         appBar: titleAtTop && title != null
             ? AppBar(
                 title: Text(title!),
+                bottom: PreferredSize(
+                  preferredSize: const Size.fromHeight(4.0),
+                  child: progress != null
+                      ? LinearProgressIndicator(
+                          value: progress,
+                          minHeight: 4,
+                          backgroundColor: Colors.transparent,
+                        )
+                      : Container(),
+                ),
               )
             : null,
         body: LayoutBuilder(

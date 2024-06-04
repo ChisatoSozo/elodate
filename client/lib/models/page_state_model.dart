@@ -89,6 +89,19 @@ class PageStateModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  double percentDone() {
+    var totalGroups = 0;
+    for (var category in categories) {
+      totalGroups += category.$2.length;
+    }
+    var currentTotalGroup = 0;
+    for (var i = 0; i < currentCategoryIndex; i++) {
+      currentTotalGroup += categories[i].$2.length;
+    }
+    currentTotalGroup += currentGroupIndex;
+    return currentTotalGroup / totalGroups;
+  }
+
   void initPrefsCategories(UserModel userModel) {
     categories =
         preferenceConfigsToCategoriesAndGroups(userModel.preferenceConfigs!);

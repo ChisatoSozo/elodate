@@ -115,7 +115,7 @@ class AdaptiveFilePickerState extends State<AdaptiveFilePicker> {
     });
     FilePickerResult? result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
-      allowedExtensions: ['jpg', 'png'],
+      allowedExtensions: ['jpg', 'jpeg', 'png', 'webp'],
       withData: true,
     );
 
@@ -127,9 +127,7 @@ class AdaptiveFilePickerState extends State<AdaptiveFilePicker> {
 
   Future<String?> _onAfterPickFile(UserModel userModel, Uint8List bytes) async {
     Uint8List? compressedBytes = await compressImage(bytes);
-    if (compressedBytes == null) {
-      return null;
-    }
+
     String uuid = await userModel.putImage(compressedBytes, null);
     widget.onUuidChanged(uuid);
 

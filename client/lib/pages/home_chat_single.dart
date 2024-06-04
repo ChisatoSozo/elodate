@@ -253,7 +253,7 @@ class ChatScreenState extends State<ChatScreen> {
     if (_selectedImage != null) {
       var compressed = await compressImage(_selectedImage!);
       uuid = await client.putImagePost(PutImageInput(
-          content: base64Encode(compressed!), access: _chat!.users));
+          content: base64Encode(compressed), access: _chat!.users));
       //trim first and last quotes
       uuid = uuid!.substring(1, uuid.length - 1);
     }
@@ -278,7 +278,7 @@ class ChatScreenState extends State<ChatScreen> {
     if (kIsWeb) {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
-        allowedExtensions: ['jpg', 'png', 'webp'],
+        allowedExtensions: ['jpg', 'jpeg', 'png', 'webp'],
         withData: true,
       );
 

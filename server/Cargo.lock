@@ -2296,7 +2296,6 @@ dependencies = [
  "kv",
  "paperclip",
  "paste",
- "proc-macro2",
  "quote",
  "rand",
  "rand_distr",

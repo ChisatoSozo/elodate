@@ -46,6 +46,7 @@ class SettingsFlowPageState extends State<SettingsFlowPage> {
     return PopScope(
       onPopInvoked: (_) => pageStateModel.revertGroup(context),
       child: ResponsiveForm(
+        progress: pageStateModel.percentDone(),
         titleAtTop: true,
         formKey: formKey,
         title: configs.first.category.toString(),
@@ -59,6 +60,7 @@ class SettingsFlowPageState extends State<SettingsFlowPage> {
                 props: props,
                 onUpdated: (props) {
                   userModel.setPropertyGroup(props, prefs, index);
+                  setState(() {});
                 }),
             const SizedBox(height: 40),
           ],
@@ -70,6 +72,7 @@ class SettingsFlowPageState extends State<SettingsFlowPage> {
               prefs: prefs,
               onUpdated: (prefs) {
                 userModel.setPropertyGroup(props, prefs, index);
+                setState(() {});
               }),
           //next button
           const SizedBox(height: 40),
