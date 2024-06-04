@@ -77,7 +77,7 @@ class RegisterPasswordPageState extends State<RegisterPasswordPage> {
         const SizedBox(height: 40),
         ElevatedButton(
           onPressed: _submit,
-          child: const Text('Register'),
+          child: const Text('Next'),
         ),
       ],
     );

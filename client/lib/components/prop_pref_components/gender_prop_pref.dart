@@ -38,6 +38,7 @@ class GenderPickerState extends State<GenderPicker> {
 
     percentMale = widget.props[0].value.toDouble();
     percentFemale = widget.props[1].value.toDouble();
+
     _preferenceConfig = widget.preferenceConfigs.first;
   }
 
@@ -295,6 +296,52 @@ class GenderRangePickerState extends State<GenderRangePicker> {
     maleMax = widget.prefs[0].range.max.toDouble();
     femaleMin = widget.prefs[1].range.min.toDouble();
     femaleMax = widget.prefs[1].range.max.toDouble();
+
+    //coerce to be within the bounds of the preference config, farther than 0.1 apart, and in the correct order
+
+    if (maleMin < 0) {
+      maleMin = 0;
+    }
+    if (maleMax > 100) {
+      maleMax = 100.0;
+    }
+    if (femaleMin < 0) {
+      femaleMin = 0;
+    }
+    if (femaleMax > 100) {
+      femaleMax = 100.0;
+    }
+
+    if (maleMin > maleMax) {
+      var temp = maleMin;
+      maleMin = maleMax;
+      maleMax = temp;
+    }
+
+    if (femaleMin > femaleMax) {
+      var temp = femaleMin;
+      femaleMin = femaleMax;
+      femaleMax = temp;
+    }
+
+    //make sure they are more than 0.1 apart
+    //first check if there's enough room to move the max up
+    if (maleMax - maleMin < 10) {
+      if (maleMax + 10 <= 100) {
+        maleMax += 10;
+      } else {
+        maleMin -= 10;
+      }
+    }
+
+    if (femaleMax - femaleMin < 10) {
+      if (femaleMax + 10 <= 100) {
+        femaleMax += 10;
+      } else {
+        femaleMin -= 10;
+      }
+    }
+
     _preferenceConfig = (
       widget.preferenceConfigs.first,
       widget.preferenceConfigs.last,
@@ -333,12 +380,42 @@ class GenderRangePickerState extends State<GenderRangePicker> {
         femaleMin == 50 &&
         femaleMax == 100) {
       return "Female";
+    } else if ((maleMin == _preferenceConfig.$1.min || maleMin == -32768) &&
+        (maleMax == _preferenceConfig.$1.max || maleMax == 32767) &&
+        (femaleMin == _preferenceConfig.$2.min || femaleMin == -32768) &&
+        (femaleMax == _preferenceConfig.$2.max || femaleMax == 32767)) {
+      return "No Preference";
     } else {
       return "Advanced";
     }
   }
 
   void _updateRange(Offset start, Offset end) {
+    //make sure there's at least 0.1 difference between the start and end on both axes
+    if ((start.dx - end.dx).abs() < maxGridSize * 0.1 ||
+        (start.dy - end.dy).abs() < maxGridSize * 0.1) {
+      return;
+    }
+
+    //make sure the start is less than the end on both axes
+    if (start.dx > end.dx || start.dy > end.dy) {
+      return;
+    }
+
+    //make sure the start and end are within the bounds of the grid
+    if (start.dx < 0) {
+      start = Offset(0, start.dy);
+    }
+    if (start.dy < 0) {
+      start = Offset(start.dx, 0);
+    }
+    if (end.dx > maxGridSize) {
+      end = Offset(maxGridSize, end.dy);
+    }
+    if (end.dy > maxGridSize) {
+      end = Offset(end.dx, maxGridSize);
+    }
+
     var (maleConfig, femaleConfig) = _preferenceConfig;
     setState(() {
       maleMin = start.dx / maxGridSize * (maleConfig.max - maleConfig.min) +
@@ -422,6 +499,26 @@ class GenderRangePickerState extends State<GenderRangePicker> {
               widget.prefs[0].range.max = maleMax.round();
               widget.prefs[1].range.min = femaleMin.round();
               widget.prefs[1].range.max = femaleMax.round();
+              widget.onUpdated(widget.prefs);
+            }
+          },
+        ),
+        LabeledRadio<String>(
+          label: 'No Preference',
+          value: 'No Preference',
+          groupValue: getGenderValue(),
+          onChanged: (String? value) {
+            if (value != null) {
+              setState(() {
+                maleMin = 0;
+                maleMax = 100;
+                femaleMin = 0;
+                femaleMax = 100;
+              });
+              widget.prefs[0].range.min = -32768;
+              widget.prefs[0].range.max = 32767;
+              widget.prefs[1].range.min = -32768;
+              widget.prefs[1].range.max = 32767;
               widget.onUpdated(widget.prefs);
             }
           },

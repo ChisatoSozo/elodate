@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:client/api/pkg/lib/api.dart';
+import 'package:client/utils/prefs_utils.dart';
 import 'package:flutter/foundation.dart';
 import 'package:localstorage/localstorage.dart';
 
@@ -30,14 +31,24 @@ DefaultApi constructClient(String? jwt) {
 class UserModel extends ChangeNotifier {
   List<PreferenceConfigPublic>? preferenceConfigs;
   late DefaultApi client;
-  late ApiUser me;
+  ApiUser? _me;
   bool isLoading = false;
   bool isLoaded = false;
+
+  ApiUser get me => _me!;
 
   bool canLoad() {
     var jwt = localStorage.getItem('jwt');
     var uuid = localStorage.getItem('uuid');
     return jwt != null && uuid != null;
+  }
+
+  void clear() {
+    preferenceConfigs = null;
+    client = DefaultApi(ApiClient());
+    _me = null;
+    isLoading = false;
+    isLoaded = false;
   }
 
   Future<UserModel> initAll() async {
@@ -77,7 +88,14 @@ class UserModel extends ChangeNotifier {
     if (newMe == null) {
       throw Exception('Failed to get me');
     }
-    me = newMe;
+    var birthdate = newMe.birthdate;
+    //years old (birthdate is seconds since epoch)
+    var age = DateTime.now().year -
+        DateTime.fromMillisecondsSinceEpoch(birthdate * 1000).year;
+    setPropByName(newMe.props, "age", age);
+    print(getPropByName(newMe.props, "percent_male"));
+    print(getPropByName(newMe.props, "percent_female"));
+    _me = newMe;
   }
 
   Future<void> setProperty(ApiUserPropsInner property, int index) async {

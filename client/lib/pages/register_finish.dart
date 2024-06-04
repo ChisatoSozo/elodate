@@ -21,25 +21,27 @@ class RegisterFinishPageState extends State<RegisterFinishPage> {
 
   @override
   Widget build(BuildContext context) {
-    return ResponsiveScaffold(
+    return ResponsiveForm(
       title: registered
           ? 'Registered'
           : registerError != null
               ? 'Failed to register: $registerError'
               : 'Registering...',
       //retry button
-      child: registerError != null
-          ? ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  registered = false;
-                  registerError = null;
-                });
-                register();
-              },
-              child: const Text('Retry'),
-            )
-          : const CircularProgressIndicator(),
+      children: registerError != null
+          ? [
+              ElevatedButton(
+                onPressed: () {
+                  setState(() {
+                    registered = false;
+                    registerError = null;
+                  });
+                  register();
+                },
+                child: const Text('Retry'),
+              )
+            ]
+          : [const CircularProgressIndicator()],
     );
   }
 
@@ -58,6 +60,7 @@ class RegisterFinishPageState extends State<RegisterFinishPage> {
         throw Exception('Failed to register');
       }
       localStorage.setItem("jwt", jwt.jwt);
+      localStorage.setItem("uuid", jwt.uuid);
       setState(() {
         registered = true;
       });

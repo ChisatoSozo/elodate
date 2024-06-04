@@ -4,7 +4,6 @@ import 'dart:typed_data';
 
 import 'package:client/api/pkg/lib/api.dart';
 import 'package:client/components/chat_bubble.dart';
-import 'package:client/components/responsive_scaffold.dart';
 import 'package:client/components/uuid_image_provider.dart';
 import 'package:client/models/user_model.dart';
 import 'package:client/utils/utils.dart';
@@ -85,26 +84,23 @@ class ChatScreenState extends State<ChatScreen> {
     return Expanded(
       child: Align(
         alignment: Alignment.bottomCenter,
-        child: ResponsiveContainer(
-          scrollable: true,
-          child: ListView.builder(
-            itemCount: _messages.length,
-            itemBuilder: (context, index) {
-              final message = _messages[_messages.length - index - 1];
-              final isMe = message.author == userModel.me.uuid;
-              return ChatBubble(
-                key: Key(message.uuid),
-                text: message.content,
-                image: _buildMessageImage(message, userModel),
-                isMe: isMe,
-                timestamp: DateTime.fromMillisecondsSinceEpoch(
-                  message.sentAt * 1000,
-                ),
-              );
-            },
-            reverse: true,
-            shrinkWrap: true,
-          ),
+        child: ListView.builder(
+          itemCount: _messages.length,
+          itemBuilder: (context, index) {
+            final message = _messages[_messages.length - index - 1];
+            final isMe = message.author == userModel.me.uuid;
+            return ChatBubble(
+              key: Key(message.uuid),
+              text: message.content,
+              image: _buildMessageImage(message, userModel),
+              isMe: isMe,
+              timestamp: DateTime.fromMillisecondsSinceEpoch(
+                message.sentAt * 1000,
+              ),
+            );
+          },
+          reverse: true,
+          shrinkWrap: true,
         ),
       ),
     );

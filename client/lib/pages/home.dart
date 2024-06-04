@@ -17,9 +17,10 @@ class HomePageState extends State<HomePage> {
   int _selectedIndex = 1; // Default index for the center tab
 
   static final List<Widget> _widgetOptions = <Widget>[
-    const ResponsiveContainer(scrollable: true, child: SettingsPage()),
-    const ResponsiveContainer(scrollable: false, child: SwipePage()),
-    const ResponsiveContainer(scrollable: false, child: ChatPage()),
+    ResponsiveForm(
+        key: const Key("settings"), children: const [SettingsPage()]),
+    ResponsiveForm(key: const Key("swipe"), children: const [SwipePage()]),
+    ResponsiveForm(key: const Key("chat"), children: const [ChatPage()]),
   ];
 
   @override
@@ -50,9 +51,9 @@ class HomePageState extends State<HomePage> {
     var me = Provider.of<UserModel>(context, listen: true).me;
 
     if (!me.published) {
-      if (_selectedIndex != 0) {
-        _selectedIndex = 0;
-      }
+      return ResponsiveForm(key: const Key("settings"), children: const [
+        SettingsPage(),
+      ]);
     }
 
     return Scaffold(

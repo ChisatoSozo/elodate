@@ -33,20 +33,37 @@ int calculateInitialDistance(
       pow(deltaLng * pi / 180 * earthRadiusKm * cos(userLatLng.$1 * pi / 180),
           2));
 
+  print('Initial distance: $distance');
+
   return distance.round();
 }
 
 int findClosestDistanceIndex(int distance, List<int> presetDistances) {
-  int closestIndex = 0;
-  int closestDifference = (distance - presetDistances[0]).abs();
-  for (int i = 1; i < presetDistances.length; i++) {
-    int difference = (distance - presetDistances[i]).abs();
-    if (difference < closestDifference) {
-      closestIndex = i;
-      closestDifference = difference;
+  //go through each ajacent pair of distances and find the one that is closest to the distance
+  int closestDistanceIndex = 0;
+  double closestDistance = double.infinity;
+  for (int i = 0; i < presetDistances.length - 1; i++) {
+    int currentDistance = presetDistances[i];
+    int nextDistance = presetDistances[i + 1];
+    if (distance >= currentDistance && distance <= nextDistance) {
+      double currentDistanceDiff =
+          (distance - currentDistance).abs().toDouble();
+      double nextDistanceDiff = (distance - nextDistance).abs().toDouble();
+      if (currentDistanceDiff < nextDistanceDiff) {
+        if (currentDistanceDiff < closestDistance) {
+          closestDistanceIndex = i;
+          closestDistance = currentDistanceDiff;
+        }
+      } else {
+        if (nextDistanceDiff < closestDistance) {
+          closestDistanceIndex = i + 1;
+          closestDistance = nextDistanceDiff;
+        }
+      }
     }
   }
-  return closestIndex;
+
+  return closestDistanceIndex;
 }
 
 (ApiUserPrefsInnerRange, ApiUserPrefsInnerRange) getLatLngRange(
@@ -238,6 +255,9 @@ class LocationPickerState extends State<LocationPicker> {
 
   @override
   Widget build(BuildContext context) {
+    var unset = latitude == -90.0 && longitude == -180.0;
+    print('LocationPicker: $latitude, $longitude');
+    print(unset);
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -253,14 +273,18 @@ class LocationPickerState extends State<LocationPicker> {
             ),
           if (isLoading) const CircularProgressIndicator(),
           if (!isLoading) ...[
-            Text(
-              'Latitude: ${latitude.toStringAsFixed(3)}',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            Text(
-              'Longitude: ${longitude.toStringAsFixed(3)}',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
+            ...(!unset
+                ? [
+                    Text(
+                      'Latitude: ${latitude.toStringAsFixed(3)}',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    Text(
+                      'Longitude: ${longitude.toStringAsFixed(3)}',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    )
+                  ]
+                : []),
             const SizedBox(height: 20),
             ElevatedButton.icon(
               onPressed: _getCurrentPosition,
@@ -279,7 +303,7 @@ class LocationPickerState extends State<LocationPicker> {
   }
 }
 
-const List<int> presetDistances = [1, 2, 5, 10, 20, 50, 100, 250, 500, 25000];
+const List<int> presetDistances = [1, 2, 5, 10, 20, 50, 100, 250, 500, 12000];
 
 class LocationRangePicker extends StatefulWidget {
   final List<ApiUserPrefsInner> prefs;
@@ -329,6 +353,12 @@ class LocationRangePickerState extends State<LocationRangePicker> {
     var userModel = Provider.of<UserModel>(context, listen: false);
     var user = userModel.me;
 
+    var isEarth = selectedDistance == 12000;
+
+    var message = isEarth
+        ? 'Anywhere on Earth'
+        : 'Within $selectedDistance km of your location';
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -341,7 +371,7 @@ class LocationRangePickerState extends State<LocationRangePicker> {
           onChanged: (value) => _onSliderChanged(value, user),
         ),
         Text(
-          'Selected Distance: $selectedDistance km',
+          message,
           style: Theme.of(context).textTheme.titleMedium,
         ),
       ],

@@ -1,5 +1,5 @@
 import 'package:client/components/prop_pref_components/pref.dart';
-import 'package:client/components/prop_pref_components/prep.dart';
+import 'package:client/components/prop_pref_components/prop.dart';
 import 'package:client/components/responsive_scaffold.dart';
 import 'package:client/models/page_state_model.dart';
 import 'package:client/models/user_model.dart';
@@ -16,7 +16,6 @@ class SettingsFlowPage extends StatefulWidget {
 class SettingsFlowPageState extends State<SettingsFlowPage> {
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
   final FocusNode _buttonFocusNode = FocusNode();
-  bool loaded = false;
 
   @override
   void initState() {
@@ -25,22 +24,7 @@ class SettingsFlowPageState extends State<SettingsFlowPage> {
     var pageStateModel = Provider.of<PageStateModel>(context, listen: false);
     _buttonFocusNode.requestFocus();
 
-    if (!userModel.isLoading && !userModel.isLoaded) {
-      userModel.initAll().then(
-        (userModel) {
-          setState(
-            () {
-              loaded = true;
-              pageStateModel.initPrefsCategories(userModel);
-            },
-          );
-        },
-      );
-    } else {
-      setState(() {
-        loaded = true;
-      });
-    }
+    pageStateModel.initPrefsCategories(userModel);
   }
 
   @override
@@ -50,57 +34,82 @@ class SettingsFlowPageState extends State<SettingsFlowPage> {
 
   @override
   Widget build(BuildContext context) {
-    if (!loaded) {
-      return const CircularProgressIndicator();
-    }
-
     var pageStateModel = Provider.of<PageStateModel>(context, listen: false);
     var userModel = Provider.of<UserModel>(context, listen: false);
 
     var (_, configs, index) = pageStateModel.getCurrentGroup();
     var (props, prefs) = userModel.getPropertyGroup(configs);
 
+    var optional = configs.first.optional;
+    var unset = props.any((p) => p.value == -32768);
+
     return PopScope(
       onPopInvoked: (_) => pageStateModel.revertGroup(context),
-      child: ResponsiveScaffold(
+      child: ResponsiveForm(
+        titleAtTop: true,
+        formKey: formKey,
         title: configs.first.category.toString(),
-        child: Form(
-          key: formKey,
-          child: Column(
+        children: [
+          if (configs.first.valueQuestion.isNotEmpty) ...[
+            Text(configs.first.valueQuestion,
+                style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: 20),
+            Prop(
+                configs: configs,
+                props: props,
+                onUpdated: (props) {
+                  userModel.setPropertyGroup(props, prefs, index);
+                }),
+            const SizedBox(height: 40),
+          ],
+          Text(configs.first.rangeQuestion,
+              style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 20),
+          Pref(
+              configs: configs,
+              prefs: prefs,
+              onUpdated: (prefs) {
+                userModel.setPropertyGroup(props, prefs, index);
+              }),
+          //next button
+          const SizedBox(height: 40),
+          Row(
+            //align buttons left and right
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              if (configs.first.valueQuestion.isNotEmpty) ...[
-                Text(configs.first.valueQuestion,
-                    style: Theme.of(context).textTheme.titleMedium),
-                const SizedBox(height: 20),
-                Prop(
-                    configs: configs,
-                    props: props,
-                    onUpdated: (props) {
-                      userModel.setPropertyGroup(props, prefs, index);
-                    }),
-                const SizedBox(height: 40),
-              ],
-              Text(configs.first.rangeQuestion,
-                  style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 20),
-              Pref(
-                  configs: configs,
-                  prefs: prefs,
-                  onUpdated: (prefs) {
-                    userModel.setPropertyGroup(props, prefs, index);
-                  }),
-              //next button
-              const SizedBox(height: 40),
+              //button with left arrow icon
               ElevatedButton(
                 onPressed: () {
-                  pageStateModel.advanceGroup(context);
+                  //pop one page
+                  Navigator.pop(context);
                 },
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.arrow_back),
+                    Text('Back'),
+                  ],
+                ),
+              ),
+              //button with right arrow icon
+              ElevatedButton(
+                onPressed: !optional && unset
+                    ? null
+                    : () {
+                        pageStateModel.advanceGroup(context);
+                      },
                 focusNode: _buttonFocusNode,
-                child: const Text('Next'),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('Next'),
+                    Icon(Icons.arrow_forward),
+                  ],
+                ),
               ),
             ],
           ),
-        ),
+        ],
       ),
     );
   }

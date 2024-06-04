@@ -282,6 +282,7 @@ pub struct PreferenceConfig<'a> {
     pub std_dev_alteration: StdDevAlteration,
     pub linear_mapping: Option<LinearMapping>,
     pub optional: bool,
+    pub default: Option<i16>,
     pub probability_to_be_none: f64,
     pub labels: Option<[&'a str; 5]>,
 }

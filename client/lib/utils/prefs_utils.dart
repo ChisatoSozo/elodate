@@ -7,6 +7,11 @@ ApiUserPropsInner getPropByName(List<ApiUserPropsInner> props, String name) {
   return props.firstWhere((element) => element.name == name);
 }
 
+void setPropByName(List<ApiUserPropsInner> props, String name, int value) {
+  var prop = getPropByName(props, name);
+  prop.value = value;
+}
+
 ApiUserPrefsInner getPrefByName(List<ApiUserPrefsInner> prefs, String name) {
   return prefs.firstWhere((element) => element.name == name);
 }

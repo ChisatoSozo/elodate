@@ -122,26 +122,9 @@ impl ApiUserWritable {
         };
 
         //fill props.additional with default values up to PREFS_CARDINALITY, from the index of the last filled value
-        let last_filled = self.props.len();
-        for i in last_filled..PREFS_CONFIG.len() {
-            self.props.push(LabeledProperty {
-                name: PREFS_CONFIG[i].name.to_string(),
-                value: -32768,
-            });
-        }
-        assert!(self.props.len() == PREFS_CONFIG.len());
 
-        //fill prefs.additional with default values up to PREFS_CARDINALITY, from the index of the last filled value
-        let last_filled = self.prefs.len();
-        for i in last_filled..PREFS_CONFIG.len() {
-            self.prefs.push(LabeledPreferenceRange {
-                name: PREFS_CONFIG[i].name.to_string(),
-                range: PreferenceRange {
-                    min: -32768,
-                    max: 32767,
-                },
-            });
-        }
+        assert!(self.props.len() == PREFS_CONFIG.len());
+        assert!(self.prefs.len() == PREFS_CONFIG.len());
 
         //do you have access to all the images you're trying to add?
         for image in &self.images {
@@ -183,12 +166,19 @@ impl ApiUserWritable {
         //fill props.additional with default values up to PREFS_CARDINALITY, from the index of the last filled value
         let last_filled = self.props.len();
         for i in last_filled..PREFS_CONFIG.len() {
-            self.props.push(LabeledProperty {
-                name: PREFS_CONFIG[i].name.to_string(),
-                value: -32768,
-            });
+            let pref = &PREFS_CONFIG[i];
+            if let Some(default) = pref.default {
+                self.props.push(LabeledProperty {
+                    name: pref.name.to_string(),
+                    value: default,
+                });
+            } else {
+                self.props.push(LabeledProperty {
+                    name: PREFS_CONFIG[i].name.to_string(),
+                    value: -32768,
+                });
+            }
         }
-        assert!(self.props.len() == PREFS_CONFIG.len());
     }
 
     pub fn fill_prefs(&mut self) {

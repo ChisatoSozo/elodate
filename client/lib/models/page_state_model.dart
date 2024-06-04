@@ -92,7 +92,6 @@ class PageStateModel extends ChangeNotifier {
   void initPrefsCategories(UserModel userModel) {
     categories =
         preferenceConfigsToCategoriesAndGroups(userModel.preferenceConfigs!);
-    notifyListeners();
   }
 
   (String, List<PreferenceConfigPublic>, int) getCurrentGroup() {
