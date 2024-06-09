@@ -16,7 +16,9 @@ use std::{
 };
 
 use crate::models::internal_models::{
-    internal_prefs_config::PREFS_CARDINALITY, shared::InternalUuid,
+    internal_prefs_config::PREFS_CARDINALITY,
+    internal_user::InternalUser,
+    shared::{GetBbox, GetVector, InternalUuid},
 };
 use crate::vec::search_linear::LinearSearch;
 use crate::vec::shared::VectorSearch;
@@ -34,15 +36,37 @@ impl DB {
     pub fn new(path: &str) -> Result<Self, kv::Error> {
         println!("Opening database");
         let db_path = "db/".to_owned() + path;
-        let vector_db_path = db_path.clone() + "/vec_index.bin";
-        let vector_search = LinearSearch::load_from_file(&vector_db_path).unwrap();
+
         let cfg = Config::new(db_path.clone() + "/kv");
         let store = Store::new(cfg)?;
-        Ok(DB {
+
+        let vector_search = LinearSearch::new();
+        let db = DB {
             store,
             vec_index: Arc::new(Mutex::new(vector_search)),
             path: db_path,
-        })
+        };
+
+        let users = db.iter_obj::<InternalUser>("users");
+
+        let users = match users {
+            Ok(users) => users,
+            Err(_) => {
+                println!("No users found in database");
+                return Ok(db);
+            }
+        };
+
+        for user in users {
+            let user = user.unwrap();
+            let mut vec_index = db.vec_index.lock().unwrap();
+            let bbox = user.prefs.get_bbox();
+            let vec = user.props.get_vector();
+            vec_index.add(&vec, &user.uuid.id);
+            vec_index.add_bbox(&bbox, &user.uuid.id);
+        }
+
+        Ok(db)
     }
 
     pub fn destroy_database_for_real_dangerous(path: &str) {
@@ -102,6 +126,7 @@ impl DB {
 
     pub fn write_object<T>(
         &self,
+        bucket: &str,
         key: &InternalUuid<T>,
         object: &T,
     ) -> Result<InternalUuid<T>, Box<dyn std::error::Error>>
@@ -113,27 +138,27 @@ impl DB {
                 SharedSerializeMap,
             >,
         >,
-        T: Clone,
     {
         let mut serializer = DefaultSerializer::default();
         serializer.serialize_value(object).unwrap();
         let bytes = serializer.into_serializer().into_inner();
-        let bucket = self.store.bucket::<Raw, Raw>(Some("object_storage"))?;
+        let bucket = self.store.bucket::<Raw, Raw>(Some(bucket))?;
         let key_raw = Raw::from(key.id.as_bytes());
         let value_raw = Raw::from(bytes.as_slice());
         bucket.set(&key_raw, &value_raw)?;
-        Ok(key.clone())
+        Ok(key.id.clone().into())
     }
 
     pub fn read_object<T>(
         &self,
+        bucket: &str,
         key: &InternalUuid<T>,
     ) -> Result<Option<T>, Box<dyn std::error::Error>>
     where
         T: Archive,
         for<'a> T::Archived: rkyv::CheckBytes<DefaultValidator<'a>> + Deserialize<T, Infallible>,
     {
-        let bucket = self.store.bucket::<Raw, Raw>(Some("object_storage"))?;
+        let bucket = self.store.bucket::<Raw, Raw>(Some(bucket))?;
         let key_raw = Raw::from(key.id.as_bytes());
         let result = bucket.get(&key_raw)?;
         let value_raw = match result {
@@ -147,6 +172,29 @@ impl DB {
             let deserialized: T = archived.deserialize(&mut Infallible)?;
             Ok(Some(deserialized))
         }
+    }
+
+    pub fn iter_obj<T>(
+        &self,
+        bucket: &str,
+    ) -> Result<impl Iterator<Item = Result<T, Box<dyn std::error::Error>>>, kv::Error>
+    where
+        T: Archive,
+        for<'a> T::Archived: rkyv::CheckBytes<DefaultValidator<'a>> + Deserialize<T, Infallible>,
+    {
+        let bucket = self.store.bucket::<Raw, Raw>(Some(bucket))?;
+        let iter = bucket.iter().map(move |elem| {
+            let item = elem.map_err(|e| Box::new(e) as Box<dyn std::error::Error>)?;
+            let value: Raw = item.value()?;
+            let archived = rkyv::check_archived_root::<T>(&value[..])
+                .map_err(|e| Box::new(e) as Box<dyn std::error::Error>)?;
+            let deserialized: T = archived
+                .deserialize(&mut Infallible)
+                .map_err(|e| Box::new(e) as Box<dyn std::error::Error>)?;
+            Ok(deserialized)
+        });
+
+        Ok(iter)
     }
 
     pub fn delete_object<T>(
@@ -178,14 +226,5 @@ impl DB {
         let key_raw = Raw::from(key.id.as_bytes());
         let result = bucket.contains(&key_raw)?;
         Ok(result)
-    }
-
-    pub fn save_to_disk(&self) -> Result<(), Box<dyn std::error::Error>> {
-        let vector_db_path = self.path.clone() + "/vec_index.bin";
-        self.vec_index
-            .lock()
-            .map_err(|_| "Could not lock vec_index")?
-            .save_to_file(&vector_db_path)?;
-        Ok(())
     }
 }

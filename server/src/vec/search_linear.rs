@@ -1,31 +1,49 @@
 use serde::{Deserialize, Serialize};
 
 use super::shared::{Bbox, LabelPairBbox, LabelPairVec, VectorSearch};
-use std::{
-    collections::HashSet,
-    error::Error,
-    fs::File,
-    io::{BufReader, BufWriter},
-};
+use std::collections::HashSet;
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct LinearSearch<const N: usize> {
+    vec_labels: HashSet<String>,
+    bbox_labels: HashSet<String>,
     vecs: Vec<LabelPairVec<N>>,
     bboxes: Vec<LabelPairBbox<N>>,
 }
 
 impl<const N: usize> VectorSearch<N> for LinearSearch<N> {
     fn new_vec_store(vecs: Vec<LabelPairVec<N>>) -> Self {
+        let vec_labels = vecs
+            .iter()
+            .map(|label_pair| label_pair.label.clone())
+            .collect();
         LinearSearch {
             vecs,
             bboxes: vec![],
+            vec_labels,
+            bbox_labels: HashSet::new(),
         }
     }
 
     fn new_bbox_store(bboxes: Vec<LabelPairBbox<N>>) -> Self {
+        let bbox_labels = bboxes
+            .iter()
+            .map(|label_pair| label_pair.label.clone())
+            .collect();
         LinearSearch {
             vecs: vec![],
             bboxes,
+            vec_labels: HashSet::new(),
+            bbox_labels,
+        }
+    }
+
+    fn new() -> Self {
+        LinearSearch {
+            vecs: vec![],
+            bboxes: vec![],
+            vec_labels: HashSet::new(),
+            bbox_labels: HashSet::new(),
         }
     }
 
@@ -84,69 +102,53 @@ impl<const N: usize> VectorSearch<N> for LinearSearch<N> {
             .cloned()
     }
 
+    fn contains_vec(&self, label: &String) -> bool {
+        self.vec_labels.contains(label)
+    }
+
+    fn contains_bbox(&self, label: &String) -> bool {
+        self.bbox_labels.contains(label)
+    }
+
     fn add(&mut self, location: &[i16; N], label: &String) {
-        self.vecs.push(LabelPairVec {
-            label: label.clone(),
-            vec: *location,
-        });
-    }
-
-    fn add_bbox(&mut self, bbox: &Bbox<N>, label: &String) {
-        self.bboxes.push(LabelPairBbox {
-            label: label.clone(),
-            bbox: bbox.clone(),
-        });
-    }
-
-    fn add_multiple(&mut self, locations: &[[i16; N]], label: &String) {
-        for location in locations {
-            self.add(location, label);
+        if self.vec_labels.contains(label) {
+            //update the vec
+            self.vecs
+                .iter_mut()
+                .find(|label_pair| label_pair.label == *label)
+                .map(|label_pair| label_pair.vec = *location);
+        } else {
+            self.vecs.push(LabelPairVec {
+                label: label.clone(),
+                vec: *location,
+            });
+            self.vec_labels.insert(label.clone());
         }
     }
 
-    fn add_multiple_bboxes(&mut self, bboxes: &[Bbox<N>], label: &String) {
-        for bbox in bboxes {
-            self.add_bbox(bbox, label);
+    fn add_bbox(&mut self, bbox: &Bbox<N>, label: &String) {
+        if self.bbox_labels.contains(label) {
+            //update the bbox
+            self.bboxes
+                .iter_mut()
+                .find(|label_pair| &label_pair.label == label)
+                .map(|label_pair| label_pair.bbox = bbox.clone());
+        } else {
+            self.bboxes.push(LabelPairBbox {
+                label: label.clone(),
+                bbox: bbox.clone(),
+            });
+            self.bbox_labels.insert(label.clone());
         }
     }
 
     fn remove(&mut self, label: &String) {
         self.vecs.retain(|label_pair| label_pair.label != *label);
+        self.vec_labels.remove(label);
     }
 
     fn remove_bbox(&mut self, label: &String) {
         self.bboxes.retain(|label_pair| label_pair.label != *label);
-    }
-
-    fn remove_multiple(&mut self, labels: &[String]) {
-        for label in labels {
-            self.remove(label);
-        }
-    }
-
-    fn remove_multiple_bboxes(&mut self, labels: &[String]) {
-        for label in labels {
-            self.remove_bbox(label);
-        }
-    }
-
-    fn load_from_file(path: &str) -> Result<LinearSearch<N>, Box<dyn Error>> {
-        if !std::path::Path::new(path).exists() {
-            return Ok(LinearSearch {
-                vecs: vec![],
-                bboxes: vec![],
-            });
-        }
-        let file = File::open(path)?;
-        let reader = BufReader::new(file);
-        let loaded: LinearSearch<N> = bincode::deserialize_from(reader)?;
-        Ok(loaded)
-    }
-
-    fn save_to_file(&self, path: &str) -> Result<(), Box<dyn Error>> {
-        let file = File::create(path)?;
-        let writer = BufWriter::new(file);
-        bincode::serialize_into(writer, &self)?;
-        Ok(())
+        self.bbox_labels.remove(label);
     }
 }

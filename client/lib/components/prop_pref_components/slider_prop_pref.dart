@@ -93,12 +93,12 @@ class PropSliderState extends State<PropSlider> {
           initialValue: widget.props.first.value,
           onChanged: (value) => _updateValue(value));
     } else {
-      return Opacity(
-        opacity: _isUnset ? 0.5 : 1.0,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Slider(
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Opacity(
+            opacity: _isUnset ? 0.5 : 1.0,
+            child: Slider(
               value: _isUnset
                   ? _preferenceConfig.min.toDouble()
                   : _value.toDouble(),
@@ -111,15 +111,15 @@ class PropSliderState extends State<PropSlider> {
               ),
               onChanged: (value) => _updateValue(value.round()),
             ),
-            LabeledCheckbox(
-              alignRight: true,
-              labelOnRight: false,
-              label: 'Unset',
-              checked: _isUnset,
-              onChanged: _toggleUnset,
-            ),
-          ],
-        ),
+          ),
+          LabeledCheckbox(
+            alignRight: true,
+            labelOnRight: false,
+            label: 'Unset',
+            checked: _isUnset,
+            onChanged: _toggleUnset,
+          ),
+        ],
       );
     }
   }

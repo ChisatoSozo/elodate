@@ -1,11 +1,11 @@
 {
-    "name": "client",
-    "short_name": "client",
+    "name": "elodate",
+    "short_name": "elodate",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#E63946",
+    "theme_color": "#E63946",
+    "description": "Ranked competitive dating",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

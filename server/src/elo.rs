@@ -4,6 +4,7 @@
 //     db::DB,
 //     internal_models::{rating::InternalRating, shared::UuidModel, user::User},
 // };
+pub const BEGINNING_LEFT_SWIPES: u32 = 100;
 
 pub const ELO_SCALE: f64 = 500.0;
 pub const ELO_SHIFT: f64 = 2.0;
@@ -86,57 +87,3 @@ pub fn elo_to_label(elo: u32) -> String {
     }
     ELO_LABELS[i].to_string()
 }
-
-// pub fn update_elo(user: User, db: &DB) -> Result<(), Box<dyn Error>> {
-//     let liked_by = user
-//         .ratings
-//         .iter()
-//         .filter_map(|r| match r {
-//             InternalRating::LikedBy(user) => Some(user.clone()),
-//             _ => None,
-//         })
-//         .collect::<Vec<UuidModel>>();
-//     let passed_by = user
-//         .ratings
-//         .iter()
-//         .filter_map(|r| match r {
-//             InternalRating::PassedBy(user) => Some(user.clone()),
-//             _ => None,
-//         })
-//         .collect::<Vec<UuidModel>>();
-
-//     //sum elo of liked_by users
-//     let liked_by_elo_sum: f64 = liked_by
-//         .iter()
-//         .map(|username| db.get_user(username).unwrap().unwrap().elo as f64)
-//         .sum::<f64>()
-//         + FUZZING_CONSTANT;
-
-//     //sum elo of passed_by users
-//     let passed_by_elo_sum: f64 = passed_by
-//         .iter()
-//         .map(|username| db.get_user(username).unwrap().unwrap().elo as f64)
-//         .sum::<f64>()
-//         + FUZZING_CONSTANT;
-
-//     //total elo of liked_by and passed_by users
-//     let total_elo = liked_by_elo_sum + passed_by_elo_sum;
-//     //liked percentage
-//     let liked_percentage = if total_elo == 0.0 {
-//         0.5
-//     } else {
-//         liked_by_elo_sum / total_elo
-//     };
-
-//     //elo update
-//     let new_elo = (ELO_SCALE / (ELO_SHIFT - liked_percentage)) as usize;
-
-//     let new_user = User {
-//         elo: new_elo as u32,
-//         ..user
-//     };
-
-//     db.insert_user(&new_user)?;
-
-//     Ok(())
-// }

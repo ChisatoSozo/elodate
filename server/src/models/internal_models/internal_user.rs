@@ -9,7 +9,7 @@ use super::{
     internal_image::InternalImage,
     internal_prefs::{LabeledPreferenceRange, LabeledProperty},
     internal_prefs_config::PREFS_CONFIG,
-    shared::{GetBbox, GetVector, InternalUuid, Save},
+    shared::{Bucket, GetBbox, GetVector, InternalUuid, Save},
 };
 
 use crate::db::DB;
@@ -89,15 +89,23 @@ impl InternalUser {
     }
 }
 
+impl Bucket for InternalUser {
+    fn bucket() -> &'static str {
+        "users"
+    }
+}
+
 impl Save for InternalUser {
     fn save(self, db: &DB) -> Result<InternalUuid<InternalUser>, Box<dyn Error>> {
-        db.write_index("user.username", &self.username, &self.uuid)?;
-        db.write_object(&self.uuid, &self)?;
+        db.write_index("users.username", &self.username, &self.uuid)?;
+        self.uuid.write(&self, db)?;
         let arc_clone = db.vec_index.clone();
         let mut lock = arc_clone.lock().map_err(|_| "Could not lock vec_index")?;
 
-        lock.add(&self.props.get_vector(), &self.uuid.id);
-        lock.add_bbox(&self.prefs.get_bbox(), &self.uuid.id);
+        if self.published {
+            lock.add(&self.props.get_vector(), &self.uuid.id);
+            lock.add_bbox(&self.prefs.get_bbox(), &self.uuid.id);
+        }
         Ok(self.uuid)
     }
 }
@@ -107,7 +115,7 @@ impl DB {
         &self,
         username: &String,
     ) -> Result<Option<InternalUser>, Box<dyn Error>> {
-        let uuid = self.read_index::<InternalUser>("user.username", username)?;
+        let uuid = self.read_index::<InternalUser>("users.username", username)?;
         match uuid {
             Some(uuid) => uuid.load(self),
             None => Ok(None),

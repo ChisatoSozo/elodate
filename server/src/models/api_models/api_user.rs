@@ -89,18 +89,26 @@ impl ApiUserWritable {
         };
 
         if let Some(internal_user) = &internal_user {
-            for image in &internal_user.images {
-                image.clone().delete(db)?;
+            let old_images = internal_user.images.clone();
+            for image in old_images {
+                //if the image is not in the new images, delete it
+                if !self.images.contains(&image.clone().into()) {
+                    let loaded = image.load(db)?;
+                    match loaded {
+                        Some(image) => {
+                            image.uuid.delete(db)?;
+                        }
+                        None => {
+                            return Err(
+                                "Image not found, can't delete, this shouldn't happen".into()
+                            )
+                        }
+                    }
+                }
             }
         }
 
-        let published = if let Some(internal_user) = &internal_user {
-            internal_user.published
-        } else {
-            false
-        };
-
-        let owned_images = if let Some(internal_user) = &internal_user {
+        let mut owned_images = if let Some(internal_user) = &internal_user {
             (&internal_user).owned_images.clone()
         } else {
             vec![]
@@ -112,6 +120,7 @@ impl ApiUserWritable {
                 let first_image = preview_uuid.load(db)?;
                 let preview_image = first_image.ok_or("No preview image")?;
                 let preview_image = preview_image.to_preview(Access::Everyone)?;
+                owned_images.push(preview_image.uuid.clone());
                 preview_image.save(db)
             });
 
@@ -156,7 +165,7 @@ impl ApiUserWritable {
             birthdate: self.birthdate,
             prefs: self.prefs,
             props: self.props,
-            published: published,
+            published: internal_user.as_ref().map_or(false, |u| u.published),
             owned_images: owned_images,
             preview_image: preview_image_uuid,
         })

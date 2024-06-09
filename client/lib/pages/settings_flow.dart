@@ -16,6 +16,7 @@ class SettingsFlowPage extends StatefulWidget {
 class SettingsFlowPageState extends State<SettingsFlowPage> {
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
   final FocusNode _buttonFocusNode = FocusNode();
+  bool _loading = false;
 
   @override
   void initState() {
@@ -96,17 +97,23 @@ class SettingsFlowPageState extends State<SettingsFlowPage> {
               ),
               //button with right arrow icon
               ElevatedButton(
-                onPressed: !optional && unset
+                onPressed: (!optional && unset) || _loading
                     ? null
-                    : () {
-                        pageStateModel.advanceGroup(context);
+                    : () async {
+                        setState(() {
+                          _loading = true;
+                        });
+                        await pageStateModel.advanceGroup(context);
+                        setState(() {
+                          _loading = false;
+                        });
                       },
                 focusNode: _buttonFocusNode,
-                child: const Row(
+                child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text('Next'),
-                    Icon(Icons.arrow_forward),
+                    _loading ? const Text('Loading...') : const Text('Next'),
+                    const Icon(Icons.arrow_forward),
                   ],
                 ),
               ),

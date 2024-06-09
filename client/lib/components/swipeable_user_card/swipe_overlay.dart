@@ -16,12 +16,16 @@ class SwipeOverlay extends StatelessWidget {
     bool isNeutral = overlayColor == Colors.transparent;
 
     double opacity = (swipeOffset.abs() / 200).clamp(0.0, 1.0);
+    double backgroundOpacity = opacity / 3;
     double iconSize = (swipeOffset.abs() / 200 * 300).clamp(0.0, 300.0);
 
     return Positioned.fill(
       child: Stack(
         children: [
-          if (!isNeutral)
+          if (!isNeutral) ...[
+            Container(
+              color: overlayColor.withOpacity(backgroundOpacity),
+            ),
             Center(
               child: Opacity(
                 opacity: opacity,
@@ -32,6 +36,8 @@ class SwipeOverlay extends StatelessWidget {
                 ),
               ),
             ),
+            //background color
+          ]
         ],
       ),
     );

@@ -43,21 +43,17 @@ Future<T> retry<T>(
 
 Future<Uint8List> compressImage(Uint8List imageBytes) async {
   // Decode the image
-  try {
-    ImageFile input = ImageFile(filePath: "", rawBytes: imageBytes);
-    Configuration config = const Configuration(
-      outputType: ImageOutputType.jpg,
-      // can only be true for Android and iOS while using ImageOutputType.jpg or ImageOutputType.pngÏ
-      useJpgPngNativeCompressor: false,
-      // set quality between 0-100
-      quality: 75,
-    );
 
-    final param = ImageFileConfiguration(input: input, config: config);
-    final output = await compressor.compress(param);
-    return output.rawBytes;
-  } catch (e) {
-    print(e);
-    return imageBytes;
-  }
+  ImageFile input = ImageFile(filePath: "", rawBytes: imageBytes);
+  Configuration config = const Configuration(
+    outputType: ImageOutputType.jpg,
+    // can only be true for Android and iOS while using ImageOutputType.jpg or ImageOutputType.pngÏ
+    useJpgPngNativeCompressor: false,
+    // set quality between 0-100
+    quality: 80,
+  );
+
+  final param = ImageFileConfiguration(input: input, config: config);
+  final output = await compressor.compress(param);
+  return output.rawBytes;
 }

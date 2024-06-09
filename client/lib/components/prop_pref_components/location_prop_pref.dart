@@ -33,8 +33,6 @@ int calculateInitialDistance(
       pow(deltaLng * pi / 180 * earthRadiusKm * cos(userLatLng.$1 * pi / 180),
           2));
 
-  print('Initial distance: $distance');
-
   return distance.round();
 }
 

@@ -20,7 +20,7 @@ class RedirPageState extends State<RedirPage> {
     var userModel = Provider.of<UserModel>(context, listen: false);
 
     if (!userModel.isLoading && !userModel.isLoaded && userModel.canLoad()) {
-      userModel.initAll();
+      userModel.initAll(context);
     }
   }
 
@@ -40,7 +40,7 @@ class RedirPageState extends State<RedirPage> {
       var isLoaded = userModel.isLoaded;
 
       if (isLoaded) {
-        if (!userModel.me.published) {
+        if (!userModel.me.published && userModel.me.images.isEmpty) {
           Navigator.pushAndRemoveUntil(
               context,
               MaterialPageRoute(

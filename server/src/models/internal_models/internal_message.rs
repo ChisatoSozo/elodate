@@ -4,8 +4,10 @@ use std::error::Error;
 use crate::db::DB;
 
 use super::{
-    internal_chat::InternalChat, internal_image::InternalImage, internal_user::InternalUser,
-    shared::InternalUuid,
+    internal_chat::InternalChat,
+    internal_image::InternalImage,
+    internal_user::InternalUser,
+    shared::{Bucket, InternalUuid},
 };
 
 #[derive(Debug, Clone, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
@@ -37,9 +39,21 @@ impl InternalMessage {
                 _ => self.content.clone(),
             };
             chat.most_recent_sender = Some(self.author.clone());
-            chat.save(db)?;
+            chat.unread = chat
+                .users
+                .iter()
+                .enumerate()
+                .map(|(i, u)| {
+                    if u == &self.author {
+                        0
+                    } else {
+                        chat.unread[i] + 1
+                    }
+                })
+                .collect();
+            chat.uuid.write(&chat, db)?;
         };
-        db.write_object(&self.uuid, &self)
+        self.uuid.write(&self, db)
     }
 }
 
@@ -49,7 +63,13 @@ impl InternalMessage {
         &self,
         db: &DB,
     ) -> Result<(), Box<dyn Error>> {
-        db.write_object(&self.uuid, &self)?;
+        self.uuid.write(&self, db)?;
         Ok(())
+    }
+}
+
+impl Bucket for InternalMessage {
+    fn bucket() -> &'static str {
+        "messages"
     }
 }

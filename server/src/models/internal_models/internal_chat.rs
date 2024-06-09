@@ -2,7 +2,7 @@ use std::error::Error;
 
 use crate::db::DB;
 
-use super::shared::InternalUuid;
+use super::shared::{Bucket, InternalUuid, Save};
 use super::{internal_message::InternalMessage, internal_user::InternalUser};
 
 #[derive(Debug, Clone, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
@@ -30,8 +30,14 @@ impl InternalChat {
     }
 }
 
-impl InternalChat {
-    pub fn save(&self, db: &DB) -> Result<InternalUuid<InternalChat>, Box<dyn Error>> {
-        db.write_object(&self.uuid, self)
+impl Save for InternalChat {
+    fn save(self, db: &DB) -> Result<InternalUuid<InternalChat>, Box<dyn Error>> {
+        self.uuid.write(&self, db)
+    }
+}
+
+impl Bucket for InternalChat {
+    fn bucket() -> &'static str {
+        "chats"
     }
 }

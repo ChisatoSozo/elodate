@@ -48,7 +48,13 @@ class PageStateModel extends ChangeNotifier {
         List<(String, List<PreferenceConfigPublic>, int)>
       )> categories;
 
-  void advanceGroup(BuildContext context) {
+  Future<void> clear() async {
+    _currentCategoryIndex = 0;
+    _currentGroupIndex = 0;
+    categories = [];
+  }
+
+  Future<void> advanceGroup(BuildContext context) async {
     if (_currentGroupIndex < categories[currentCategoryIndex].$2.length - 1) {
       _currentGroupIndex++;
     } else if (currentCategoryIndex < categories.length - 1) {
@@ -56,15 +62,18 @@ class PageStateModel extends ChangeNotifier {
       _currentGroupIndex = 0;
     } else {
       var userModel = Provider.of<UserModel>(context, listen: false);
-      userModel.updateMe().then((value) => {
-            Navigator.pushAndRemoveUntil(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const RedirPage(),
-              ),
-              (route) => false,
-            )
-          });
+      await userModel.updateMe();
+      if (!context.mounted) {
+        throw Exception('Context is not mounted');
+      }
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const RedirPage(),
+        ),
+        (route) => false,
+      );
+      return;
     }
     Navigator.push(
       context,

@@ -1,9 +1,11 @@
+import 'package:client/components/report_bug_scaffold.dart';
 import 'package:flutter/material.dart';
 
 class ResponsiveForm extends StatelessWidget {
   final List<Widget> children;
   final String? title; // Title property
   final double? progress;
+  final bool scrollable;
   final bool titleAtTop;
   final GlobalKey<FormState>? _formKey;
   final GlobalKey<FormState> _defaultFormKey = GlobalKey<FormState>();
@@ -14,6 +16,7 @@ class ResponsiveForm extends StatelessWidget {
       required this.children,
       this.progress,
       this.title,
+      this.scrollable = true,
       this.titleAtTop = false,
       GlobalKey<FormState>? formKey})
       : _formKey = formKey;
@@ -22,7 +25,7 @@ class ResponsiveForm extends StatelessWidget {
   Widget build(BuildContext context) {
     return Form(
       key: _formKey ?? _defaultFormKey,
-      child: Scaffold(
+      child: ReportBugScaffold(
         appBar: titleAtTop && title != null
             ? AppBar(
                 title: Text(title!),
@@ -40,28 +43,39 @@ class ResponsiveForm extends StatelessWidget {
             : null,
         body: LayoutBuilder(
           builder: (context, constraints) {
-            return SingleChildScrollView(
-              child: Center(
-                child: Container(
-                  padding: const EdgeInsets.all(20),
-                  constraints: BoxConstraints(
-                      maxWidth: 400, minHeight: constraints.maxHeight),
-                  child: Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (title != null && !titleAtTop) ...[
-                          Text(title!,
-                              style: Theme.of(context).textTheme.headlineSmall),
-                          const SizedBox(height: 20),
-                        ],
-                        ...children,
-                      ],
+            return scrollable
+                ? SingleChildScrollView(
+                    child: Center(
+                      child: Container(
+                        padding: const EdgeInsets.all(20),
+                        constraints: BoxConstraints(
+                            maxWidth: 400, minHeight: constraints.maxHeight),
+                        child: Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (title != null && !titleAtTop) ...[
+                                Text(title!,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .headlineSmall),
+                                const SizedBox(height: 20),
+                              ],
+                              ...children,
+                            ],
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-              ),
-            );
+                  )
+                : Center(
+                    child: Container(
+                      padding: const EdgeInsets.all(20),
+                      constraints: BoxConstraints(
+                          maxWidth: 400, minHeight: constraints.maxHeight),
+                      child: children.first,
+                    ),
+                  );
           },
         ),
       ),

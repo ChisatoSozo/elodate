@@ -4,6 +4,7 @@ import 'dart:typed_data';
 
 import 'package:client/api/pkg/lib/api.dart';
 import 'package:client/components/chat_bubble.dart';
+import 'package:client/components/responsive_scaffold.dart';
 import 'package:client/components/uuid_image_provider.dart';
 import 'package:client/models/user_model.dart';
 import 'package:client/utils/utils.dart';
@@ -63,19 +64,19 @@ class ChatScreenState extends State<ChatScreen> {
     final chatBarColor = isDarkMode ? Colors.grey[850] : Colors.grey[300];
     final inputFieldColor = isDarkMode ? Colors.grey[800] : Colors.grey[200];
 
-    return Form(
-      key: formKey,
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text(widget.displayName),
-        ),
-        body: Column(
+    return ResponsiveForm(
+      titleAtTop: true,
+      formKey: formKey,
+      title: widget.displayName,
+      scrollable: false,
+      children: [
+        Column(
           children: [
             _buildMessageList(context),
             _buildInputSection(chatBarColor!, inputFieldColor!),
           ],
         ),
-      ),
+      ],
     );
   }
 

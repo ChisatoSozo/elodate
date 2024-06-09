@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:animated_flip_counter/animated_flip_counter.dart';
 import 'package:client/api/pkg/lib/api.dart';
 import 'package:client/components/image_picker.dart';
 import 'package:client/components/prop_pref_components/pref.dart';
@@ -5,6 +8,7 @@ import 'package:client/components/prop_pref_components/prop.dart';
 import 'package:client/models/page_state_model.dart';
 import 'package:client/models/user_model.dart';
 import 'package:client/pages/login.dart';
+import 'package:client/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:localstorage/localstorage.dart';
 import 'package:provider/provider.dart';
@@ -25,6 +29,11 @@ class SettingsPageState extends State<SettingsPage> {
       )> categoriesAndGroups;
 
   late List<bool> _expanded;
+  int _usersThatIPrefer = 0;
+  int _usersThatAlsoPreferMe = 0;
+  String? _error;
+  bool _modified = false;
+  bool _saving = false;
 
   @override
   void initState() {
@@ -32,189 +41,296 @@ class SettingsPageState extends State<SettingsPage> {
     var userModel = Provider.of<UserModel>(context, listen: false);
     categoriesAndGroups =
         preferenceConfigsToCategoriesAndGroups(userModel.preferenceConfigs!);
-    _expanded = List.filled(categoriesAndGroups.length, false);
-    _expanded = [true, ..._expanded];
+    _expanded = List.filled(categoriesAndGroups.length + 1, false);
+    _expanded[0] = true;
+    _fetchPreferCounts();
   }
 
   @override
   Widget build(BuildContext context) {
-    var userModel = Provider.of<UserModel>(context, listen: false);
     return Column(
       children: [
-        ExpansionPanelList(
-          expansionCallback: (int index, bool isExpanded) {
-            setState(() {
-              for (var i = 0; i < _expanded.length; i++) {
-                _expanded[i] = false;
-              }
-              _expanded[index] = isExpanded;
-            });
-          },
-          children: [
-            ExpansionPanel(
-              canTapOnHeader: true,
-              headerBuilder: (BuildContext context, bool isExpanded) {
-                return const ListTile(
-                  title: Text("Basic Info"),
-                );
-              },
-              isExpanded: _expanded[0],
-              body: Form(
-                key: formKey,
+        Expanded(
+          child: SingleChildScrollView(
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 400),
                 child: Column(
                   children: [
-                    const SizedBox(height: 20),
-                    TextFormField(
-                      initialValue: userModel.me.displayName,
-                      decoration: const InputDecoration(
-                          labelText: 'Display Name',
-                          border: OutlineInputBorder()),
-                      onChanged: (value) {
-                        userModel.me.displayName = value;
-                      },
-                    ),
-                    //spacer
-                    const SizedBox(height: 20),
-                    TextFormField(
-                      initialValue: userModel.me.description,
-                      decoration: const InputDecoration(
-                          labelText: 'Description',
-                          border: OutlineInputBorder()),
-                      onChanged: (value) {
-                        userModel.me.description = value;
-                      },
-                      maxLines: 10,
-                    ),
-                    //spacer
-                    const SizedBox(height: 20),
-                    Text(
-                      'Images',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    GridView.builder(
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 3,
-                        childAspectRatio: 9 / 16,
-                        mainAxisSpacing: 8,
-                        crossAxisSpacing: 8,
-                      ),
-                      itemCount: 6,
-                      itemBuilder: (context, index) {
-                        return AdaptiveFilePicker(
-                          onUuidChanged: (newUuid) {
-                            if (index < userModel.me.images.length) {
-                              userModel.me.images[index] = newUuid;
-                            } else {
-                              userModel.me.images = [
-                                ...userModel.me.images,
-                                newUuid,
-                              ];
-                            }
-                          },
-                          initialUuid: index < userModel.me.images.length
-                              ? userModel.me.images[index]
-                              : null,
-                        );
-                      },
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
+                    Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: _buildExpansionPanelList(context),
                     ),
                   ],
                 ),
               ),
             ),
-            ...categoriesAndGroups.map(
-              (categoryAndGroup) {
-                var categoryIndex =
-                    categoriesAndGroups.indexOf(categoryAndGroup) + 1;
-                return ExpansionPanel(
-                  canTapOnHeader: true,
-                  headerBuilder: (BuildContext context, bool isExpanded) {
-                    return ListTile(
-                      title: Text(categoryAndGroup.$1.toString()),
-                    );
-                  },
-                  isExpanded: _expanded[categoryIndex],
-                  body: _expanded[categoryIndex]
-                      ? FutureBuilder(
-                          future: Future.delayed(
-                              const Duration(milliseconds: 0), () {
-                            return categoryAndGroup;
-                          }),
-                          builder: (context, snapshot) {
-                            if (snapshot.connectionState ==
-                                ConnectionState.waiting) {
-                              return const Center(
-                                  child: CircularProgressIndicator());
-                            } else if (snapshot.hasError) {
-                              return Center(
-                                  child: Text('Error: ${snapshot.error}'));
-                            } else {
-                              var categoryData = snapshot.data!;
-                              return Column(
-                                children: categoryData.$2.map((group) {
-                                  var (props, prefs) =
-                                      userModel.getPropertyGroup(group.$2);
-                                  var configs = group.$2;
-                                  var index = group.$3;
-                                  return Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        configs.first.display,
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .titleMedium,
-                                      ),
-                                      const SizedBox(height: 20),
-                                      if (configs
-                                          .first.valueQuestion.isNotEmpty) ...[
-                                        Text(
-                                          configs.first.valueQuestion,
-                                        ),
-                                        Prop(
-                                          configs: configs,
-                                          props: props,
-                                          onUpdated: (props) {
-                                            userModel.setPropertyGroup(
-                                                props, prefs, index);
-                                          },
-                                        ),
-                                        const SizedBox(height: 20),
-                                      ],
-                                      Text(
-                                        configs.first.rangeQuestion,
-                                      ),
-                                      Pref(
-                                        configs: configs,
-                                        prefs: prefs,
-                                        onUpdated: (prefs) {
-                                          userModel.setPropertyGroup(
-                                              props, prefs, index);
-                                        },
-                                      ),
-                                      const SizedBox(height: 40),
-                                    ],
-                                  );
-                                }).toList(),
-                              );
-                            }
-                          },
-                        )
-                      : Container(),
-                );
-              },
+          ),
+        ),
+        Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 400),
+            child: Column(
+              children: [
+                Card(
+                  margin: const EdgeInsets.all(16.0),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      children: [
+                        _buildFlipCounters(),
+                        if (_error != null) _buildErrorText(context),
+                      ],
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      ElevatedButton(
+                        onPressed: () => _logout(context),
+                        child: const Text('Logout'),
+                      ),
+                      ElevatedButton(
+                        onPressed: _modified && !_saving ? _saveChanges : null,
+                        child: _saving
+                            ? const Text('Saving...')
+                            : const Text('Save Changes'),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+              ],
             ),
-            // Logout button
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildExpansionPanelList(BuildContext context) {
+    return ExpansionPanelList(
+      expansionCallback: (int index, bool isExpanded) {
+        setState(() {
+          for (var i = 0; i < _expanded.length; i++) {
+            _expanded[i] = false;
+          }
+          _expanded[index] = isExpanded;
+        });
+      },
+      children: [
+        _buildBasicInfoPanel(context),
+        ..._buildCategoryPanels(context),
+      ],
+    );
+  }
+
+  ExpansionPanel _buildBasicInfoPanel(BuildContext context) {
+    var userModel = Provider.of<UserModel>(context, listen: false);
+    return ExpansionPanel(
+      canTapOnHeader: true,
+      headerBuilder: (BuildContext context, bool isExpanded) {
+        return const ListTile(
+          title: Text("Basic Info"),
+        );
+      },
+      isExpanded: _expanded[0],
+      body: Form(
+        key: formKey,
+        child: Column(
+          children: [
+            const SizedBox(height: 20),
+            _buildTextFormField(
+              initialValue: userModel.me.displayName,
+              labelText: 'Display Name',
+              onChanged: (value) => userModel.me.displayName = value,
+            ),
+            const SizedBox(height: 20),
+            _buildTextFormField(
+              initialValue: userModel.me.description,
+              labelText: 'Description',
+              onChanged: (value) => userModel.me.description = value,
+              maxLines: 10,
+            ),
+            const SizedBox(height: 20),
+            Text('Images', style: Theme.of(context).textTheme.titleMedium),
+            _buildImagePickerGrid(userModel),
           ],
         ),
-        ElevatedButton(
-          onPressed: () {
-            _logout(context);
+      ),
+    );
+  }
+
+  List<ExpansionPanel> _buildCategoryPanels(BuildContext context) {
+    return categoriesAndGroups.map((categoryAndGroup) {
+      var categoryIndex = categoriesAndGroups.indexOf(categoryAndGroup) + 1;
+      return ExpansionPanel(
+        canTapOnHeader: true,
+        headerBuilder: (BuildContext context, bool isExpanded) {
+          return ListTile(
+            title: Text(categoryAndGroup.$1.toString()),
+          );
+        },
+        isExpanded: _expanded[categoryIndex],
+        body: _expanded[categoryIndex]
+            ? _buildCategoryPanelBody(context, categoryAndGroup)
+            : Container(),
+      );
+    }).toList();
+  }
+
+  Widget _buildCategoryPanelBody(
+      BuildContext context,
+      (
+        PreferenceConfigPublicCategoryEnum,
+        List<(String, List<PreferenceConfigPublic>, int)>
+      ) categoryAndGroup) {
+    return Column(
+      children: categoryAndGroup.$2.map((group) {
+        var (props, prefs) = Provider.of<UserModel>(context, listen: false)
+            .getPropertyGroup(group.$2);
+        var configs = group.$2;
+        var index = group.$3;
+        return _buildCategoryGroup(context, configs, props, prefs, index);
+      }).toList(),
+    );
+  }
+
+  Column _buildCategoryGroup(
+      BuildContext context,
+      List<PreferenceConfigPublic> configs,
+      List<ApiUserPropsInner> props,
+      List<ApiUserPrefsInner> prefs,
+      int index) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(configs.first.display,
+            style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 20),
+        if (configs.first.valueQuestion.isNotEmpty) ...[
+          Text(configs.first.valueQuestion),
+          Prop(
+            configs: configs,
+            props: props,
+            onUpdated: (props) {
+              Provider.of<UserModel>(context, listen: false)
+                  .setPropertyGroup(props, prefs, index);
+              _fetchPreferCounts();
+              setState(() {
+                _modified = true;
+              });
+            },
+          ),
+          const SizedBox(height: 20),
+        ],
+        Text(configs.first.rangeQuestion),
+        Pref(
+          configs: configs,
+          prefs: prefs,
+          onUpdated: (prefs) {
+            Provider.of<UserModel>(context, listen: false)
+                .setPropertyGroup(props, prefs, index);
+            _fetchPreferCounts();
+            setState(() {
+              _modified = true;
+            });
           },
-          child: const Text('Logout'),
+        ),
+        const SizedBox(height: 40),
+      ],
+    );
+  }
+
+  TextFormField _buildTextFormField({
+    required String initialValue,
+    required String labelText,
+    required Function(String) onChanged,
+    int maxLines = 1,
+  }) {
+    return TextFormField(
+      initialValue: initialValue,
+      decoration: InputDecoration(
+        labelText: labelText,
+        border: const OutlineInputBorder(),
+      ),
+      onChanged: (value) {
+        setState(() {
+          _modified = true;
+        });
+        onChanged(value);
+      },
+      maxLines: maxLines,
+    );
+  }
+
+  GridView _buildImagePickerGrid(UserModel userModel) {
+    return GridView.builder(
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        childAspectRatio: 9 / 16,
+        mainAxisSpacing: 8,
+        crossAxisSpacing: 8,
+      ),
+      itemCount: 6,
+      itemBuilder: (context, index) {
+        return AdaptiveFilePicker(
+          onUuidChanged: (newUuid) {
+            if (index < userModel.me.images.length) {
+              userModel.me.images[index] = newUuid;
+            } else {
+              userModel.me.images = [...userModel.me.images, newUuid];
+            }
+            setState(() {
+              _modified = true;
+            });
+          },
+          initialUuid: index < userModel.me.images.length
+              ? userModel.me.images[index]
+              : null,
+        );
+      },
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+    );
+  }
+
+  Widget _buildErrorText(BuildContext context) {
+    return Column(
+      children: [
+        const SizedBox(height: 20),
+        Text(
+          _error!,
+          style: Theme.of(context)
+                  .textTheme
+                  .bodyMedium
+                  ?.copyWith(color: Colors.red) ??
+              const TextStyle(color: Colors.red),
+        ),
+      ],
+    );
+  }
+
+  Row _buildFlipCounters() {
+    var suffixIPrefer = _usersThatIPrefer == 1 ? 'user' : 'users';
+    var suffixAlsoPreferMe = _usersThatAlsoPreferMe == 1 ? 'user' : 'users';
+    var suffixAlsoPrefers = _usersThatAlsoPreferMe == 1 ? 'prefers' : 'prefer';
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        AnimatedFlipCounter(
+          value: _usersThatIPrefer,
+          duration: const Duration(milliseconds: 500),
+          suffix: ' $suffixIPrefer after filter',
+        ),
+        AnimatedFlipCounter(
+          value: _usersThatAlsoPreferMe,
+          duration: const Duration(milliseconds: 500),
+          suffix: ' $suffixAlsoPreferMe also $suffixAlsoPrefers me',
         ),
       ],
     );
@@ -223,7 +339,6 @@ class SettingsPageState extends State<SettingsPage> {
   void _logout(BuildContext context) {
     localStorage.removeItem("jwt");
     localStorage.removeItem("uuid");
-    //remove all page history and push login page
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(builder: (context) => const LoginPage()),
@@ -231,81 +346,36 @@ class SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  // Timer? _debounce;
+  Timer? _debounce;
 
-  // void _fetchPreferCounts() {
-  //   if (_debounce?.isActive ?? false) _debounce!.cancel();
-  //   _debounce = Timer(const Duration(milliseconds: 300), () async {
-  //     if (_hasChanges) {
-  //       await _flagUnpublished();
-  //     }
-  //     if (!mounted) {
-  //       return;
-  //     }
-  //     final homeModel = Provider.of<HomeModel>(context, listen: false);
+  void _fetchPreferCounts() {
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+    _debounce = Timer(const Duration(milliseconds: 300), () async {
+      if (!mounted) return;
+      final userModel = Provider.of<UserModel>(context, listen: false);
+      userModel
+          .getNumUsersIPreferDryRun()
+          .then((value) => setState(() => _usersThatIPrefer = value));
+      userModel
+          .getNumUsersMutuallyPreferDryRun()
+          .then((value) => setState(() => _usersThatAlsoPreferMe = value));
+    });
+  }
 
-  //     homeModel
-  //         .getNumUsersIPreferDryRun(_prefsController.value)
-  //         .then((value) => setState(() => _numUsersIPrefer = value));
-
-  //     homeModel
-  //         .getNumUsersMutuallyPreferDryRun(
-  //             _meController.value.props, _prefsController.value)
-  //         .then((value) => setState(() => _numUsersMutuallyPrefer = value));
-  //   });
-  // }
-
-  // Future<void> _saveChanges() async {
-  //   try {
-  //     final homeModel = Provider.of<HomeModel>(context, listen: false);
-  //     await homeModel.updateMe(ApiUserWritable(
-  //         birthdate: _meController.value.birthdate,
-  //         description: _meController.value.description,
-  //         displayName: _meController.value.displayName,
-  //         prefs: _prefsController.value,
-  //         props: _meController.value.props,
-  //         published: true,
-  //         username: _meController.value.username,
-  //         uuid: homeModel.me.uuid,
-  //         images: homeModel.me.images
-  //             .map((e) => ApiUserWritableImagesInner(
-  //                 b64Content: e.b64Content,
-  //                 imageType: ApiUserWritableImagesInnerImageTypeEnum.webP))
-  //             .toList()));
-
-  //     _loadData(); // Reload data
-  //     setState(() {
-  //       _hasChanges = false; // Reset change flag
-  //     });
-  //   } catch (error) {
-  //     setState(() {
-  //       _error = formatApiError(error.toString());
-  //     });
-  //   }
-  // }
-
-  // Future<void> _flagUnpublished() async {
-  //   try {
-  //     final homeModel = Provider.of<HomeModel>(context, listen: false);
-  //     var unpublishedUser = ApiUserWritable(
-  //         birthdate: homeModel.me.birthdate,
-  //         description: homeModel.me.description,
-  //         displayName: homeModel.me.displayName,
-  //         prefs: homeModel.me.prefs,
-  //         props: homeModel.me.props,
-  //         published: homeModel.me.published,
-  //         username: homeModel.me.username,
-  //         uuid: homeModel.me.uuid,
-  //         images: homeModel.me.images
-  //             .map((e) => ApiUserWritableImagesInner(
-  //                 b64Content: e.b64Content,
-  //                 imageType: ApiUserWritableImagesInnerImageTypeEnum.webP))
-  //             .toList());
-  //     await homeModel.updateMe(unpublishedUser);
-  //   } catch (error) {
-  //     setState(() {
-  //       _error = formatApiError(error.toString());
-  //     });
-  //   }
-  // }
+  Future<void> _saveChanges() async {
+    try {
+      final userModel = Provider.of<UserModel>(context, listen: false);
+      setState(() {
+        _error = null;
+        _saving = true;
+        _modified = false;
+      });
+      await userModel.updateMe();
+      setState(() {
+        _saving = false;
+      });
+    } catch (error) {
+      setState(() => _error = formatApiError(error.toString()));
+    }
+  }
 }

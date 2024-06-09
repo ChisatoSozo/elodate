@@ -1,4 +1,4 @@
-import 'package:client/components/responsive_scaffold.dart';
+import 'package:client/components/report_bug_scaffold.dart';
 import 'package:client/models/user_model.dart';
 import 'package:client/pages/home_chat.dart';
 import 'package:client/pages/home_settings.dart';
@@ -17,10 +17,9 @@ class HomePageState extends State<HomePage> {
   int _selectedIndex = 1; // Default index for the center tab
 
   static final List<Widget> _widgetOptions = <Widget>[
-    ResponsiveForm(
-        key: const Key("settings"), children: const [SettingsPage()]),
-    ResponsiveForm(key: const Key("swipe"), children: const [SwipePage()]),
-    ResponsiveForm(key: const Key("chat"), children: const [ChatPage()]),
+    const SettingsPage(key: Key("settings")),
+    const SwipePage(key: Key("swipe")),
+    const ChatPage(key: Key("chat")),
   ];
 
   @override
@@ -30,7 +29,7 @@ class HomePageState extends State<HomePage> {
     var userModel = Provider.of<UserModel>(context, listen: false);
 
     if (!userModel.isLoading && !userModel.isLoaded) {
-      userModel.initAll();
+      userModel.initAll(context);
     }
   }
 
@@ -51,12 +50,10 @@ class HomePageState extends State<HomePage> {
     var me = Provider.of<UserModel>(context, listen: true).me;
 
     if (!me.published) {
-      return ResponsiveForm(key: const Key("settings"), children: const [
-        SettingsPage(),
-      ]);
+      return const ReportBugScaffold(body: SettingsPage(key: Key("settings")));
     }
 
-    return Scaffold(
+    return ReportBugScaffold(
       body: _widgetOptions.elementAt(_selectedIndex),
       bottomNavigationBar: me.published
           ? BottomNavigationBar(

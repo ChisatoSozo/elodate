@@ -1,4 +1,5 @@
 import 'package:client/api/pkg/lib/api.dart';
+import 'package:client/components/elo_badge.dart';
 import 'package:client/components/swipeable_user_card/page_indicator.dart';
 import 'package:client/components/swipeable_user_card/swipe_overlay.dart';
 import 'package:client/components/swipeable_user_card/swipeable_image_view.dart';
@@ -175,11 +176,11 @@ class SwipeableUserCardState extends State<SwipeableUserCard>
                     toggleCard: _toggleCard,
                     user: widget.user),
               ),
-              // Positioned(
-              //   top: 0,
-              //   right: 16,
-              //   child: EloBadge(eloLabel: widget.user.elo),
-              // ),
+              Positioned(
+                top: 0,
+                right: 16,
+                child: EloBadge(eloLabel: widget.user.elo),
+              ),
             ],
           ),
         ),

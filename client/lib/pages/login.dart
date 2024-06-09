@@ -1,9 +1,9 @@
+import 'package:client/components/report_bug_scaffold.dart';
 import 'package:client/models/register_model.dart';
 import 'package:client/pages/home.dart';
 import 'package:client/pages/register_start.dart';
 import 'package:client/utils/utils.dart';
 import 'package:flutter/material.dart';
-import 'package:localstorage/localstorage.dart';
 import 'package:provider/provider.dart';
 
 class LoginPage extends StatefulWidget {
@@ -24,7 +24,7 @@ class LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     return Form(
       key: formKey,
-      child: Scaffold(
+      child: ReportBugScaffold(
         body: Center(
           child: Container(
             padding: const EdgeInsets.all(20),
@@ -33,13 +33,12 @@ class LoginPageState extends State<LoginPage> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Image.asset(
-                  'images/logo.png',
-                  height: 100, // Adjust the height as needed
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  "elodate",
-                  style: Theme.of(context).textTheme.headlineSmall,
+                  //is dark mode? use dark mode icon
+                  Theme.of(context).brightness == Brightness.dark
+                      ? 'images/icon_text_white.png'
+                      : 'images/icon_text.png',
+                  width: 300,
+                  height: 300,
                 ),
                 const SizedBox(height: 20),
                 TextFormField(
@@ -101,13 +100,8 @@ class LoginPageState extends State<LoginPage> {
       setState(() {
         loggingIn = true;
       });
-
-      var jwt = await Provider.of<RegisterModel>(context, listen: false).login(
-        usernameController.text,
-        passwordController.text,
-      );
-      localStorage.setItem("jwt", jwt.jwt);
-      localStorage.setItem("uuid", jwt.uuid);
+      await Provider.of<RegisterModel>(context, listen: false)
+          .login(usernameController.text, passwordController.text, context);
       if (!context.mounted) return;
       Navigator.push(
         context,

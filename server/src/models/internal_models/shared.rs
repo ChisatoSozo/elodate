@@ -1,7 +1,11 @@
-use crate::db::DB;
+use crate::db::{DB, SCRATCH_SPACE_SIZE};
 use crate::vec::shared::Bbox;
+use rkyv::ser::serializers::{
+    AlignedSerializer, AllocScratch, CompositeSerializer, FallbackScratch, HeapScratch,
+    SharedSerializeMap,
+};
 use rkyv::validation::validators::DefaultValidator;
-use rkyv::{Deserialize, Infallible};
+use rkyv::{AlignedVec, Deserialize, Infallible, Serialize};
 use std::error::Error;
 use std::marker::PhantomData;
 use uuid::Uuid;
@@ -28,14 +32,29 @@ impl<InternalModel> std::hash::Hash for InternalUuid<InternalModel> {
     }
 }
 
-impl<InternalModel> InternalUuid<InternalModel>
+impl<InternalModel: Bucket> InternalUuid<InternalModel>
 where
-    InternalModel: rkyv::Archive,
+    InternalModel: rkyv::Archive
+        + Serialize<
+            CompositeSerializer<
+                AlignedSerializer<AlignedVec>,
+                FallbackScratch<HeapScratch<SCRATCH_SPACE_SIZE>, AllocScratch>,
+                SharedSerializeMap,
+            >,
+        >,
     for<'a> InternalModel::Archived:
         rkyv::CheckBytes<DefaultValidator<'a>> + Deserialize<InternalModel, Infallible>,
 {
+    pub fn write(
+        &self,
+        model: &InternalModel,
+        db: &DB,
+    ) -> Result<InternalUuid<InternalModel>, Box<dyn Error>> {
+        db.write_object(InternalModel::bucket(), &self, model)
+    }
+
     pub fn load(&self, db: &DB) -> Result<Option<InternalModel>, Box<dyn Error>> {
-        let model = db.read_object(&self)?;
+        let model = db.read_object(InternalModel::bucket(), &self)?;
         Ok(model)
     }
 
@@ -77,4 +96,8 @@ pub trait GetBbox {
 
 pub trait GetVector {
     fn get_vector(&self) -> [i16; PREFS_CARDINALITY];
+}
+
+pub trait Bucket {
+    fn bucket() -> &'static str;
 }

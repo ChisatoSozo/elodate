@@ -1,5 +1,6 @@
 #[test]
 fn insert_dummy_data() -> Result<(), Box<dyn std::error::Error>> {
+    use crate::elo::{elo_max, elo_min};
     use crate::{
         models::{api_models::api_user::ApiUserWritable, internal_models::shared::Save},
         test::fake::Gen,
@@ -19,9 +20,9 @@ fn insert_dummy_data() -> Result<(), Box<dyn std::error::Error>> {
     use bcrypt::hash;
 
     println!("Destroying db");
-    DB::destroy_database_for_real_dangerous("test");
+    DB::destroy_database_for_real_dangerous("dummy");
     println!("Creating db");
-    let db = DB::new("test").unwrap();
+    let db = DB::new("dummy").unwrap();
     println!("inserting dummy data");
 
     let mut uuids = vec![];
@@ -33,8 +34,11 @@ fn insert_dummy_data() -> Result<(), Box<dyn std::error::Error>> {
             println!("Inserted {} users", i);
         }
         let user: ApiUserWritable = ApiUserWritable::gen(&db);
-        let user: InternalUser = user.to_internal(&db)?;
-
+        let mut user: InternalUser = user.to_internal(&db)?;
+        let max_elo = elo_max() as f64;
+        let min_elo = elo_min() as f64;
+        let random_elo = rand::random::<f64>() * (max_elo - min_elo) + min_elo;
+        user.elo = random_elo as u32;
         uuids.push(user.uuid.clone());
         user.save(&db)?;
     }
@@ -119,8 +123,6 @@ fn insert_dummy_data() -> Result<(), Box<dyn std::error::Error>> {
     user.published = true;
 
     user.save(&db).unwrap();
-
-    db.save_to_disk()?;
 
     return Ok(());
 }

@@ -12,7 +12,9 @@ use crate::{
     models::{
         api_models::{api_message::ApiMessage, shared::ApiUuid},
         internal_models::{
-            internal_chat::InternalChat, internal_message::InternalMessage, shared::InternalUuid,
+            internal_chat::InternalChat,
+            internal_message::InternalMessage,
+            shared::{InternalUuid, Save},
         },
     },
     routes::shared::route_body_mut_db,
@@ -66,6 +68,17 @@ pub fn get_messages(
                     })
             })
             .collect::<Result<Vec<_>, _>>()?;
+
+        //set unread for this user to 0
+        let user_idx = chat
+            .users
+            .iter()
+            .position(|u| u == &user_uuid)
+            .ok_or_else(|| actix_web::error::ErrorInternalServerError("User not in chat"))?;
+
+        let mut chat = chat;
+        chat.unread[user_idx] = 0;
+        chat.save(db)?;
 
         let api_messages: Vec<ApiMessage> = messages
             .into_iter()

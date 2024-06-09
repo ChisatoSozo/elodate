@@ -1,5 +1,4 @@
 use std::collections::HashSet;
-use std::error::Error;
 use std::hash::Hash;
 use std::hash::Hasher;
 
@@ -85,10 +84,7 @@ impl<const N: usize> Hash for Bbox<N> {
     }
 }
 pub trait VectorSearch<const N: usize> {
-    fn load_from_file(path: &str) -> Result<Self, Box<dyn Error>>
-    where
-        Self: Sized;
-    fn save_to_file(&self, path: &str) -> Result<(), Box<dyn Error>>;
+    fn new() -> Self;
     fn new_vec_store(vecs: Vec<LabelPairVec<N>>) -> Self;
     fn new_bbox_store(bboxes: Vec<LabelPairBbox<N>>) -> Self;
     fn search<'a>(
@@ -101,14 +97,12 @@ pub trait VectorSearch<const N: usize> {
         location: &'a [i16; N],
         skip_labels: Option<&'a HashSet<String>>,
     ) -> impl Iterator<Item = LabelPairBbox<N>> + 'a;
+    fn contains_vec(&self, label: &String) -> bool;
+    fn contains_bbox(&self, label: &String) -> bool;
     fn add(&mut self, location: &[i16; N], label: &String);
     fn add_bbox(&mut self, bbox: &Bbox<N>, label: &String);
-    fn add_multiple(&mut self, locations: &[[i16; N]], label: &String);
-    fn add_multiple_bboxes(&mut self, bboxes: &[Bbox<N>], label: &String);
     fn remove(&mut self, label: &String);
     fn remove_bbox(&mut self, label: &String);
-    fn remove_multiple(&mut self, labels: &[String]);
-    fn remove_multiple_bboxes(&mut self, labels: &[String]);
 }
 
 mod array_helpers {

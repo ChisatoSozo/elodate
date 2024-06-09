@@ -59,6 +59,7 @@ class RegisterFinishPageState extends State<RegisterFinishPage> {
       if (jwt == null) {
         throw Exception('Failed to register');
       }
+
       localStorage.setItem("jwt", jwt.jwt);
       localStorage.setItem("uuid", jwt.uuid);
       setState(() {

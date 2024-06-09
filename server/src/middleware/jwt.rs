@@ -51,7 +51,13 @@ pub struct JwtMiddleware<S> {
     service: S,
 }
 
-const NOAUTH_PATHS: [&str; 4] = ["/login", "/signup", "/check_username", JSON_SPEC_PATH];
+const NOAUTH_PATHS: [&str; 5] = [
+    "/login",
+    "/signup",
+    "/check_username",
+    "/report_bug",
+    JSON_SPEC_PATH,
+];
 
 impl<S, B> Service<ServiceRequest> for JwtMiddleware<S>
 where
@@ -70,7 +76,7 @@ where
             return Box::pin(self.service.call(req));
         }
 
-        if req.method() == "OPTIONS" {
+        if req.method() == "OPTIONS" || req.method() == "GET" {
             return Box::pin(self.service.call(req));
         }
 

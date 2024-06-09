@@ -1,8 +1,10 @@
 import 'dart:convert';
 
 import 'package:client/api/pkg/lib/api.dart';
+import 'package:client/pages/login.dart';
 import 'package:client/utils/prefs_utils.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:localstorage/localstorage.dart';
 
 //public function to construct client
@@ -17,13 +19,18 @@ DefaultApi constructClient(String? jwt) {
   //if kIsWeb, get host from url
   if (kIsWeb) {
     var host = Uri.base.host;
+    var port = Uri.base.port;
+    var protocol = Uri.base.scheme;
+    if (host == 'localhost') {
+      port = 8080;
+    }
     var client = DefaultApi(
-        ApiClient(basePath: 'http://$host:8080', authentication: auth));
+        ApiClient(basePath: '$protocol://$host:$port', authentication: auth));
     return client;
   }
 
   var client = DefaultApi(
-      ApiClient(basePath: 'http://localhost:8080', authentication: auth));
+      ApiClient(basePath: 'https://elodate.com', authentication: auth));
 
   return client;
 }
@@ -51,7 +58,7 @@ class UserModel extends ChangeNotifier {
     isLoaded = false;
   }
 
-  Future<UserModel> initAll() async {
+  Future<UserModel> initAll(BuildContext context) async {
     var jwt = localStorage.getItem('jwt');
     if (jwt == null) {
       throw Exception('No JWT found');
@@ -64,7 +71,21 @@ class UserModel extends ChangeNotifier {
 
     isLoading = true;
     await initClient(jwt);
-    await Future.wait([initMe(), initAdditionalPrefs()]);
+    try {
+      await initMe();
+    } catch (e) {
+      //pop all and go to login
+      clear();
+      if (!context.mounted) {
+        rethrow;
+      }
+      Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => const LoginPage()),
+          (route) => false);
+      return this;
+    }
+    await initAdditionalPrefs();
     isLoading = false;
     isLoaded = true;
     notifyListeners();
@@ -93,8 +114,6 @@ class UserModel extends ChangeNotifier {
     var age = DateTime.now().year -
         DateTime.fromMillisecondsSinceEpoch(birthdate * 1000).year;
     setPropByName(newMe.props, "age", age);
-    print(getPropByName(newMe.props, "percent_male"));
-    print(getPropByName(newMe.props, "percent_female"));
     _me = newMe;
   }
 
@@ -161,14 +180,15 @@ class UserModel extends ChangeNotifier {
 
   Future<void> updateMe() async {
     var result = await client.putUserPost(ApiUserWritable(
-        birthdate: me.birthdate,
-        description: me.description,
-        displayName: me.displayName,
-        username: me.username,
-        uuid: me.uuid,
-        prefs: me.prefs,
-        props: me.props,
-        images: me.images));
+      birthdate: me.birthdate,
+      description: me.description,
+      displayName: me.displayName,
+      username: me.username,
+      uuid: me.uuid,
+      prefs: me.prefs,
+      props: me.props,
+      images: me.images,
+    ));
 
     if (result == null) {
       throw Exception('Failed to update me');
@@ -182,5 +202,24 @@ class UserModel extends ChangeNotifier {
 
     await initMe();
     notifyListeners();
+  }
+
+  Future<int> getNumUsersIPreferDryRun() async {
+    var result = await client.getUsersIPerferCountDryRunPost(me.prefs
+        .map((p) => LabeledPreferenceRange(name: p.name, range: p.range))
+        .toList());
+    if (result == null) {
+      throw Exception('Failed to get num users I prefer dry run');
+    }
+    return result;
+  }
+
+  Future<int> getNumUsersMutuallyPreferDryRun() async {
+    var result = await client.getUsersMutualPerferCountDryRunPost(
+        PropsAndPrefs(prefs: me.prefs, props: me.props));
+    if (result == null) {
+      throw Exception('Failed to get num users mutually prefer dry run');
+    }
+    return result;
   }
 }

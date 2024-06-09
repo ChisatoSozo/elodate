@@ -4,7 +4,7 @@ use image::{imageops::crop, GenericImageView, ImageFormat};
 
 use super::{
     internal_user::InternalUser,
-    shared::{InternalUuid, Save},
+    shared::{Bucket, InternalUuid, Save},
 };
 
 use crate::db::DB;
@@ -87,6 +87,12 @@ impl InternalImage {
 
 impl Save for InternalImage {
     fn save(self, db: &DB) -> Result<InternalUuid<InternalImage>, Box<dyn Error>> {
-        db.write_object(&self.uuid, &self)
+        self.uuid.write(&self, db)
+    }
+}
+
+impl Bucket for InternalImage {
+    fn bucket() -> &'static str {
+        "image"
     }
 }

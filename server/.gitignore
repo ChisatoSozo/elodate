@@ -6,3 +6,5 @@ images
 tmp
 flamegraph.svg
 cargo-flamegraph.stacks
+/public/*
+!/public/.gitkeep

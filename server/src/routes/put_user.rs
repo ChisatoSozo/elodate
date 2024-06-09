@@ -37,15 +37,6 @@ async fn put_user(
             }
         }
 
-        if new_user.images.len() > 6 {
-            return Err(actix_web::error::ErrorBadRequest("Too many images"));
-        }
-        if new_user.images.len() < 1 {
-            return Err(actix_web::error::ErrorBadRequest(
-                "You must have at least one image",
-            ));
-        }
-
         let new_user_internal = new_user.to_internal(db)?;
         new_user_internal.save(db).map_err(|e| {
             println!("Failed to save user {:?}", e);
