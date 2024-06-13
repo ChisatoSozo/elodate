@@ -8,8 +8,6 @@ edition = "2021"
 [dependencies]
 actix-web = "4.5.1"
 chrono = "0.4.38"
-anyhow = { version = "1.0.60", optional = true }
-thiserror = "1.0.32"
 paperclip = { version = "0.8.2", features = ["actix4", "actix-files"] }
 rand = { version ="0.8.5" }
 serde = { version = "1.0.198", features = ["derive"] }
@@ -17,31 +15,20 @@ serde_json = "1.0.116"
 uuid = { version = "1.8.0", features = ["v4", "serde"] }
 bcrypt = "0.15.1"
 jsonwebtoken = "9.3.0"
-futures-util = "0.3.30"
 base64 = "0.22.0"
 actix-cors = "0.7.0"
 image = "0.25.1"
-paste = "1.0.15"
 rand_distr = "0.4.3"
 fake = "2.9.2"
 kv = "0.24.0"
 rkyv = { version = "0.7.44", features = ["validation"] }
-env_logger = "0.11.3"
 actix-files = "0.6.5"
-futures = "0.3.30"
 actix-service = "2.0.2"
+reqwest = { version = "0.12.4", features = ["blocking"] }
 
-[dev-dependencies]
-chrono = { version = "0.4.20", features = ["serde"] }
-rand = "0.8.5"
-serde = { version = "1.0.142", features = ["derive"] }
-seeded-random = "0.6.0"
-
-[features]
-multi-threaded-cf = []
 
 [profile.release]
-opt-level = 'z'     # Optimize for size
-lto = true          # Enable link-time optimization
-codegen-units = 1   # Reduce number of codegen units to increase optimizations
-strip = true        # Strip symbols from binary*
+opt-level = 3
+lto = true         
+codegen-units = 1  
+strip = true      

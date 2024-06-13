@@ -46,7 +46,7 @@ pub struct ApiMessageWritable {
 impl ApiMessageWritable {
     pub fn into_internal(
         self,
-        user: InternalUser,
+        user: &InternalUser,
         chat: &InternalChat,
         db: &DB,
     ) -> Result<InternalMessage, actix_web::Error> {
@@ -87,6 +87,7 @@ impl ApiMessageWritable {
                 edited: false,
                 image: None,
                 read_by: vec![user.uuid.clone()],
+                chat: chat.uuid.clone(),
             },
         };
 

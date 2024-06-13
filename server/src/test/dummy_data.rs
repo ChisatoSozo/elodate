@@ -1,6 +1,5 @@
 #[test]
 fn insert_dummy_data() -> Result<(), Box<dyn std::error::Error>> {
-    use crate::elo::{elo_max, elo_min};
     use crate::{
         models::{api_models::api_user::ApiUserWritable, internal_models::shared::Save},
         test::fake::Gen,
@@ -9,10 +8,8 @@ fn insert_dummy_data() -> Result<(), Box<dyn std::error::Error>> {
     use crate::{
         db::DB,
         models::internal_models::{
-            internal_chat::InternalChat,
-            internal_message::InternalMessage,
-            internal_user::{InternalRating, InternalUser},
-            shared::InternalUuid,
+            internal_chat::InternalChat, internal_message::InternalMessage,
+            internal_user::InternalUser, shared::InternalUuid,
         },
     };
     use fake::Fake;
@@ -28,17 +25,13 @@ fn insert_dummy_data() -> Result<(), Box<dyn std::error::Error>> {
     let mut uuids = vec![];
 
     let start_time = std::time::Instant::now();
-    let count = 100;
+    let count = 1000;
     for i in 0..count {
         if i % 10 == 0 {
             println!("Inserted {} users", i);
         }
         let user: ApiUserWritable = ApiUserWritable::gen(&db);
-        let mut user: InternalUser = user.to_internal(&db)?;
-        let max_elo = elo_max() as f64;
-        let min_elo = elo_min() as f64;
-        let random_elo = rand::random::<f64>() * (max_elo - min_elo) + min_elo;
-        user.elo = random_elo as u32;
+        let user: InternalUser = user.to_internal(&db)?;
         uuids.push(user.uuid.clone());
         user.save(&db)?;
     }
@@ -65,30 +58,16 @@ fn insert_dummy_data() -> Result<(), Box<dyn std::error::Error>> {
     println!("Database size on disk: {}", size_on_disk);
 
     //upsert main user
-    let user: ApiUserWritable = ApiUserWritable::gen(&db);
+    let mut user: ApiUserWritable = ApiUserWritable::gen(&db);
+    user.is_bot = false;
     let mut user: InternalUser = user.to_internal(&db).unwrap();
     user.published = true;
     user.username = "asdf".to_string();
     user.hashed_password = hash("asdfasdf", 4)?;
 
-    let mut ratings = Vec::with_capacity(uuids.len());
-    for uuid in &uuids {
-        //get rand bool
-        let rand = rand::random::<bool>();
-        match rand {
-            true => {
-                ratings.push(InternalRating::LikedBy(uuid.clone()));
-            }
-            false => {
-                ratings.push(InternalRating::PassedBy(uuid.clone()));
-            }
-        }
-    }
-
-    user.ratings = ratings;
-
     //upsert chats
     for n in 0..5 {
+        let chat_uuid = InternalUuid::new();
         let messages: Vec<InternalMessage> = (0..4)
             .map(|n| InternalMessage {
                 uuid: InternalUuid::new(),
@@ -102,11 +81,12 @@ fn insert_dummy_data() -> Result<(), Box<dyn std::error::Error>> {
                 image: None,
                 read_by: vec![],
                 edited: false,
+                chat: chat_uuid.clone(),
             })
             .collect();
 
         let mut chat = InternalChat {
-            uuid: InternalUuid::new(),
+            uuid: chat_uuid,
             users: vec![user.uuid.clone(), uuids[n].clone()],
             messages: messages.iter().map(|m| m.uuid.clone()).collect(),
             most_recent_message: messages.last().unwrap().content.clone(),

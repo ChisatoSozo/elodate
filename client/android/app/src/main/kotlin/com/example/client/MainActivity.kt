@@ -1,4 +1,4 @@
-package com.example.client
+package com.elodate.elodate
 
 import io.flutter.embedding.android.FlutterActivity
 

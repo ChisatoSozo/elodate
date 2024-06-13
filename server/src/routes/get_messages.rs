@@ -14,6 +14,7 @@ use crate::{
         internal_models::{
             internal_chat::InternalChat,
             internal_message::InternalMessage,
+            internal_user::Notification,
             shared::{InternalUuid, Save},
         },
     },
@@ -47,8 +48,8 @@ pub fn get_messages(
             None => return Err(actix_web::error::ErrorNotFound("Chat not found")),
         };
 
-        let user_uuid = user.uuid;
-        if chat.users.iter().find(|u| u == &&user_uuid).is_none() {
+        let user_uuid = &user.uuid;
+        if chat.users.iter().find(|u| u == &user_uuid).is_none() {
             return Err(actix_web::error::ErrorBadRequest("User not in chat"));
         }
 
@@ -73,17 +74,30 @@ pub fn get_messages(
         let user_idx = chat
             .users
             .iter()
-            .position(|u| u == &user_uuid)
+            .position(|u| u == user_uuid)
             .ok_or_else(|| actix_web::error::ErrorInternalServerError("User not in chat"))?;
 
         let mut chat = chat;
         chat.unread[user_idx] = 0;
         chat.save(db)?;
 
+        let mut user = user;
+        //clear message from unread
+        user.notifications.retain(|n| {
+            if let Notification::UnreadMessage(message_uuid) = n {
+                if messages.iter().any(|m| m.uuid == *message_uuid) {
+                    return false;
+                }
+            }
+            true
+        });
+        user.save(db)?;
+
         let api_messages: Vec<ApiMessage> = messages
             .into_iter()
             .map(ApiMessage::from)
             .collect::<Vec<_>>();
+
         Ok(api_messages)
     })
 }

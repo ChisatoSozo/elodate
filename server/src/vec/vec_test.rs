@@ -1,6 +1,7 @@
 #[test]
 fn run_test_suite() {
-    const SEED: Seed = Seed::unsafe_new(0x1234_5678_9abc_def0);
+    use rand::rngs::ThreadRng;
+    use rand::Rng;
     use std::collections::HashSet;
 
     use crate::vec::{
@@ -12,11 +13,9 @@ fn run_test_suite() {
 
     use crate::vec::shared::VectorSearch;
 
-    use seeded_random::{Random, Seed};
-
     fn make_n_k_dimensional_vecs_i16_with_labels<const N: usize>(
         n: usize,
-        rng: &mut Random,
+        rng: &mut ThreadRng,
     ) -> Vec<LabelPairVec<N>> {
         let mut vecs = Vec::with_capacity(n);
         for i in 0..n {
@@ -34,7 +33,7 @@ fn run_test_suite() {
 
     fn make_n_k_dimensional_bboxes_i16_with_labels<const N: usize>(
         n: usize,
-        rng: &mut Random,
+        rng: &mut ThreadRng,
     ) -> Vec<LabelPairBbox<N>> {
         let mut bboxes = Vec::with_capacity(n);
         for i in 0..n {
@@ -54,7 +53,7 @@ fn run_test_suite() {
                     min[i] = max[i];
                     max[i] = temp;
                 }
-                let ignored = rng.range(0, N as u32) >= 10;
+                let ignored = rng.gen_range(0..(N as u32)) >= 10;
 
                 //if ignored, set min to i16::MIN and max to i16::MAX
                 if ignored {
@@ -114,7 +113,7 @@ fn run_test_suite() {
     }
 
     let max_cardinality = *CARDINALITIES.iter().max().unwrap();
-    let mut rng = Random::from_seed(SEED);
+    let mut rng = rand::thread_rng();
     let vecs10 = make_n_k_dimensional_vecs_i16_with_labels::<10>(max_cardinality, &mut rng);
     let bboxes10 = make_n_k_dimensional_bboxes_i16_with_labels::<10>(max_cardinality, &mut rng);
     let vecs30 = make_n_k_dimensional_vecs_i16_with_labels::<30>(max_cardinality, &mut rng);

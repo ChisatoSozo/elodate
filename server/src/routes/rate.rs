@@ -13,7 +13,9 @@ use crate::{
         api_models::{api_rating::ApiRating, shared::ApiUuid},
         internal_models::{
             internal_chat::InternalChat,
-            internal_user::{InternalRating, InternalUser},
+            internal_user::{
+                Action, InternalRating, InternalUser, Notification, TimestampedAction,
+            },
             shared::{InternalUuid, Save},
         },
     },
@@ -71,6 +73,14 @@ pub fn rate(
                 .into_iter()
                 .chain(std::iter::once(target.uuid.clone()))
                 .collect(),
+            actions: user
+                .actions
+                .into_iter()
+                .chain(std::iter::once(TimestampedAction {
+                    action: Action::Rate,
+                    timestamp: chrono::Utc::now().timestamp(),
+                }))
+                .collect(),
             ..user
         };
 
@@ -80,11 +90,21 @@ pub fn rate(
                 .into_iter()
                 .chain(std::iter::once(rated))
                 .collect(),
+            notifications: if mutual {
+                target
+                    .notifications
+                    .into_iter()
+                    .chain(std::iter::once(Notification::Match(new_user.uuid.clone())))
+                    .collect()
+            } else {
+                target.notifications
+            },
             ..target
         };
 
         new_user.save(db)?;
         new_target.save(db)?;
+
         Ok(mutual)
     })
 }

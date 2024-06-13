@@ -1,6 +1,7 @@
 use actix_web::HttpMessage;
 use jsonwebtoken::{decode, Algorithm, DecodingKey, EncodingKey, Validation};
 use serde::{Deserialize, Serialize};
+use std::future::Future;
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Claims {
@@ -8,13 +9,15 @@ struct Claims {
     exp: usize,
 }
 
-use std::future::{ready, Ready};
+use std::{
+    future::{ready, Ready},
+    pin::Pin,
+};
 
 use actix_web::{
     dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform},
     Error,
 };
-use futures_util::future::LocalBoxFuture;
 
 use crate::{
     models::internal_models::{internal_user::InternalUser, shared::InternalUuid},
@@ -67,7 +70,7 @@ where
 {
     type Response = ServiceResponse<B>;
     type Error = Error;
-    type Future = LocalBoxFuture<'static, Result<Self::Response, Self::Error>>;
+    type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>> + 'static>>;
 
     forward_ready!(service);
 

@@ -1,5 +1,4 @@
 use crate::vec::shared::VectorSearch;
-
 use std::error::Error;
 
 //TODO: recalc age on day change
@@ -7,6 +6,7 @@ use std::error::Error;
 use super::{
     internal_chat::InternalChat,
     internal_image::InternalImage,
+    internal_message::InternalMessage,
     internal_prefs::{LabeledPreferenceRange, LabeledProperty},
     internal_prefs_config::PREFS_CONFIG,
     shared::{Bucket, GetBbox, GetVector, InternalUuid, Save},
@@ -23,10 +23,53 @@ pub enum InternalRating {
 
 #[derive(Debug, Clone, rkyv::Serialize, rkyv::Deserialize, rkyv::Archive)]
 #[archive(compare(PartialEq), check_bytes)]
+pub enum Action {
+    SendMessage,
+    RecieveMessage,
+    Rate,
+}
+
+#[derive(Debug, Clone, rkyv::Serialize, rkyv::Deserialize, rkyv::Archive)]
+#[archive(compare(PartialEq), check_bytes)]
+pub struct TimestampedAction {
+    pub action: Action,
+    pub timestamp: i64,
+}
+
+#[derive(Debug, Clone, rkyv::Serialize, rkyv::Deserialize, rkyv::Archive)]
+#[archive(compare(PartialEq), check_bytes)]
+pub enum Notification {
+    UnreadMessage(InternalUuid<InternalMessage>),
+    Match(InternalUuid<InternalUser>),
+    System(String),
+}
+
+#[derive(Debug, Clone, rkyv::Serialize, rkyv::Deserialize, rkyv::Archive)]
+#[archive(compare(PartialEq), check_bytes)]
+pub struct BotProps {
+    pub likelihood_to_swipe_right: f32,
+    pub likelihood_to_recieve_like: f32,
+    pub likelihood_to_send_message: f32,
+    pub likelihood_to_respond_to_message: f32,
+}
+
+impl BotProps {
+    pub fn gen() -> Self {
+        Self {
+            likelihood_to_swipe_right: rand::random(),
+            likelihood_to_recieve_like: rand::random(),
+            likelihood_to_send_message: rand::random(),
+            likelihood_to_respond_to_message: rand::random(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, rkyv::Serialize, rkyv::Deserialize, rkyv::Archive)]
+#[archive(compare(PartialEq), check_bytes)]
 pub struct InternalUser {
     pub uuid: InternalUuid<InternalUser>,
     pub hashed_password: String,
-    pub elo: u32,
+    pub elo: f32,
     pub ratings: Vec<InternalRating>,
     pub seen: Vec<InternalUuid<InternalUser>>,
     pub chats: Vec<InternalUuid<InternalChat>>,
@@ -39,7 +82,11 @@ pub struct InternalUser {
     pub prefs: Vec<LabeledPreferenceRange>,
     pub props: Vec<LabeledProperty>,
     pub owned_images: Vec<InternalUuid<InternalImage>>,
+    pub actions: Vec<TimestampedAction>,
+    pub notifications: Vec<Notification>,
     pub published: bool,
+    pub bot_props: Option<BotProps>,
+    pub is_admin: bool,
 }
 
 impl InternalUser {

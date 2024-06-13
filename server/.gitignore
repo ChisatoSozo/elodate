@@ -8,3 +8,5 @@ flamegraph.svg
 cargo-flamegraph.stacks
 /public/*
 !/public/.gitkeep
+/report/*
+openapi.json

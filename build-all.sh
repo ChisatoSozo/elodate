@@ -8,3 +8,4 @@ cargo build --release
 
 cp target/release/server ../build
 cp -r public ../build
+cp -r server/res ../build

@@ -58,6 +58,9 @@ class LoginPageState extends State<LoginPage> {
                   ),
                 ),
                 const SizedBox(height: 20),
+                const Text(
+                    "This is an INDEV build of elodate. You are likely to encounter bugs. Please report them. Also your profile might occasionally be reset/deleted."),
+                const SizedBox(height: 20),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [

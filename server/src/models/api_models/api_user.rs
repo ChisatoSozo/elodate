@@ -1,13 +1,13 @@
 use super::{api_image::ApiImageWritable, shared::ApiUuid};
 use crate::{
     db::DB,
-    elo::{elo_min, elo_to_label},
+    elo::elo_to_label,
     models::internal_models::{
         internal_chat::InternalChat,
         internal_image::{Access, InternalImage},
         internal_prefs::{LabeledPreferenceRange, LabeledProperty, PreferenceRange},
         internal_prefs_config::PREFS_CONFIG,
-        internal_user::InternalUser,
+        internal_user::{BotProps, InternalUser},
         shared::{InternalUuid, Save},
     },
     test::fake::Gen,
@@ -20,7 +20,7 @@ use rand::Rng;
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 
-#[derive(Debug, Clone, Serialize, Apiv2Schema)]
+#[derive(Debug, Clone, Serialize, Deserialize, Apiv2Schema)]
 pub struct ApiUser {
     pub uuid: ApiUuid<InternalUser>,
     pub images: Vec<ApiUuid<InternalImage>>,
@@ -64,6 +64,7 @@ impl ApiUser {
 pub struct ApiUserWritable {
     pub uuid: ApiUuid<InternalUser>,
     pub images: Vec<ApiUuid<InternalImage>>,
+    pub preview_image: Option<ApiUuid<InternalImage>>,
     pub username: String,
     pub password: Option<String>,
     pub display_name: String,
@@ -71,6 +72,7 @@ pub struct ApiUserWritable {
     pub prefs: Vec<LabeledPreferenceRange>,
     pub props: Vec<LabeledProperty>,
     pub birthdate: i64,
+    pub is_bot: bool,
 }
 
 impl ApiUserWritable {
@@ -108,26 +110,10 @@ impl ApiUserWritable {
             }
         }
 
-        let mut owned_images = if let Some(internal_user) = &internal_user {
+        let owned_images = if let Some(internal_user) = &internal_user {
             (&internal_user).owned_images.clone()
         } else {
             vec![]
-        };
-
-        let preview_image_uuid: Option<Result<InternalUuid<_>, _>> =
-            self.images.get(0).map(|preview_uuid| {
-                let preview_uuid: InternalUuid<_> = preview_uuid.clone().into();
-                let first_image = preview_uuid.load(db)?;
-                let preview_image = first_image.ok_or("No preview image")?;
-                let preview_image = preview_image.to_preview(Access::Everyone)?;
-                owned_images.push(preview_image.uuid.clone());
-                preview_image.save(db)
-            });
-
-        let preview_image_uuid = match preview_image_uuid {
-            Some(Ok(preview_image_uuid)) => Some(preview_image_uuid),
-            Some(Err(e)) => return Err(e),
-            None => None,
         };
 
         //fill props.additional with default values up to PREFS_CARDINALITY, from the index of the last filled value
@@ -149,10 +135,33 @@ impl ApiUserWritable {
             }
         }
 
+        //do you have access to the preview image you're trying to add?
+        if let Some(preview_image) = &self.preview_image {
+            let image_uuid: InternalUuid<InternalImage> = preview_image.clone().into();
+            let loaded = image_uuid.load(db)?;
+            match loaded {
+                Some(image) => {
+                    if !image.access.can_access(&internal_uuid) {
+                        return Err("No access to image".into());
+                    }
+                }
+                None => return Err("Image not found".into()),
+            }
+        }
+
+        let mut bot_props = None;
+        if self.is_bot && internal_user.is_none() {
+            //we need bot props to be set
+            bot_props = Some(BotProps::gen());
+        }
+        if let Some(internal_user) = &internal_user {
+            bot_props = internal_user.bot_props.clone();
+        }
+
         Ok(InternalUser {
             uuid: internal_uuid.clone(),
             hashed_password,
-            elo: internal_user.as_ref().map_or(elo_min(), |u| u.elo.clone()),
+            elo: internal_user.as_ref().map_or(0.0, |u| u.elo.clone()),
             ratings: internal_user.as_ref().map_or(vec![], |u| u.ratings.clone()),
             seen: internal_user
                 .as_ref()
@@ -167,7 +176,13 @@ impl ApiUserWritable {
             props: self.props,
             published: internal_user.as_ref().map_or(false, |u| u.published),
             owned_images: owned_images,
-            preview_image: preview_image_uuid,
+            preview_image: self.preview_image.map(|i| i.into()),
+            actions: internal_user.as_ref().map_or(vec![], |u| u.actions.clone()),
+            notifications: internal_user
+                .as_ref()
+                .map_or(vec![], |u| u.notifications.clone()),
+            is_admin: internal_user.as_ref().map_or(false, |u| u.is_admin),
+            bot_props,
         })
     }
 
@@ -227,7 +242,7 @@ fn rand_age_between_18_and_99() -> i64 {
 impl Gen<'_, DB> for ApiUserWritable {
     fn gen(db: &DB) -> Self {
         let mut rng = rand::thread_rng();
-        let hashed_password = "asdfasdf".to_string();
+        let password = "asdfasdf".to_string();
         let mut uuids = Vec::with_capacity(6);
         for _ in 0..2 {
             let image = ApiImageWritable::gen(&true)
@@ -280,8 +295,10 @@ impl Gen<'_, DB> for ApiUserWritable {
             prefs,
             props,
             uuid: ApiUuid::<InternalUser>::new(),
-            images: uuids.into_iter().map(|uuid| uuid.into()).collect(),
-            password: Some(hashed_password),
+            images: uuids.clone().into_iter().map(|uuid| uuid.into()).collect(),
+            preview_image: uuids.first().map(|uuid| uuid.clone().into()),
+            password: Some(password),
+            is_bot: true,
         }
     }
 }

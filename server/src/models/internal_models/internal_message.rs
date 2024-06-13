@@ -20,6 +20,7 @@ pub struct InternalMessage {
     pub content: String,
     pub image: Option<InternalUuid<InternalImage>>,
     pub read_by: Vec<InternalUuid<InternalUser>>,
+    pub chat: InternalUuid<InternalChat>,
 }
 
 impl InternalMessage {

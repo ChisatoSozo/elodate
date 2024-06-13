@@ -14,29 +14,6 @@
         "-d",
         "chrome"
       ]
-    },
-    {
-      "name": "client",
-      "cwd": "client",
-      "request": "launch",
-      "type": "dart",
-      "program": "lib/main.dart"
-    },
-    {
-      "name": "client (profile mode)",
-      "cwd": "client",
-      "request": "launch",
-      "type": "dart",
-      "flutterMode": "profile",
-      "program": "lib/main.dart"
-    },
-    {
-      "name": "client (release mode)",
-      "cwd": "client",
-      "request": "launch",
-      "type": "dart",
-      "flutterMode": "release",
-      "program": "lib/main.dart"
     }
   ]
 }

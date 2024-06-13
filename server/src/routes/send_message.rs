@@ -11,7 +11,11 @@ use crate::{
     db::DB,
     models::{
         api_models::{api_message::ApiMessageWritable, shared::ApiUuid},
-        internal_models::{internal_chat::InternalChat, shared::InternalUuid},
+        internal_models::{
+            internal_chat::InternalChat,
+            internal_user::TimestampedAction,
+            shared::{InternalUuid, Save},
+        },
     },
     routes::shared::route_body_mut_db,
 };
@@ -50,12 +54,19 @@ pub fn send_message(
             return Err(actix_web::error::ErrorBadRequest("User not in chat"));
         }
 
-        let internal_message = message.into_internal(user, &chat, db)?;
+        let internal_message = message.into_internal(&user, &chat, db)?;
 
         internal_message.save(&mut chat, db).map_err(|e| {
             println!("Failed to save message {:?}", e);
             actix_web::error::ErrorInternalServerError("Failed to save message")
         })?;
+
+        let mut user = user;
+        user.actions.push(TimestampedAction {
+            timestamp: chrono::Utc::now().timestamp(),
+            action: crate::models::internal_models::internal_user::Action::SendMessage,
+        });
+        user.save(db)?;
 
         Ok(true)
     })

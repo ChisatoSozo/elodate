@@ -1,24 +1,72 @@
 // use std::error::Error;
 
+use crate::models::internal_models::internal_user::{Action, InternalRating, TimestampedAction};
+
 // use crate::{
 //     db::DB,
 //     internal_models::{rating::InternalRating, shared::UuidModel, user::User},
 // };
-pub const BEGINNING_LEFT_SWIPES: u32 = 100;
+pub const BEGINNING_LEFT_SWIPES: usize = 100;
 
-pub const ELO_SCALE: f64 = 500.0;
-pub const ELO_SHIFT: f64 = 2.0;
+pub const ELO_SCALE: f32 = 500.0;
+pub const ELO_SHIFT: f32 = 2.0;
 
-pub fn calc_elo(liked_percentage: f64) -> u32 {
-    (ELO_SCALE / (ELO_SHIFT - liked_percentage)) as u32
+pub const LIKES_WEIGHT: f32 = 0.8;
+pub const MESSAGES_WEIGHT: f32 = 0.1;
+pub const RECIEVE_MESSAGES_WEIGHT: f32 = 0.05;
+pub const RATE_WEIGHT: f32 = 0.05;
+
+pub const DECAY_DURATION: i64 = 60 * 60 * 24 * 7;
+
+//as now - timestamp approaches duration, the weight approaches 0, so the weight is 1 at timestamp = now, but it should decay slowly for the fisrt part, then faster
+pub fn timestamp_weight_decay(timestamp: i64, duration: i64) -> f32 {
+    let now = chrono::Utc::now().timestamp();
+    let diff = now - timestamp;
+    let diff = diff as f32;
+    let duration = duration as f32;
+    if diff > duration {
+        return 0.0;
+    }
+    1.0 - (diff / duration)
 }
 
-pub fn elo_max() -> u32 {
-    calc_elo(1.0)
-}
+pub fn calc_elo(rates: &Vec<InternalRating>, actions: &Vec<TimestampedAction>) -> f32 {
+    let mut liked = 0;
+    let mut passed = 0;
 
-pub fn elo_min() -> u32 {
-    calc_elo(0.0)
+    for rate in rates {
+        match rate {
+            InternalRating::LikedBy(_) => liked += 1,
+            InternalRating::PassedBy(_) => passed += 1,
+        }
+    }
+
+    passed += BEGINNING_LEFT_SWIPES;
+
+    let mut message_value = 0.0;
+    let mut recieve_message_value = 0.0;
+    let mut rate_value = 0.0;
+
+    for action in actions {
+        match action.action {
+            Action::SendMessage => {
+                message_value += timestamp_weight_decay(action.timestamp, DECAY_DURATION);
+            }
+            Action::RecieveMessage => {
+                recieve_message_value += timestamp_weight_decay(action.timestamp, DECAY_DURATION);
+            }
+            Action::Rate => {
+                rate_value += timestamp_weight_decay(action.timestamp, DECAY_DURATION);
+            }
+        }
+    }
+
+    let perc_liked = liked as f32 / (liked + passed) as f32;
+    let elo = perc_liked * LIKES_WEIGHT
+        + message_value * MESSAGES_WEIGHT
+        + recieve_message_value * RECIEVE_MESSAGES_WEIGHT
+        + rate_value * RATE_WEIGHT;
+    elo
 }
 
 const NUM_ELOS: usize = 24;
@@ -76,11 +124,10 @@ const ELO_THRESHOLDS: [f32; NUM_ELOS] = [
     23.0 / 24.0,
 ];
 
-pub fn elo_to_label(elo: u32) -> String {
-    let elo_perc = ((elo - elo_min()) as f32) / ((elo_max() - elo_min()) as f32);
+pub fn elo_to_label(elo: f32) -> String {
     let mut i = 0;
     while i < (NUM_ELOS - 1) {
-        if elo_perc.powf(0.8) < ELO_THRESHOLDS[i] {
+        if elo < ELO_THRESHOLDS[i] {
             break;
         }
         i += 1;

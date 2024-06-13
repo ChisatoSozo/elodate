@@ -1,3 +1,8 @@
+use std::sync::{
+    atomic::{AtomicUsize, Ordering},
+    Arc,
+};
+
 use actix_cors::Cors;
 use actix_files::Files;
 use actix_web::{
@@ -6,6 +11,7 @@ use actix_web::{
     App, HttpServer,
 };
 
+use bots::bot_actions::{init_bots, run_all_bot_actions};
 use db::DB;
 use middleware::jwt::Jwt;
 
@@ -21,6 +27,7 @@ use routes::{
 };
 use tasks::tasks::run_all_tasks;
 
+pub mod bots;
 pub mod constants;
 pub mod db;
 pub mod elo;
@@ -36,6 +43,14 @@ const JSON_SPEC_PATH: &str = "/api/spec/v2.json";
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    //fetch host and port environment variables
+    let host = std::env::var("HOST").unwrap_or_else(|_| "localhost".to_string());
+
+    let prod = std::env::var("PROD").is_ok();
+    if !prod {
+        println!("Running in dev mode, bots will be enabled");
+    }
+
     let db = web::Data::new(DB::new("dummy").map_err(|e| {
         println!("Failed to create db {:?}", e);
         std::io::Error::new(std::io::ErrorKind::Other, "Failed to create db")
@@ -47,6 +62,43 @@ async fn main() -> std::io::Result<()> {
         run_all_tasks(&db_clone).unwrap();
         std::thread::sleep(std::time::Duration::from_secs(600));
     });
+    if !prod {
+        let db_clone = db.clone();
+
+        std::thread::spawn(move || {
+            println!("Waiting 1 seconds before starting bots");
+            std::thread::sleep(std::time::Duration::from_secs(1));
+            let uuid_jwt = init_bots(&db_clone).unwrap();
+            loop {
+                println!("Running bots");
+                let batch_num = 10;
+                let total = uuid_jwt.len();
+                let ix = Arc::new(AtomicUsize::new(0));
+                //spin off 10 threads to run each of 10 sections of the bots
+                for i in 0..uuid_jwt.len() / batch_num {
+                    let db_clone = db_clone.clone();
+                    let uuid_jwt = uuid_jwt.clone();
+                    let ix = Arc::clone(&ix);
+                    std::thread::spawn(move || {
+                        let start = i * batch_num;
+                        let end = (i + 1) * batch_num;
+                        for uuid_jwt in &uuid_jwt[start..end] {
+                            let current_ix = ix.fetch_add(1, Ordering::SeqCst);
+                            if current_ix % 10 == 0 {
+                                println!("Running bot {}/{}", current_ix, total);
+                            }
+
+                            run_all_bot_actions(&db_clone, uuid_jwt).unwrap();
+                        }
+                    });
+                }
+
+                // std::thread::sleep(std::time::Duration::from_secs(10));
+            }
+        });
+    }
+
+    println!("Starting server at http://{}:8080", host);
 
     HttpServer::new(move || {
         App::new()

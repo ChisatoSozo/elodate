@@ -8,7 +8,6 @@ pub fn run_all_tasks(db: &DB) -> Result<(), Box<dyn std::error::Error>> {
     println!("Running all tasks");
     for user in db.iter_obj::<InternalUser>("users")? {
         let mut user = user?;
-        println!("Running tasks for user: {}", user.username);
         update_age(&mut user);
         update_elo(&mut user);
         user.save(db)?;
