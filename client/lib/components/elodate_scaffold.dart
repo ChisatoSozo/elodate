@@ -1,26 +1,29 @@
 import 'dart:convert';
+// ignore: avoid_web_libraries_in_flutter
 import 'dart:js' as js;
 
 import 'package:client/api/pkg/lib/api.dart';
+import 'package:client/models/notifications_model.dart';
 import 'package:client/models/user_model.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:screenshot/screenshot.dart';
 
-class ReportBugScaffold extends StatefulWidget {
+class ElodateScaffold extends StatefulWidget {
   final PreferredSizeWidget? appBar;
   final Widget body;
   final BottomNavigationBar? bottomNavigationBar;
 
   // Constructor to take children and title as parameters
-  const ReportBugScaffold(
+  const ElodateScaffold(
       {super.key, this.appBar, required this.body, this.bottomNavigationBar});
 
   @override
-  ReportBugScaffoldState createState() => ReportBugScaffoldState();
+  ElodateScaffoldState createState() => ElodateScaffoldState();
 }
 
-class ReportBugScaffoldState extends State<ReportBugScaffold> {
+class ElodateScaffoldState extends State<ElodateScaffold> {
   // Screenshot controller
   ScreenshotController screenshotController = ScreenshotController();
   // text controller
@@ -30,6 +33,12 @@ class ReportBugScaffoldState extends State<ReportBugScaffold> {
   String? image;
   bool sending = false;
   String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    Provider.of<NotificationsModel>(context, listen: false).init(context);
+  }
 
   @override
   Widget build(BuildContext context) {

@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:animated_flip_counter/animated_flip_counter.dart';
 import 'package:client/api/pkg/lib/api.dart';
+import 'package:client/components/elo_badge.dart';
 import 'package:client/components/image_picker.dart';
 import 'package:client/components/prop_pref_components/pref.dart';
 import 'package:client/components/prop_pref_components/prop.dart';
@@ -143,20 +145,41 @@ class SettingsPageState extends State<SettingsPage> {
         child: Column(
           children: [
             const SizedBox(height: 20),
-            _buildTextFormField(
-              initialValue: userModel.me.displayName,
-              labelText: 'Display Name',
-              onChanged: (value) => userModel.me.displayName = value,
-            ),
-            const SizedBox(height: 20),
-            _buildTextFormField(
-              initialValue: userModel.me.description,
-              labelText: 'Description',
-              onChanged: (value) => userModel.me.description = value,
-              maxLines: 10,
-            ),
+            Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    width: 250,
+                    child: Column(children: [
+                      _buildTextFormField(
+                        initialValue: userModel.me.displayName,
+                        labelText: 'Display Name',
+                        onChanged: (value) => userModel.me.displayName = value,
+                      ),
+                      const SizedBox(height: 20),
+                      _buildTextFormField(
+                        initialValue: userModel.me.description,
+                        labelText: 'Description',
+                        onChanged: (value) => userModel.me.description = value,
+                        maxLines: 10,
+                      ),
+                    ]),
+                  ),
+                  SizedBox(
+                    width: 100,
+                    child: Column(children: [
+                      Text('My Elo',
+                          style: Theme.of(context).textTheme.titleMedium),
+                      const SizedBox(height: 20),
+                      EloBadge(
+                          eloLabel: userModel.me.elo, elo: userModel.me.eloNum),
+                    ]),
+                  ),
+                ]),
             const SizedBox(height: 20),
             Text('Images', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 20),
             _buildImagePickerGrid(userModel),
           ],
         ),
@@ -278,7 +301,15 @@ class SettingsPageState extends State<SettingsPage> {
       itemCount: 6,
       itemBuilder: (context, index) {
         return AdaptiveFilePicker(
-          onUuidChanged: (newUuid) {
+          onUuidChanged: (newUuid) async {
+            if (index == 0) {
+              //it's a preview image, pull it, resize it,
+              var image = await userModel.getImage(newUuid);
+              var imageBytes = base64Decode(image.content);
+              var newBytes = await makePreview(imageBytes);
+              var previewUuid = await userModel.putImage(newBytes, null);
+              userModel.me.previewImage = previewUuid;
+            }
             if (index < userModel.me.images.length) {
               userModel.me.images[index] = newUuid;
             } else {

@@ -9,11 +9,13 @@ use crate::{
 use super::bot_actions::post_with_jwt;
 
 pub fn fetch_users_and_swipe(
+    client: &reqwest::blocking::Client,
     db: &DB,
     uuid_jwt: &(String, String),
     me: &InternalUser,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let users = post_with_jwt(
+        client,
         &"get_next_users".to_string(),
         &uuid_jwt.1,
         r#"[]"#.to_string(),
@@ -43,12 +45,14 @@ pub fn fetch_users_and_swipe(
 
                 if should_swipe_right {
                     let _ = post_with_jwt(
+                        client,
                         &"rate".to_string(),
                         &uuid_jwt.1,
                         format!(r#"{{"target":"{}","rating":"Like"}}"#, user.uuid.id),
                     )?;
                 } else {
                     let _ = post_with_jwt(
+                        client,
                         &"rate".to_string(),
                         &uuid_jwt.1,
                         format!(r#"{{"target":"{}","rating":"Pass"}}"#, user.uuid.id),

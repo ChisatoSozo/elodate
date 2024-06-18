@@ -1,4 +1,4 @@
-import 'package:client/components/report_bug_scaffold.dart';
+import 'package:client/components/elodate_scaffold.dart';
 import 'package:client/models/register_model.dart';
 import 'package:client/pages/home.dart';
 import 'package:client/pages/register_start.dart';
@@ -24,7 +24,7 @@ class LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     return Form(
       key: formKey,
-      child: ReportBugScaffold(
+      child: ElodateScaffold(
         body: Center(
           child: Container(
             padding: const EdgeInsets.all(20),

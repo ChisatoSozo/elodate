@@ -1,4 +1,4 @@
-import 'package:client/components/report_bug_scaffold.dart';
+import 'package:client/components/elodate_scaffold.dart';
 import 'package:client/models/user_model.dart';
 import 'package:client/pages/home_chat.dart';
 import 'package:client/pages/home_settings.dart';
@@ -50,10 +50,10 @@ class HomePageState extends State<HomePage> {
     var me = Provider.of<UserModel>(context, listen: true).me;
 
     if (!me.published) {
-      return const ReportBugScaffold(body: SettingsPage(key: Key("settings")));
+      return const ElodateScaffold(body: SettingsPage(key: Key("settings")));
     }
 
-    return ReportBugScaffold(
+    return ElodateScaffold(
       body: _widgetOptions.elementAt(_selectedIndex),
       bottomNavigationBar: me.published
           ? BottomNavigationBar(

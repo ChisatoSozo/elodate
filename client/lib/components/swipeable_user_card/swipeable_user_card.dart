@@ -179,7 +179,8 @@ class SwipeableUserCardState extends State<SwipeableUserCard>
               Positioned(
                 top: 0,
                 right: 16,
-                child: EloBadge(eloLabel: widget.user.elo),
+                child: EloBadge(
+                    eloLabel: widget.user.elo, elo: widget.user.eloNum),
               ),
             ],
           ),

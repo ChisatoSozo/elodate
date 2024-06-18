@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:client/models/notifications_model.dart';
 import 'package:client/models/page_state_model.dart';
 import 'package:client/models/register_model.dart';
 import 'package:client/models/user_model.dart';
@@ -51,18 +52,21 @@ class MainAppState extends State<MainApp> {
       return const CircularProgressIndicator(); // Loading indicator while themes are being loaded
     }
 
-    return ChangeNotifierProvider<UserModel>(
-      create: (context) => UserModel(),
-      child: ChangeNotifierProvider<PageStateModel>(
-        create: (context) => PageStateModel(),
-        child: ChangeNotifierProvider<RegisterModel>(
-          create: (context) => RegisterModel(),
-          child: MaterialApp(
-            title: 'elodate',
-            theme: lightTheme,
-            darkTheme: darkTheme,
-            themeMode: ThemeMode.system,
-            home: const RedirPage(),
+    return ChangeNotifierProvider<NotificationsModel>(
+      create: (context) => NotificationsModel(),
+      child: ChangeNotifierProvider<UserModel>(
+        create: (context) => UserModel(),
+        child: ChangeNotifierProvider<PageStateModel>(
+          create: (context) => PageStateModel(),
+          child: ChangeNotifierProvider<RegisterModel>(
+            create: (context) => RegisterModel(),
+            child: MaterialApp(
+              title: 'elodate',
+              theme: lightTheme,
+              darkTheme: darkTheme,
+              themeMode: ThemeMode.system,
+              home: const RedirPage(),
+            ),
           ),
         ),
       ),

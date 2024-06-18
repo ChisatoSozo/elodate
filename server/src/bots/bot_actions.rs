@@ -3,14 +3,22 @@ use crate::{
     models::internal_models::{internal_user::InternalUser, shared::InternalUuid},
 };
 
-use super::fetch_users_and_swipe::fetch_users_and_swipe;
+use super::{
+    fetch_users_and_swipe::fetch_users_and_swipe,
+    send_and_respond_to_chats::send_and_respond_to_chats,
+};
 
 const BACKEND_URL: &str = "http://localhost:8080";
 
 pub fn init_bots(db: &DB) -> Result<Vec<(String, String)>, Box<dyn std::error::Error>> {
     println!("Initializing bots");
     let mut uuids_jwts = vec![];
+    let mut i = 0;
     for user in db.iter_obj::<InternalUser>("users")? {
+        if i % 10 == 0 {
+            println!("Initialized {} bots", i);
+        }
+        i += 1;
         let user = user?;
         if user.bot_props.is_none() {
             continue;
@@ -37,28 +45,45 @@ pub fn init_bots(db: &DB) -> Result<Vec<(String, String)>, Box<dyn std::error::E
 }
 
 pub fn post_with_jwt(
+    client: &reqwest::blocking::Client,
     path: &String,
     jwt: &String,
     body: String,
 ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
-    let res = reqwest::blocking::Client::new()
-        .post(&format!("{}/{}", BACKEND_URL, path))
-        .body(body)
-        .header("Content-Type", "application/json")
-        .header("Authorization", format!("Bearer {}", jwt))
-        .send()?;
-    let res = res.text()?;
-    let res: serde_json::Value = serde_json::from_str(&res)?;
+    let res = {
+        let res = client
+            .post(&format!("{}/{}", BACKEND_URL, path))
+            .body(body)
+            .header("Content-Type", "application/json")
+            .header("Authorization", format!("Bearer {}", jwt))
+            .send();
+        let res = match res {
+            Ok(res) => {
+                if !res.status().is_success() {
+                    return Err(format!("Error posting to {}: {:#?}", path, res).into());
+                }
+                res
+            }
+            Err(e) => {
+                return Err(format!("Error posting to {}: {:#?}", path, e).into());
+            }
+        };
+        let res = res.text()?;
+        let res: serde_json::Value = serde_json::from_str(&res)?;
+        res
+    };
     Ok(res)
 }
 
 pub fn run_all_bot_actions(
+    client: &reqwest::blocking::Client,
     db: &DB,
     uuid_jwt: &(String, String),
 ) -> Result<(), Box<dyn std::error::Error>> {
     let me_uuid: InternalUuid<InternalUser> = InternalUuid::from(uuid_jwt.0.clone());
     let me = me_uuid.load(db)?.ok_or("User not found")?;
 
-    fetch_users_and_swipe(db, uuid_jwt, &me)?;
+    fetch_users_and_swipe(client, db, uuid_jwt, &me)?;
+    send_and_respond_to_chats(client, db, uuid_jwt, &me)?;
     Ok(())
 }

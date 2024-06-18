@@ -1,7 +1,4 @@
-use std::sync::{
-    atomic::{AtomicUsize, Ordering},
-    Arc,
-};
+use std::{array, sync::Arc, thread};
 
 use actix_cors::Cors;
 use actix_files::Files;
@@ -40,6 +37,9 @@ pub mod util;
 pub mod vec;
 
 const JSON_SPEC_PATH: &str = "/api/spec/v2.json";
+const BOT_ACTION_DELAY: u64 = 1;
+const TASK_DELAY: u64 = 600;
+const NUM_BOT_THREADS: usize = 10;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -60,7 +60,7 @@ async fn main() -> std::io::Result<()> {
     let db_clone = db.clone();
     std::thread::spawn(move || loop {
         run_all_tasks(&db_clone).unwrap();
-        std::thread::sleep(std::time::Duration::from_secs(600));
+        std::thread::sleep(std::time::Duration::from_secs(TASK_DELAY));
     });
     if !prod {
         let db_clone = db.clone();
@@ -69,31 +69,48 @@ async fn main() -> std::io::Result<()> {
             println!("Waiting 1 seconds before starting bots");
             std::thread::sleep(std::time::Duration::from_secs(1));
             let uuid_jwt = init_bots(&db_clone).unwrap();
+            let clients: [Arc<reqwest::blocking::Client>; NUM_BOT_THREADS] =
+                array::from_fn(|_| Arc::new(reqwest::blocking::Client::new()));
             loop {
                 println!("Running bots");
-                let batch_num = 10;
+                let num_threads = 10;
                 let total = uuid_jwt.len();
-                let ix = Arc::new(AtomicUsize::new(0));
-                //spin off 10 threads to run each of 10 sections of the bots
-                for i in 0..uuid_jwt.len() / batch_num {
+                let mut handles = vec![];
+
+                for i in 0..num_threads {
                     let db_clone = db_clone.clone();
                     let uuid_jwt = uuid_jwt.clone();
-                    let ix = Arc::clone(&ix);
-                    std::thread::spawn(move || {
-                        let start = i * batch_num;
-                        let end = (i + 1) * batch_num;
-                        for uuid_jwt in &uuid_jwt[start..end] {
-                            let current_ix = ix.fetch_add(1, Ordering::SeqCst);
-                            if current_ix % 10 == 0 {
-                                println!("Running bot {}/{}", current_ix, total);
-                            }
+                    let client_clone = clients[i].clone();
+                    let handle = thread::spawn(move || {
+                        let start = (i * total) / num_threads;
+                        let mut end = ((i + 1) * total) / num_threads;
+                        if end > uuid_jwt.len() {
+                            end = uuid_jwt.len();
+                        }
 
-                            run_all_bot_actions(&db_clone, uuid_jwt).unwrap();
+                        for ix in start..end {
+                            let uuid_jwt = &uuid_jwt[ix];
+                            let res = run_all_bot_actions(&client_clone, &db_clone, uuid_jwt);
+                            match res {
+                                Ok(_) => {
+                                    continue;
+                                }
+                                Err(e) => {
+                                    println!("Bot failed to run {:?}", e);
+                                }
+                            }
                         }
                     });
+                    handles.push(handle);
                 }
 
-                // std::thread::sleep(std::time::Duration::from_secs(10));
+                // Wait for all threads to complete
+                for handle in handles {
+                    handle.join().unwrap();
+                }
+
+                // Sleep for 60 seconds
+                std::thread::sleep(std::time::Duration::from_secs(BOT_ACTION_DELAY));
             }
         });
     }
@@ -142,6 +159,9 @@ async fn main() -> std::io::Result<()> {
             .service(report_bug)
             .build()
     })
+    .workers(4)
+    .client_request_timeout(std::time::Duration::from_secs(600)) // Set client timeout to 10 minutes
+    .client_disconnect_timeout(std::time::Duration::from_secs(600)) // Set client disconnect timeout to 10 minutes
     .bind(("localhost", 8080))?
     .run()
     .await

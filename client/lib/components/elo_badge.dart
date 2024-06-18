@@ -2,10 +2,28 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:simple_shadow/simple_shadow.dart';
 
+var gradients = [
+  ("#cd7f32", "#a97142"),
+  ("#c0c0c0", "#808080"),
+  ("#ffd700", "#daa520"),
+  ("#e5e4e2", "#bcc6cc"),
+  ("#50c878", "#2e8b57"),
+  ("#0f52ba", "#000080"),
+  ("#e0115f", "#8b0000"),
+  ("#b9f2ff", "#e0ffff"),
+  ("#000000", "#4b0082")
+];
+
+// Function to turn hex to Color
+Color hexToColor(String code) {
+  return Color(int.parse(code.substring(1, 7), radix: 16) + 0xFF000000);
+}
+
 class EloBadge extends StatelessWidget {
   final String eloLabel;
+  final double elo;
 
-  const EloBadge({super.key, required this.eloLabel});
+  const EloBadge({super.key, required this.eloLabel, required this.elo});
 
   @override
   Widget build(BuildContext context) {
@@ -23,15 +41,60 @@ class EloBadge extends StatelessWidget {
       'diamond',
     ].indexOf(baseRank);
 
+    var textGrad = gradients[baseRankIdx + 1];
+
+    var displayNumber = (elo * 1000).toInt();
+
     return Stack(
       alignment: Alignment.center,
       children: [
         SimpleShadow(
           opacity: 0.8,
           child: SvgPicture.string(
-            makeSvg(baseRank, rankLevel),
+            makeSvg(baseRankIdx, rankLevel),
             width: 100.0,
             height: 200.0,
+          ),
+        ),
+        Positioned(
+          top: 5.0,
+          child: Stack(
+            children: [
+              // Black outline for the text
+              Text(
+                displayNumber.toString(),
+                style: TextStyle(
+                  fontSize: 40.0,
+                  fontWeight: FontWeight.bold,
+                  foreground: Paint()
+                    ..style = PaintingStyle.stroke
+                    ..strokeWidth = 3
+                    ..color = Colors.black,
+                ),
+              ),
+              ShaderMask(
+                shaderCallback: (Rect bounds) {
+                  bounds = Rect.fromLTWH(bounds.left, bounds.top, bounds.width,
+                      bounds.height + 100);
+                  return LinearGradient(
+                    colors: [
+                      hexToColor(textGrad.$1),
+                      hexToColor(textGrad.$2),
+                    ],
+                    end: Alignment.bottomCenter,
+                  ).createShader(bounds);
+                },
+                child: Text(
+                  displayNumber.toString(),
+                  style: const TextStyle(
+                    fontSize: 40.0,
+                    fontWeight: FontWeight.bold,
+                    color:
+                        Colors.white, // This is necessary to apply the gradient
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
         ClipPath(
@@ -51,89 +114,26 @@ class EloBadge extends StatelessWidget {
   }
 }
 
-String makeSvg(String baseRank, int rankLevel) {
-  String grad1 = '';
-  String grad2 = '';
-  switch (baseRank) {
-    case 'bronze':
-      grad1 = 'bronzeGradient';
-      grad2 = 'silverGradient';
-      break;
-    case 'silver':
-      grad1 = 'silverGradient';
-      grad2 = 'goldGradient';
-      break;
-    case 'gold':
-      grad1 = 'goldGradient';
-      grad2 = 'platinumGradient';
-      break;
-    case 'platinum':
-      grad1 = 'platinumGradient';
-      grad2 = 'emeraldGradient';
-      break;
-    case 'emerald':
-      grad1 = 'emeraldGradient';
-      grad2 = 'sapphireGradient';
-      break;
-    case 'sapphire':
-      grad1 = 'sapphireGradient';
-      grad2 = 'rubyGradient';
-      break;
-    case 'ruby':
-      grad1 = 'rubyGradient';
-      grad2 = 'diamondGradient';
-      break;
-    case 'diamond':
-      grad1 = 'diamondGradient';
-      grad2 = 'nextRankGradient';
-      break;
-    default:
-      throw Exception('Invalid baseRank');
-  }
+String makeSvg(int gradIdx, int rankLevel) {
+  var grad11 = gradients[gradIdx].$1;
+  var grad12 = gradients[gradIdx].$2;
+  var grad21 = gradients[gradIdx + 1].$1;
+  var grad22 = gradients[gradIdx + 1].$2;
 
   return '''<svg width="100" height="200" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="bronzeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#cd7f32;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#a97142;stop-opacity:1" />
+    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:$grad11;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:$grad12;stop-opacity:1" />
     </linearGradient>
-    <linearGradient id="silverGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#c0c0c0;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#808080;stop-opacity:1" />
+    <linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:$grad21;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:$grad22;stop-opacity:1" />
     </linearGradient>
-    <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#ffd700;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#daa520;stop-opacity:1" />
-    </linearGradient>
-    <linearGradient id="platinumGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#e5e4e2;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#bcc6cc;stop-opacity:1" />
-    </linearGradient>
-    <linearGradient id="emeraldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#50c878;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#2e8b57;stop-opacity:1" />
-    </linearGradient>
-    <linearGradient id="sapphireGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#0f52ba;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#000080;stop-opacity:1" />
-    </linearGradient>
-    <linearGradient id="rubyGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#e0115f;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#8b0000;stop-opacity:1" />
-    </linearGradient>
-    <linearGradient id="diamondGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#b9f2ff;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#e0ffff;stop-opacity:1" />
-    </linearGradient>
-    <linearGradient id="nextRankGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#000000;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#4b0082;stop-opacity:1" />
-    </linearGradient>
-    </defs>
-
-  <path style="fill: url(#$grad1); stroke: black; stroke-width: 2;" d="M 10 -10 L 10 190 L 50 150 L 90 190L 90 -10 Z"/>
-  ${rankLevel > 1 ? '<path d="M 10 190 L 50 150 L 90 190L 90 170 L 50 130 L 10 170 Z" fill="url(#$grad2)" stroke="black" stroke-width="2"/>' : ''}
-  ${rankLevel > 2 ? '<path d="M 10 160 L 50 120L 90 160 L 90 150 L 50 110 L 10 150 Z" fill="url(#$grad2)" stroke="black" stroke-width="2"/>' : ''}
+  </defs>
+  <path style="fill: url(#grad1); stroke: black; stroke-width: 2;" d="M 10 -10 L 10 190 L 50 150 L 90 190L 90 -10 Z"/>
+  ${rankLevel > 1 ? '<path d="M 10 190 L 50 150 L 90 190L 90 170 L 50 130 L 10 170 Z" fill="url(#grad2)" stroke="black" stroke-width="2"/>' : ''}
+  ${rankLevel > 2 ? '<path d="M 10 160 L 50 120L 90 160 L 90 150 L 50 110 L 10 150 Z" fill="url(#grad2)" stroke="black" stroke-width="2"/>' : ''}
 </svg>
 ''';
 }

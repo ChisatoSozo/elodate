@@ -70,6 +70,7 @@ class UserModel extends ChangeNotifier {
     }
 
     isLoading = true;
+
     await initClient(jwt);
     try {
       await initMe();
@@ -188,6 +189,8 @@ class UserModel extends ChangeNotifier {
       prefs: me.prefs,
       props: me.props,
       images: me.images,
+      previewImage: me.previewImage,
+      isBot: false,
     ));
 
     if (result == null) {

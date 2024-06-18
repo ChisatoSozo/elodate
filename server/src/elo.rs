@@ -30,6 +30,10 @@ pub fn timestamp_weight_decay(timestamp: i64, duration: i64) -> f32 {
     1.0 - (diff / duration)
 }
 
+const MAX_MESSAGES_SENT_PER_DAY_REWARDED: usize = 20;
+const MAX_MESSAGES_RECIEVED_PER_DAY_REWARDED: usize = 20;
+const MAX_RATES_PER_DAY_REWARDED: usize = 20;
+
 pub fn calc_elo(rates: &Vec<InternalRating>, actions: &Vec<TimestampedAction>) -> f32 {
     let mut liked = 0;
     let mut passed = 0;
@@ -47,21 +51,39 @@ pub fn calc_elo(rates: &Vec<InternalRating>, actions: &Vec<TimestampedAction>) -
     let mut recieve_message_value = 0.0;
     let mut rate_value = 0.0;
 
+    let mut num_messages_recieved = 0;
+    let mut num_messages_sent = 0;
+    let mut num_rates = 0;
+
     for action in actions {
         match action.action {
             Action::SendMessage => {
-                message_value += timestamp_weight_decay(action.timestamp, DECAY_DURATION);
+                if num_messages_sent < MAX_MESSAGES_SENT_PER_DAY_REWARDED {
+                    message_value += timestamp_weight_decay(action.timestamp, DECAY_DURATION)
+                        / MAX_MESSAGES_SENT_PER_DAY_REWARDED as f32;
+                    num_messages_sent += 1;
+                }
             }
             Action::RecieveMessage => {
-                recieve_message_value += timestamp_weight_decay(action.timestamp, DECAY_DURATION);
+                if num_messages_recieved < MAX_MESSAGES_RECIEVED_PER_DAY_REWARDED {
+                    recieve_message_value +=
+                        timestamp_weight_decay(action.timestamp, DECAY_DURATION)
+                            / MAX_MESSAGES_RECIEVED_PER_DAY_REWARDED as f32;
+                    num_messages_recieved += 1;
+                }
             }
             Action::Rate => {
-                rate_value += timestamp_weight_decay(action.timestamp, DECAY_DURATION);
+                if num_rates < MAX_RATES_PER_DAY_REWARDED {
+                    rate_value += timestamp_weight_decay(action.timestamp, DECAY_DURATION)
+                        / MAX_RATES_PER_DAY_REWARDED as f32;
+                    num_rates += 1;
+                }
             }
         }
     }
 
     let perc_liked = liked as f32 / (liked + passed) as f32;
+
     let elo = perc_liked * LIKES_WEIGHT
         + message_value * MESSAGES_WEIGHT
         + recieve_message_value * RECIEVE_MESSAGES_WEIGHT

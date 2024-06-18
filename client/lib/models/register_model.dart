@@ -99,6 +99,7 @@ class RegisterModel extends ChangeNotifier {
         username: _username!,
         password: _password!,
         images: [],
+        isBot: false,
         uuid: '');
     var jwt = constructClient(null).signupPost(input);
 

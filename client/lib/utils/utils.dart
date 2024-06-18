@@ -1,5 +1,7 @@
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
+import 'package:image/image.dart' as img;
 import 'package:image_compression_flutter/image_compression_flutter.dart';
 
 String formatApiError(String s) {
@@ -45,6 +47,26 @@ Future<Uint8List> compressImage(Uint8List imageBytes) async {
   // Decode the image
 
   ImageFile input = ImageFile(filePath: "", rawBytes: imageBytes);
+  Configuration config = const Configuration(
+    outputType: ImageOutputType.jpg,
+    // can only be true for Android and iOS while using ImageOutputType.jpg or ImageOutputType.pngÏ
+    useJpgPngNativeCompressor: false,
+    // set quality between 0-100
+    quality: 80,
+  );
+
+  final param = ImageFileConfiguration(input: input, config: config);
+  final output = await compressor.compress(param);
+  return output.rawBytes;
+}
+
+Future<Uint8List> makePreview(Uint8List imageBytes) async {
+  //resize the image to 200x200
+  img.Image image = img.decodeImage(imageBytes)!;
+  img.Image thumbnail = img.copyResize(image, width: 200, height: 200);
+  Uint8List thumbnailBytes = Uint8List.fromList(img.encodeJpg(thumbnail));
+  // Decode the image
+  ImageFile input = ImageFile(filePath: "", rawBytes: thumbnailBytes);
   Configuration config = const Configuration(
     outputType: ImageOutputType.jpg,
     // can only be true for Android and iOS while using ImageOutputType.jpg or ImageOutputType.pngÏ

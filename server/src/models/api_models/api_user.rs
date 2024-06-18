@@ -25,6 +25,7 @@ pub struct ApiUser {
     pub uuid: ApiUuid<InternalUser>,
     pub images: Vec<ApiUuid<InternalImage>>,
     pub elo: String,
+    pub elo_num: f32,
     pub username: String,
     pub display_name: String,
     pub description: String,
@@ -32,6 +33,7 @@ pub struct ApiUser {
     pub props: Vec<LabeledProperty>,
     pub birthdate: i64,
     pub published: bool,
+    pub preview_image: Option<ApiUuid<InternalImage>>,
     pub chats: Option<Vec<ApiUuid<InternalChat>>>,
 }
 
@@ -43,7 +45,9 @@ impl ApiUser {
         Ok(ApiUser {
             uuid: user.uuid.clone().into(),
             images: user.images.into_iter().map(|i| i.into()).collect(),
+            preview_image: user.preview_image.map(|i| i.into()),
             elo: elo_to_label(user.elo),
+            elo_num: user.elo,
             username: user.username,
             display_name: user.display_name,
             description: user.description,

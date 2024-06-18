@@ -1,4 +1,4 @@
-import 'package:client/components/report_bug_scaffold.dart';
+import 'package:client/components/elodate_scaffold.dart';
 import 'package:flutter/material.dart';
 
 class ResponsiveForm extends StatelessWidget {
@@ -25,7 +25,7 @@ class ResponsiveForm extends StatelessWidget {
   Widget build(BuildContext context) {
     return Form(
       key: _formKey ?? _defaultFormKey,
-      child: ReportBugScaffold(
+      child: ElodateScaffold(
         appBar: titleAtTop && title != null
             ? AppBar(
                 title: Text(title!),
