@@ -7,12 +7,13 @@ use crate::{
 };
 
 use super::bot_actions::post_with_jwt;
-
+//TODO: jwt refresh
 pub fn send_and_respond_to_chats(
     client: &reqwest::blocking::Client,
     db: &DB,
     uuid_jwt: &(String, String),
     me: &InternalUser,
+    host: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let chat_uuids = me
         .chats
@@ -21,7 +22,13 @@ pub fn send_and_respond_to_chats(
         .collect::<Vec<_>>();
     let chats_string = serde_json::to_string(&chat_uuids)?;
 
-    let chats = post_with_jwt(client, &"get_chats".to_string(), &uuid_jwt.1, chats_string);
+    let chats = post_with_jwt(
+        host,
+        client,
+        &"get_chats".to_string(),
+        &uuid_jwt.1,
+        chats_string,
+    );
 
     match chats {
         Ok(chats) => {
@@ -54,6 +61,7 @@ pub fn send_and_respond_to_chats(
 
                 if should_respond {
                     let _ = post_with_jwt(
+                        host,
                         client,
                         &"send_message".to_string(),
                         &uuid_jwt.1,

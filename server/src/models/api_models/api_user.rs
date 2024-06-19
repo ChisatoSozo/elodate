@@ -7,7 +7,7 @@ use crate::{
         internal_image::{Access, InternalImage},
         internal_prefs::{LabeledPreferenceRange, LabeledProperty, PreferenceRange},
         internal_prefs_config::PREFS_CONFIG,
-        internal_user::{BotProps, InternalUser},
+        internal_user::{BotProps, InternalUser, Notification},
         shared::{InternalUuid, Save},
     },
     test::fake::Gen,
@@ -35,6 +35,38 @@ pub struct ApiUser {
     pub published: bool,
     pub preview_image: Option<ApiUuid<InternalImage>>,
     pub chats: Option<Vec<ApiUuid<InternalChat>>>,
+}
+
+#[derive(Debug, Clone, Serialize, Apiv2Schema)]
+pub enum ApiNotificationType {
+    UnreadMessage,
+    Match,
+    System,
+}
+
+#[derive(Debug, Clone, Serialize, Apiv2Schema)]
+pub struct ApiNotification {
+    notification_type: ApiNotificationType,
+    message_or_uuid: String,
+}
+
+impl From<Notification> for ApiNotification {
+    fn from(notification: Notification) -> Self {
+        match notification {
+            Notification::UnreadMessage(uuid) => ApiNotification {
+                notification_type: ApiNotificationType::UnreadMessage,
+                message_or_uuid: uuid.id,
+            },
+            Notification::Match(uuid) => ApiNotification {
+                notification_type: ApiNotificationType::Match,
+                message_or_uuid: uuid.id,
+            },
+            Notification::System(message) => ApiNotification {
+                notification_type: ApiNotificationType::System,
+                message_or_uuid: message,
+            },
+        }
+    }
 }
 
 impl ApiUser {

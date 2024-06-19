@@ -50,66 +50,51 @@ class SettingsPageState extends State<SettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Expanded(
-          child: SingleChildScrollView(
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 400),
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 400),
+        child: Column(
+          children: [
+            const SizedBox(height: 20),
+            const Text(
+              "See the results of your filters at the bottom of this page",
+              style: TextStyle(fontSize: 16),
+            ),
+            _buildExpansionPanelList(context),
+            Card(
+              margin: const EdgeInsets.all(16.0),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
                 child: Column(
                   children: [
-                    Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: _buildExpansionPanelList(context),
-                    ),
+                    _buildFlipCounters(),
+                    if (_error != null) _buildErrorText(context),
                   ],
                 ),
               ),
             ),
-          ),
-        ),
-        Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 400),
-            child: Column(
-              children: [
-                Card(
-                  margin: const EdgeInsets.all(16.0),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      children: [
-                        _buildFlipCounters(),
-                        if (_error != null) _buildErrorText(context),
-                      ],
-                    ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  ElevatedButton(
+                    onPressed: () => _logout(context),
+                    child: const Text('Logout'),
                   ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      ElevatedButton(
-                        onPressed: () => _logout(context),
-                        child: const Text('Logout'),
-                      ),
-                      ElevatedButton(
-                        onPressed: _modified && !_saving ? _saveChanges : null,
-                        child: _saving
-                            ? const Text('Saving...')
-                            : const Text('Save Changes'),
-                      ),
-                    ],
+                  ElevatedButton(
+                    onPressed: _modified && !_saving ? _saveChanges : null,
+                    child: _saving
+                        ? const Text('Saving...')
+                        : const Text('Save Changes'),
                   ),
-                ),
-                const SizedBox(height: 20),
-              ],
+                ],
+              ),
             ),
-          ),
+            const SizedBox(height: 20),
+          ],
         ),
-      ],
+      ),
     );
   }
 

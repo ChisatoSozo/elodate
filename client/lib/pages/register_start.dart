@@ -21,29 +21,31 @@ class RegisterStartPageState extends State<RegisterStartPage> {
     return ResponsiveForm(
       formKey: formKey,
       title: "Welcome! Pick a username",
-      children: [
-        TextFormField(
-          controller: usernameController,
-          decoration: const InputDecoration(
-            labelText: 'Username',
-            border: OutlineInputBorder(),
+      body: Column(
+        children: [
+          TextFormField(
+            controller: usernameController,
+            decoration: const InputDecoration(
+              labelText: 'Username',
+              border: OutlineInputBorder(),
+            ),
+            onFieldSubmitted: (value) => _goNext(),
+            validator: (value) =>
+                value!.isEmpty ? 'Username cannot be empty' : null,
           ),
-          onFieldSubmitted: (value) => _goNext(),
-          validator: (value) =>
-              value!.isEmpty ? 'Username cannot be empty' : null,
-        ),
-        const SizedBox(height: 20),
-        ElevatedButton(
-          onPressed: _goNext,
-          child: const Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('Next'),
-              Icon(Icons.arrow_forward),
-            ],
+          const SizedBox(height: 20),
+          ElevatedButton(
+            onPressed: _goNext,
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('Next'),
+                Icon(Icons.arrow_forward),
+              ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 

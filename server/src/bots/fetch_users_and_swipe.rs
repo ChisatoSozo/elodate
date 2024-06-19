@@ -13,8 +13,10 @@ pub fn fetch_users_and_swipe(
     db: &DB,
     uuid_jwt: &(String, String),
     me: &InternalUser,
+    host: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let users = post_with_jwt(
+        host,
         client,
         &"get_next_users".to_string(),
         &uuid_jwt.1,
@@ -45,6 +47,7 @@ pub fn fetch_users_and_swipe(
 
                 if should_swipe_right {
                     let _ = post_with_jwt(
+                        host,
                         client,
                         &"rate".to_string(),
                         &uuid_jwt.1,
@@ -52,6 +55,7 @@ pub fn fetch_users_and_swipe(
                     )?;
                 } else {
                     let _ = post_with_jwt(
+                        host,
                         client,
                         &"rate".to_string(),
                         &uuid_jwt.1,

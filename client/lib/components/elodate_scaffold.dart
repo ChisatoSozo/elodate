@@ -13,11 +13,16 @@ import 'package:screenshot/screenshot.dart';
 class ElodateScaffold extends StatefulWidget {
   final PreferredSizeWidget? appBar;
   final Widget body;
-  final BottomNavigationBar? bottomNavigationBar;
+  final Widget? bottomNavigationBar;
+  final bool reverseScrollDirection;
 
   // Constructor to take children and title as parameters
   const ElodateScaffold(
-      {super.key, this.appBar, required this.body, this.bottomNavigationBar});
+      {super.key,
+      this.appBar,
+      required this.body,
+      this.bottomNavigationBar,
+      this.reverseScrollDirection = false});
 
   @override
   ElodateScaffoldState createState() => ElodateScaffoldState();
@@ -33,6 +38,7 @@ class ElodateScaffoldState extends State<ElodateScaffold> {
   String? image;
   bool sending = false;
   String? _error;
+  bool notificationLoopStarted = false;
 
   @override
   void initState() {
@@ -41,14 +47,43 @@ class ElodateScaffoldState extends State<ElodateScaffold> {
   }
 
   @override
+  void dispose() {
+    super.dispose();
+    Provider.of<NotificationsModel>(context, listen: false)
+        .stopNotificationLoop();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    UserModel userModel = Provider.of<UserModel>(context);
+    var loggedIn = userModel.loggedIn;
+    if (loggedIn && !notificationLoopStarted) {
+      notificationLoopStarted = true;
+      Provider.of<NotificationsModel>(context, listen: false)
+          .startNotificationLoop(userModel);
+    }
+
     return Screenshot(
       controller: screenshotController,
       child: Scaffold(
         appBar: widget.appBar,
+        resizeToAvoidBottomInset: true,
         body: Stack(
           children: [
-            widget.body,
+            widget.reverseScrollDirection
+                ? Align(
+                    alignment: Alignment.bottomCenter,
+                    child: SingleChildScrollView(
+                      reverse: widget.reverseScrollDirection,
+                      child: widget.body,
+                    ),
+                  )
+                : Center(
+                    child: SingleChildScrollView(
+                      reverse: widget.reverseScrollDirection,
+                      child: widget.body,
+                    ),
+                  ),
             Positioned(
               top: 60,
               right: 0,
@@ -119,21 +154,23 @@ class ElodateScaffoldState extends State<ElodateScaffold> {
                 bottom: 0,
                 child: AlertDialog(
                   title: const Text('Report'),
-                  content: Column(
-                    children: [
-                      Image.memory(base64Decode(image!),
-                          width: 400, height: 400, fit: BoxFit.contain),
-                      const SizedBox(height: 10),
-                      const Text('Please describe the bug or suggestion:'),
-                      const SizedBox(height: 10),
-                      TextField(
-                        decoration: const InputDecoration(
-                          border: OutlineInputBorder(),
+                  content: SingleChildScrollView(
+                    child: Column(
+                      children: [
+                        const Text('Please describe the bug or suggestion:'),
+                        const SizedBox(height: 10),
+                        TextField(
+                          decoration: const InputDecoration(
+                            border: OutlineInputBorder(),
+                          ),
+                          controller: textController,
+                          maxLines: 5,
                         ),
-                        controller: textController,
-                        maxLines: 5,
-                      ),
-                    ],
+                        const SizedBox(height: 10),
+                        Image.memory(base64Decode(image!),
+                            width: 400, height: 400, fit: BoxFit.contain),
+                      ],
+                    ),
                   ),
                   actions: [
                     ElevatedButton(

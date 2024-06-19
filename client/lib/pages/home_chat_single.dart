@@ -4,7 +4,7 @@ import 'dart:typed_data';
 
 import 'package:client/api/pkg/lib/api.dart';
 import 'package:client/components/chat_bubble.dart';
-import 'package:client/components/responsive_scaffold.dart';
+import 'package:client/components/elodate_scaffold.dart';
 import 'package:client/components/uuid_image_provider.dart';
 import 'package:client/models/user_model.dart';
 import 'package:client/utils/utils.dart';
@@ -63,47 +63,43 @@ class ChatScreenState extends State<ChatScreen> {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final chatBarColor = isDarkMode ? Colors.grey[850] : Colors.grey[300];
     final inputFieldColor = isDarkMode ? Colors.grey[800] : Colors.grey[200];
+    final formKey = GlobalKey<FormState>();
 
-    return ResponsiveForm(
-      titleAtTop: true,
-      formKey: formKey,
-      title: widget.displayName,
-      scrollable: false,
-      children: [
-        Column(
-          children: [
-            _buildMessageList(context),
-            _buildInputSection(chatBarColor!, inputFieldColor!),
-          ],
-        ),
-      ],
+    return ElodateScaffold(
+      reverseScrollDirection: true,
+      appBar: AppBar(
+        title: Text(widget.displayName),
+      ),
+      body: Form(
+        key: formKey,
+        child: Container(
+            constraints: const BoxConstraints(maxWidth: 600),
+            margin: const EdgeInsets.fromLTRB(10, 0, 10, 4),
+            child: _buildMessageList(context)),
+      ),
+      bottomNavigationBar: _buildInputSection(chatBarColor!, inputFieldColor!),
     );
   }
 
   Widget _buildMessageList(BuildContext context) {
     final userModel = Provider.of<UserModel>(context, listen: false);
-    return Expanded(
-      child: Align(
-        alignment: Alignment.bottomCenter,
-        child: ListView.builder(
-          itemCount: _messages.length,
-          itemBuilder: (context, index) {
-            final message = _messages[_messages.length - index - 1];
-            final isMe = message.author == userModel.me.uuid;
-            return ChatBubble(
-              key: Key(message.uuid),
-              text: message.content,
-              image: _buildMessageImage(message, userModel),
-              isMe: isMe,
-              timestamp: DateTime.fromMillisecondsSinceEpoch(
-                message.sentAt * 1000,
-              ),
-            );
-          },
-          reverse: true,
-          shrinkWrap: true,
-        ),
-      ),
+    return ListView.builder(
+      itemCount: _messages.length,
+      itemBuilder: (context, index) {
+        final message = _messages[_messages.length - index - 1];
+        final isMe = message.author == userModel.me.uuid;
+        return ChatBubble(
+          key: Key(message.uuid),
+          text: message.content,
+          image: _buildMessageImage(message, userModel),
+          isMe: isMe,
+          timestamp: DateTime.fromMillisecondsSinceEpoch(
+            message.sentAt * 1000,
+          ),
+        );
+      },
+      reverse: true,
+      shrinkWrap: true,
     );
   }
 

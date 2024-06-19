@@ -21,7 +21,7 @@ DefaultApi constructClient(String? jwt) {
     var host = Uri.base.host;
     var port = Uri.base.port;
     var protocol = Uri.base.scheme;
-    if (host == 'localhost') {
+    if (host == 'localhost' || host.startsWith('192.168.')) {
       port = 8080;
     }
     var client = DefaultApi(
@@ -43,6 +43,7 @@ class UserModel extends ChangeNotifier {
   bool isLoaded = false;
 
   ApiUser get me => _me!;
+  bool get loggedIn => _me != null && !isLoading && isLoaded;
 
   bool canLoad() {
     var jwt = localStorage.getItem('jwt');
@@ -224,5 +225,35 @@ class UserModel extends ChangeNotifier {
       throw Exception('Failed to get num users mutually prefer dry run');
     }
     return result;
+  }
+
+  Future<List<ApiNotification>> getNotifications() async {
+    var result = await client.fetchNotificationsPost(true);
+    if (result == null) {
+      throw Exception('Failed to get notifications');
+    }
+    return result;
+  }
+
+  Future<ApiMessage> getMessage(String uuid) async {
+    var result = await client.getMessagePost(uuid);
+    if (result == null) {
+      throw Exception('Failed to get message');
+    }
+    return result;
+  }
+
+  Future<ApiUser> getUser(String uuid) async {
+    var result = await client.getUsersPost([uuid]);
+    if (result == null) {
+      throw Exception('Failed to get user');
+    }
+    if (result.isEmpty) {
+      throw Exception('User not found');
+    }
+    if (result.length > 1) {
+      throw Exception('Too many users found');
+    }
+    return result.first;
   }
 }

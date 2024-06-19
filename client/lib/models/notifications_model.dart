@@ -1,3 +1,8 @@
+import 'dart:convert';
+
+import 'package:client/api/pkg/lib/api.dart';
+import 'package:client/components/notification.dart';
+import 'package:client/models/user_model.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -17,61 +22,100 @@ class Notification {
 }
 
 class NotificationsModel extends ChangeNotifier {
-  final List<Notification> _notifications = [];
   late FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin;
   FToast fToast = FToast();
-
-  List<Notification> get notifications => _notifications;
+  bool loopRunning = false;
 
   Future<void> init(BuildContext context) async {
     fToast.init(context);
     await initNotifications();
-    Future.delayed(const Duration(seconds: 2)).then((value) {
-      showNotification();
-      showNotification();
-      showNotification();
-      showNotification();
+  }
+
+  void startNotificationLoop(UserModel userModel) {
+    //every 5 seconds, fetch notifications
+    print('Starting notification loop');
+    if (loopRunning) {
+      return;
+    }
+    loopRunning = true;
+    Future.doWhile(() async {
+      if (!loopRunning) {
+        return false;
+      }
+      await Future.delayed(const Duration(seconds: 5));
+      fetchNotifications(userModel);
+      return true;
     });
   }
 
-  Future<void> showNotification() async {
+  void stopNotificationLoop() {
+    loopRunning = false;
+  }
+
+  Future<void> showNotification(
+      ApiNotification notification, UserModel userModel) async {
+    var title = '';
+    var body = '';
+    Image image;
+
+    switch (notification.notificationType) {
+      case ApiNotificationNotificationTypeEnum.match:
+        var userUuid = notification.messageOrUuid;
+        var user = await userModel.getUser(userUuid);
+        var username = user.username;
+        var apiImage = await userModel.getImage(user.previewImage!);
+        title = 'New Match!';
+        body = '$username has matched with you!';
+        var b64 = apiImage.content;
+        var bytes = base64Decode(b64);
+        image = Image.memory(bytes);
+        break;
+      case ApiNotificationNotificationTypeEnum.system:
+        title = 'System Notification';
+        body = notification.messageOrUuid;
+        image = Image.asset('images/logo.png');
+        break;
+      case ApiNotificationNotificationTypeEnum.unreadMessage:
+        var messageUuid = notification.messageOrUuid;
+        var message = await userModel.getMessage(messageUuid);
+        var senderUuid = message.author;
+        var sender = await userModel.getUser(senderUuid);
+        var senderUsername = sender.username;
+        var senderImage = await userModel.getImage(sender.previewImage!);
+        title = 'New Message from $senderUsername';
+        body = message.content;
+        var b64 = senderImage.content;
+        var bytes = base64Decode(b64);
+        image = Image.memory(bytes);
+        break;
+      default:
+        throw Exception('Invalid notification type');
+    }
+
     if (kIsWeb) {
-      Widget toast = Container(
-        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(25.0),
-          color: Colors.greenAccent,
-        ),
-        child: const Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.check),
-            SizedBox(
-              width: 12.0,
-            ),
-            Text('test')
-          ],
-        ),
-      );
+      // toast that takes from the theme
 
       fToast.showToast(
-        child: toast,
+        child: NotificationComponent(
+          title: title,
+          body: body,
+          leftImage: image,
+        ),
         gravity: ToastGravity.TOP,
         toastDuration: const Duration(seconds: 2),
       );
       notifyListeners();
     }
     const AndroidNotificationDetails androidNotificationDetails =
-        AndroidNotificationDetails('your channel id', 'your channel name',
-            channelDescription: 'your channel description',
+        AndroidNotificationDetails('TODO', 'TODO',
+            channelDescription: 'TODO',
             importance: Importance.max,
             priority: Priority.high,
-            ticker: 'ticker');
+            ticker: 'TODO');
     const NotificationDetails notificationDetails =
         NotificationDetails(android: androidNotificationDetails);
-    await flutterLocalNotificationsPlugin.show(
-        0, 'plain title', 'plain body', notificationDetails,
-        payload: 'item x');
+    await flutterLocalNotificationsPlugin
+        .show(0, title, body, notificationDetails, payload: 'TODO');
   }
 
   Future<void> initNotifications() async {
@@ -93,6 +137,14 @@ class NotificationsModel extends ChangeNotifier {
     );
     await flutterLocalNotificationsPlugin.initialize(initializationSettings,
         onDidReceiveNotificationResponse: onDidReceiveNotificationResponse);
+  }
+
+  void fetchNotifications(UserModel userModel) async {
+    var notifications = await userModel.getNotifications();
+    print("notifications: $notifications");
+    for (var notification in notifications) {
+      showNotification(notification, userModel);
+    }
   }
 
   void onDidReceiveLocalNotification(

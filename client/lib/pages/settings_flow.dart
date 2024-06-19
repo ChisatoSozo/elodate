@@ -51,75 +51,77 @@ class SettingsFlowPageState extends State<SettingsFlowPage> {
         titleAtTop: true,
         formKey: formKey,
         title: configs.first.category.toString(),
-        children: [
-          if (configs.first.valueQuestion.isNotEmpty) ...[
-            Text(configs.first.valueQuestion,
+        body: Column(
+          children: [
+            if (configs.first.valueQuestion.isNotEmpty) ...[
+              Text(configs.first.valueQuestion,
+                  style: Theme.of(context).textTheme.titleLarge),
+              const SizedBox(height: 20),
+              Prop(
+                  configs: configs,
+                  props: props,
+                  onUpdated: (props) {
+                    userModel.setPropertyGroup(props, prefs, index);
+                    setState(() {});
+                  }),
+              const SizedBox(height: 40),
+            ],
+            Text(configs.first.rangeQuestion,
                 style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 20),
-            Prop(
+            Pref(
                 configs: configs,
-                props: props,
-                onUpdated: (props) {
+                prefs: prefs,
+                onUpdated: (prefs) {
                   userModel.setPropertyGroup(props, prefs, index);
                   setState(() {});
                 }),
+            //next button
             const SizedBox(height: 40),
+            Row(
+              //align buttons left and right
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                //button with left arrow icon
+                ElevatedButton(
+                  onPressed: () {
+                    //pop one page
+                    Navigator.pop(context);
+                  },
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.arrow_back),
+                      Text('Back'),
+                    ],
+                  ),
+                ),
+                //button with right arrow icon
+                ElevatedButton(
+                  onPressed: (!optional && unset) || _loading
+                      ? null
+                      : () async {
+                          setState(() {
+                            _loading = true;
+                          });
+                          await pageStateModel.advanceGroup(context);
+                          setState(() {
+                            _loading = false;
+                          });
+                        },
+                  focusNode: _buttonFocusNode,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _loading ? const Text('Loading...') : const Text('Next'),
+                      const Icon(Icons.arrow_forward),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ],
-          Text(configs.first.rangeQuestion,
-              style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 20),
-          Pref(
-              configs: configs,
-              prefs: prefs,
-              onUpdated: (prefs) {
-                userModel.setPropertyGroup(props, prefs, index);
-                setState(() {});
-              }),
-          //next button
-          const SizedBox(height: 40),
-          Row(
-            //align buttons left and right
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              //button with left arrow icon
-              ElevatedButton(
-                onPressed: () {
-                  //pop one page
-                  Navigator.pop(context);
-                },
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.arrow_back),
-                    Text('Back'),
-                  ],
-                ),
-              ),
-              //button with right arrow icon
-              ElevatedButton(
-                onPressed: (!optional && unset) || _loading
-                    ? null
-                    : () async {
-                        setState(() {
-                          _loading = true;
-                        });
-                        await pageStateModel.advanceGroup(context);
-                        setState(() {
-                          _loading = false;
-                        });
-                      },
-                focusNode: _buttonFocusNode,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _loading ? const Text('Loading...') : const Text('Next'),
-                    const Icon(Icons.arrow_forward),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ],
+        ),
       ),
     );
   }

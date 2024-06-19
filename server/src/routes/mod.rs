@@ -1,8 +1,10 @@
 pub mod check_username;
 pub mod common;
+pub mod fetch_notifications;
 pub mod get_chats;
 pub mod get_images;
 pub mod get_me;
+pub mod get_message;
 pub mod get_messages;
 pub mod get_next_users;
 pub mod get_prefs_config;

@@ -8,10 +8,9 @@ use super::{
     send_and_respond_to_chats::send_and_respond_to_chats,
 };
 
-const BACKEND_URL: &str = "http://localhost:8080";
-
-pub fn init_bots(db: &DB) -> Result<Vec<(String, String)>, Box<dyn std::error::Error>> {
+pub fn init_bots(db: &DB, host: &str) -> Result<Vec<(String, String)>, Box<dyn std::error::Error>> {
     println!("Initializing bots");
+    let backend_url = format!("http://{}:8080", host);
     let mut uuids_jwts = vec![];
     let mut i = 0;
     for user in db.iter_obj::<InternalUser>("users")? {
@@ -26,7 +25,7 @@ pub fn init_bots(db: &DB) -> Result<Vec<(String, String)>, Box<dyn std::error::E
         let username = &user.username;
         let password = "asdfasdf".to_string();
         //post request to /login
-        let login_url = format!("{}/login", BACKEND_URL);
+        let login_url = format!("{}/login", backend_url);
         let login_body = format!(r#"{{"username":"{}","password":"{}"}}"#, username, password);
         let login_res = reqwest::blocking::Client::new()
             .post(&login_url)
@@ -45,6 +44,7 @@ pub fn init_bots(db: &DB) -> Result<Vec<(String, String)>, Box<dyn std::error::E
 }
 
 pub fn post_with_jwt(
+    url: &str,
     client: &reqwest::blocking::Client,
     path: &String,
     jwt: &String,
@@ -52,7 +52,7 @@ pub fn post_with_jwt(
 ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
     let res = {
         let res = client
-            .post(&format!("{}/{}", BACKEND_URL, path))
+            .post(&format!("http://{}/{}", url, path))
             .body(body)
             .header("Content-Type", "application/json")
             .header("Authorization", format!("Bearer {}", jwt))
@@ -79,11 +79,12 @@ pub fn run_all_bot_actions(
     client: &reqwest::blocking::Client,
     db: &DB,
     uuid_jwt: &(String, String),
+    host: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let me_uuid: InternalUuid<InternalUser> = InternalUuid::from(uuid_jwt.0.clone());
     let me = me_uuid.load(db)?.ok_or("User not found")?;
 
-    fetch_users_and_swipe(client, db, uuid_jwt, &me)?;
-    send_and_respond_to_chats(client, db, uuid_jwt, &me)?;
+    fetch_users_and_swipe(client, db, uuid_jwt, &me, host)?;
+    send_and_respond_to_chats(client, db, uuid_jwt, &me, host)?;
     Ok(())
 }

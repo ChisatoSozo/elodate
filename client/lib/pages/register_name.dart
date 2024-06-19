@@ -19,32 +19,35 @@ class RegisterNamePageState extends State<RegisterNamePage> {
     return ResponsiveForm(
       formKey: formKey,
       title: 'What should we call you?',
-      children: [
-        TextFormField(
-          controller: nameController,
-          decoration: const InputDecoration(
-            labelText: 'Name',
-            border: OutlineInputBorder(),
+      body: Column(
+        children: [
+          TextFormField(
+            controller: nameController,
+            decoration: const InputDecoration(
+              labelText: 'Name',
+              border: OutlineInputBorder(),
+            ),
+            onFieldSubmitted: (_) => _saveNameAndProceed(
+              nameController.text,
+            ),
+            validator: (value) =>
+                value!.isEmpty ? 'Name cannot be empty' : null,
           ),
-          onFieldSubmitted: (_) => _saveNameAndProceed(
-            nameController.text,
+          const SizedBox(height: 20),
+          ElevatedButton(
+            onPressed: () => _saveNameAndProceed(
+              nameController.text,
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('Next'),
+                Icon(Icons.arrow_forward),
+              ],
+            ),
           ),
-          validator: (value) => value!.isEmpty ? 'Name cannot be empty' : null,
-        ),
-        const SizedBox(height: 20),
-        ElevatedButton(
-          onPressed: () => _saveNameAndProceed(
-            nameController.text,
-          ),
-          child: const Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('Next'),
-              Icon(Icons.arrow_forward),
-            ],
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 

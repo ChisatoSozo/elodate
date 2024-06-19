@@ -65,6 +65,8 @@ fn insert_dummy_data() -> Result<(), Box<dyn std::error::Error>> {
     user.username = "asdf".to_string();
     user.hashed_password = hash("asdfasdf", 4)?;
 
+    user.clone().save(&db).unwrap();
+
     //upsert chats
     for n in 0..5 {
         let chat_uuid = InternalUuid::new();

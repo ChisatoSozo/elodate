@@ -1,7 +1,7 @@
 use std::error::Error;
 //TODO: encryption at rest
 
-use crate::db::DB;
+use crate::{db::DB, models::internal_models::internal_user::Notification};
 
 use super::{
     internal_chat::InternalChat,
@@ -54,6 +54,20 @@ impl InternalMessage {
                 .collect();
             chat.uuid.write(&chat, db)?;
         };
+
+        //notify all other users in chat
+        for user in chat.users.iter() {
+            if user != &self.author {
+                let user: InternalUuid<InternalUser> = user.clone();
+                let mut user = user
+                    .load(db)?
+                    .ok_or("User not found in save internal message")?;
+                user.notifications
+                    .push(Notification::UnreadMessage(self.uuid.clone()));
+                user.uuid.write(&user, db)?;
+            }
+        }
+
         self.uuid.write(&self, db)
     }
 }

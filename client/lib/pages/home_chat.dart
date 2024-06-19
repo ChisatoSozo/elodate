@@ -6,6 +6,7 @@ import 'package:client/models/user_model.dart';
 import 'package:client/pages/home_chat_single.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 
 class ChatPage extends StatefulWidget {
   const ChatPage({super.key});
@@ -16,7 +17,10 @@ class ChatPage extends StatefulWidget {
 
 class ChatPageState extends State<ChatPage> {
   List<(ApiUser, ApiChat)> chats = [];
+  List<(ApiUser, ApiChat)> loadedChats = [];
   Timer? _timer;
+  int loadedCount = 10; // Number of chats to load initially and incrementally
+
   @override
   void initState() {
     super.initState();
@@ -34,61 +38,70 @@ class ChatPageState extends State<ChatPage> {
   Widget build(BuildContext context) {
     var userModel = Provider.of<UserModel>(context, listen: false);
     var me = userModel.me;
+
     return Center(
       child: ConstrainedBox(
-        constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(context).size.height, maxWidth: 400),
-        child: ListView.builder(
-          itemCount: chats.length,
-          itemBuilder: (context, index) {
-            final (user, chat) = chats[index];
-
-            return ListTile(
+        constraints: const BoxConstraints(maxWidth: 400),
+        child: Column(
+          children: loadedChats.map((chatPair) {
+            final (user, chat) = chatPair;
+            return VisibilityDetector(
               key: Key(chat.uuid),
-              leading: CircleAvatar(
-                backgroundImage: UuidImageProvider(
-                    uuid: user.images[0], userModel: userModel),
-              ),
-              title: Text(user.displayName,
-                  style: const TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.bold)),
-              subtitle: Text(
-                  chat.mostRecentSender == me.uuid
-                      ? "You: ${chat.mostRecentMessage}"
-                      : chat.mostRecentMessage,
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: 1,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: chat.unread > 0
-                          ? Theme.of(context).textTheme.bodyMedium?.color ??
-                              Colors.red
-                          : //is dark mode?
-                          Theme.of(context).brightness == Brightness.dark
-                              ? Colors.grey
-                              : Colors.grey)),
-              trailing: chat.unread > 0
-                  ? Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.red,
-                      ),
-                      child: Text(
-                        '${chat.unread}',
-                        style: const TextStyle(color: Colors.white),
-                      ),
-                    )
-                  : null,
-              onTap: () {
-                Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ChatScreen(
-                          chatId: chat.uuid, displayName: user.displayName),
-                    ));
+              onVisibilityChanged: (VisibilityInfo info) {
+                if (info.visibleFraction > 0.1) {
+                  // If more than 10% of the item is visible, load more if needed
+                  if (loadedChats.length < chats.length) {
+                    setState(() {
+                      loadedChats = chats.take(loadedCount += 10).toList();
+                    });
+                  }
+                }
               },
+              child: ListTile(
+                leading: CircleAvatar(
+                  backgroundImage: UuidImageProvider(
+                      uuid: user.images[0], userModel: userModel),
+                ),
+                title: Text(user.displayName,
+                    style: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.bold)),
+                subtitle: Text(
+                    chat.mostRecentSender == me.uuid
+                        ? "You: ${chat.mostRecentMessage}"
+                        : chat.mostRecentMessage,
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: chat.unread > 0
+                            ? Theme.of(context).textTheme.bodyMedium?.color ??
+                                Colors.red
+                            : Theme.of(context).brightness == Brightness.dark
+                                ? Colors.grey
+                                : Colors.grey)),
+                trailing: chat.unread > 0
+                    ? Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.red,
+                        ),
+                        child: Text(
+                          '${chat.unread}',
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                      )
+                    : null,
+                onTap: () {
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ChatScreen(
+                            chatId: chat.uuid, displayName: user.displayName),
+                      ));
+                },
+              ),
             );
-          },
+          }).toList(),
         ),
       ),
     );
@@ -122,6 +135,7 @@ class ChatPageState extends State<ChatPage> {
 
     setState(() {
       chats = newChats;
+      loadedChats = chats.take(loadedCount).toList(); // Load initial chats
     });
   }
 }

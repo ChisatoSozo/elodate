@@ -22,28 +22,30 @@ class RegisterBirthdatePageState extends State<RegisterBirthdatePage> {
       formKey: formKey,
       title:
           "Hello ${Provider.of<RegisterModel>(context).displayName}, please enter your birthdate.",
-      children: [
-        TextFormField(
-          controller: birthdateController,
-          decoration: const InputDecoration(
-            labelText: 'Birthdate (YYYY-MM-DD)',
-            border: OutlineInputBorder(),
+      body: Column(
+        children: [
+          TextFormField(
+            controller: birthdateController,
+            decoration: const InputDecoration(
+              labelText: 'Birthdate (YYYY-MM-DD)',
+              border: OutlineInputBorder(),
+            ),
+            onTap: () => _selectDate(context),
+            validator: (value) => _validateBirthdate(value),
           ),
-          onTap: () => _selectDate(context),
-          validator: (value) => _validateBirthdate(value),
-        ),
-        const SizedBox(height: 20),
-        ElevatedButton(
-          onPressed: _goNext,
-          child: const Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('Next'),
-              Icon(Icons.arrow_forward),
-            ],
+          const SizedBox(height: 20),
+          ElevatedButton(
+            onPressed: _goNext,
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('Next'),
+                Icon(Icons.arrow_forward),
+              ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 

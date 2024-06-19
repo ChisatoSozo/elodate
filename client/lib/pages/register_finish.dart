@@ -28,20 +28,22 @@ class RegisterFinishPageState extends State<RegisterFinishPage> {
               ? 'Failed to register: $registerError'
               : 'Registering...',
       //retry button
-      children: registerError != null
-          ? [
-              ElevatedButton(
-                onPressed: () {
-                  setState(() {
-                    registered = false;
-                    registerError = null;
-                  });
-                  register();
-                },
-                child: const Text('Retry'),
-              )
-            ]
-          : [const CircularProgressIndicator()],
+      body: registerError != null
+          ? Column(
+              children: [
+                ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      registered = false;
+                      registerError = null;
+                    });
+                    register();
+                  },
+                  child: const Text('Retry'),
+                )
+              ],
+            )
+          : const CircularProgressIndicator(),
     );
   }
 
