@@ -1,7 +1,5 @@
-import 'package:client/components/elodate_scaffold.dart';
 import 'package:client/models/register_model.dart';
-import 'package:client/pages/home.dart';
-import 'package:client/pages/register_start.dart';
+import 'package:client/router.dart';
 import 'package:client/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -14,110 +12,126 @@ class LoginPage extends StatefulWidget {
 }
 
 class LoginPageState extends State<LoginPage> {
-  bool loggingIn = false;
+  final _formKey = GlobalKey<FormState>();
+  final _usernameController = TextEditingController();
+  final _passwordController = TextEditingController();
+  bool _loggingIn = false;
   String? _error;
-  TextEditingController usernameController = TextEditingController();
-  TextEditingController passwordController = TextEditingController();
-  final formKey = GlobalKey<FormState>();
 
   @override
-  Widget build(BuildContext context) {
-    return Form(
-      key: formKey,
-      child: ElodateScaffold(
-        body: Center(
-          child: Container(
-            padding: const EdgeInsets.all(20),
-            constraints: const BoxConstraints(maxWidth: 400),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Image.asset(
-                  //is dark mode? use dark mode icon
-                  Theme.of(context).brightness == Brightness.dark
-                      ? 'images/icon_text_white.png'
-                      : 'images/icon_text.png',
-                  width: 300,
-                  height: 300,
-                ),
-                const SizedBox(height: 20),
-                TextFormField(
-                  controller: usernameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Username',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                TextFormField(
-                  controller: passwordController,
-                  obscureText: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Password',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                const Text(
-                    "This is an INDEV build of elodate. You are likely to encounter bugs. Please report them. Also your profile might occasionally be reset/deleted."),
-                const SizedBox(height: 20),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    ElevatedButton(
-                      onPressed: () {
-                        login(context);
-                      },
-                      child: const Text('Login'),
-                    ),
-                    ElevatedButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => const RegisterStartPage()),
-                        );
-                      },
-                      child: const Text('Register'),
-                    ),
-                  ],
-                ),
-                if (_error != null) ...[
-                  const SizedBox(height: 20),
-                  Text(
-                    _error!,
-                    style: const TextStyle(color: Colors.red),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
+  void dispose() {
+    _usernameController.dispose();
+    _passwordController.dispose();
+    super.dispose();
   }
 
-  Future<void> login(BuildContext context) async {
-    if (!mounted) return;
+  Future<void> _login() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() {
+      _loggingIn = true;
+      _error = null;
+    });
+
     try {
-      setState(() {
-        loggingIn = true;
-      });
       await Provider.of<RegisterModel>(context, listen: false)
-          .login(usernameController.text, passwordController.text, context);
-      if (!context.mounted) return;
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const HomePage()),
-      );
+          .login(_usernameController.text, _passwordController.text, context);
+
+      if (!mounted) return;
+      EloNav.goHomeSwipe(context);
     } catch (e) {
       setState(() {
         _error = formatApiError(e.toString());
       });
     } finally {
       setState(() {
-        loggingIn = false;
+        _loggingIn = false;
       });
     }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Form(
+      key: _formKey,
+      child: AutofillGroup(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Image.asset(
+              Theme.of(context).brightness == Brightness.dark
+                  ? 'images/icon_text_white.png'
+                  : 'images/icon_text.png',
+              width: 300,
+              height: 300,
+            ),
+            const SizedBox(height: 20),
+            TextFormField(
+              controller: _usernameController,
+              autofillHints: const [AutofillHints.username],
+              decoration: const InputDecoration(
+                labelText: 'Username',
+                border: OutlineInputBorder(),
+              ),
+              validator: (value) =>
+                  value!.isEmpty ? 'Please enter your username' : null,
+            ),
+            const SizedBox(height: 20),
+            TextFormField(
+              controller: _passwordController,
+              autofillHints: const [AutofillHints.password],
+              obscureText: true,
+              decoration: const InputDecoration(
+                labelText: 'Password',
+                border: OutlineInputBorder(),
+              ),
+              validator: (value) =>
+                  value!.isEmpty ? 'Please enter your password' : null,
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              "This is an INDEV build of elodate. You are likely to encounter bugs. Please report them. We have migration now, so your profile (with high likelihood) won't be randomly deleted.",
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                ElevatedButton(
+                  onPressed: _loggingIn ? null : _login,
+                  child: _loggingIn
+                      ? const CircularProgressIndicator()
+                      : const Text('Login'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    //set username if it's already entered
+                    if (_usernameController.text.isNotEmpty) {
+                      Provider.of<RegisterModel>(context, listen: false)
+                          .setUsername(_usernameController.text);
+                    }
+                    //set password if it's already entered
+                    if (_passwordController.text.isNotEmpty) {
+                      Provider.of<RegisterModel>(context, listen: false)
+                          .setPassword(_passwordController.text);
+                    }
+                    EloNav.goRegister(context);
+                  },
+                  child: const Text('Register'),
+                ),
+              ],
+            ),
+            if (_error != null) ...[
+              const SizedBox(height: 20),
+              Text(
+                _error!,
+                style: const TextStyle(color: Colors.red),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
   }
 }

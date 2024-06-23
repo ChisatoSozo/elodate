@@ -1,4 +1,4 @@
-import 'package:client/components/labeled_radio.dart';
+import 'package:client/components/settings/labeled_radio.dart';
 import 'package:flutter/material.dart';
 
 class LabeledRadioGroup<T> extends StatefulWidget {

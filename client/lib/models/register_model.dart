@@ -3,47 +3,9 @@
 import 'package:client/api/pkg/lib/api.dart';
 import 'package:client/models/page_state_model.dart';
 import 'package:client/models/user_model.dart';
-import 'package:client/pages/redir.dart';
-import 'package:client/pages/register_birthdate.dart';
-import 'package:client/pages/register_finish.dart';
-import 'package:client/pages/register_name.dart';
-import 'package:client/pages/register_password.dart';
-import 'package:client/pages/register_start.dart';
 import 'package:flutter/material.dart';
 import 'package:localstorage/localstorage.dart';
 import 'package:provider/provider.dart';
-
-const pages = [
-  RegisterStartPage(),
-  RegisterNamePage(),
-  RegisterPasswordPage(),
-  RegisterBirthdatePage(),
-  RegisterFinishPage(),
-];
-
-void nextPage(BuildContext context, StatefulWidget page) {
-  int currentIndex =
-      pages.indexWhere((element) => element.runtimeType == page.runtimeType);
-  if (currentIndex != -1 && currentIndex < pages.length - 1) {
-    // Move to the next page if not the last page
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => pages[currentIndex + 1],
-      ),
-    );
-  } else {
-    Navigator.pushAndRemoveUntil(
-      context,
-      PageRouteBuilder(
-        pageBuilder: (context, anim1, anim2) => const RedirPage(),
-        transitionDuration: Duration.zero,
-        reverseTransitionDuration: Duration.zero,
-      ),
-      (route) => false,
-    );
-  }
-}
 
 class RegisterModel extends ChangeNotifier {
   String? _username;

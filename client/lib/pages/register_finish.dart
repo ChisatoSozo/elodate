@@ -1,7 +1,8 @@
 import 'dart:async';
 
-import 'package:client/components/responsive_scaffold.dart';
+import 'package:client/components/loading.dart';
 import 'package:client/models/register_model.dart';
+import 'package:client/router.dart';
 import 'package:flutter/material.dart';
 //import local storage package
 import 'package:localstorage/localstorage.dart';
@@ -21,30 +22,22 @@ class RegisterFinishPageState extends State<RegisterFinishPage> {
 
   @override
   Widget build(BuildContext context) {
-    return ResponsiveForm(
-      title: registered
-          ? 'Registered'
-          : registerError != null
-              ? 'Failed to register: $registerError'
-              : 'Registering...',
-      //retry button
-      body: registerError != null
-          ? Column(
-              children: [
-                ElevatedButton(
-                  onPressed: () {
-                    setState(() {
-                      registered = false;
-                      registerError = null;
-                    });
-                    register();
-                  },
-                  child: const Text('Retry'),
-                )
-              ],
-            )
-          : const CircularProgressIndicator(),
-    );
+    return registerError != null
+        ? Column(
+            children: [
+              ElevatedButton(
+                onPressed: () {
+                  setState(() {
+                    registered = false;
+                    registerError = null;
+                  });
+                  register();
+                },
+                child: const Text('Retry'),
+              )
+            ],
+          )
+        : const Loading(text: 'Registering...');
   }
 
   @override
@@ -68,7 +61,7 @@ class RegisterFinishPageState extends State<RegisterFinishPage> {
         registered = true;
       });
       if (!mounted) return;
-      nextPage(context, widget);
+      EloNav.goRedir(context);
     } catch (e) {
       setState(() {
         registerError = e.toString();

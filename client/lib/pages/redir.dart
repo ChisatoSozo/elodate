@@ -1,7 +1,6 @@
+import 'package:client/components/loading.dart';
 import 'package:client/models/user_model.dart';
-import 'package:client/pages/home.dart';
-import 'package:client/pages/login.dart';
-import 'package:client/pages/settings_flow_images.dart';
+import 'package:client/router.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -31,31 +30,28 @@ class RedirPageState extends State<RedirPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       var canLoad = userModel.canLoad();
       if (!canLoad) {
-        Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(builder: (context) => const LoginPage()),
-            (route) => false);
+        EloNav.goLogin(context);
+        return;
       }
 
       var isLoaded = userModel.isLoaded;
+      var isLoading = userModel.isLoading;
 
       if (isLoaded) {
         if (!userModel.me.published && userModel.me.images.isEmpty) {
-          Navigator.pushAndRemoveUntil(
-              context,
-              MaterialPageRoute(
-                  builder: (context) => const SettingsFlowImagesPage()),
-              (route) => false);
+          EloNav.goSettingsImages(context);
           return;
         }
-        Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(builder: (context) => const HomePage()),
-            (route) => false);
+        EloNav.goHomeSwipe(context);
         return;
+      }
+      if (!isLoading) {
+        userModel.initAll(context);
       }
     });
 
-    return const CircularProgressIndicator();
+    return const Scaffold(
+        body:
+            Center(child: Loading(text: "Loading User Model For Redirect...")));
   }
 }

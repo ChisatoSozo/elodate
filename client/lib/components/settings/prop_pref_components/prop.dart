@@ -1,33 +1,33 @@
 import 'package:client/api/pkg/lib/api.dart';
-import 'package:client/components/prop_pref_components/gender_prop_pref.dart';
-import 'package:client/components/prop_pref_components/location_prop_pref.dart';
-import 'package:client/components/prop_pref_components/slider_prop_pref.dart';
+import 'package:client/components/settings/prop_pref_components/gender_prop_pref.dart';
+import 'package:client/components/settings/prop_pref_components/location_prop_pref.dart';
+import 'package:client/components/settings/prop_pref_components/slider_prop_pref.dart';
 import 'package:flutter/material.dart';
 
-class Pref extends StatefulWidget {
+class Prop extends StatefulWidget {
   final List<PreferenceConfigPublic> configs;
-  final List<ApiUserPrefsInner> prefs;
-  final Function(List<ApiUserPrefsInner>) onUpdated;
+  final List<ApiUserPropsInner> props;
+  final Function(List<ApiUserPropsInner>) onUpdated;
 
-  const Pref({
+  const Prop({
     required this.configs,
-    required this.prefs,
+    required this.props,
     required this.onUpdated,
     super.key,
   });
 
   @override
-  PrefState createState() => PrefState();
+  PropState createState() => PropState();
 }
 
-class PrefState extends State<Pref> {
+class PropState extends State<Prop> {
   @override
   Widget build(BuildContext context) {
     if (widget.configs.first.uiElement ==
         PreferenceConfigPublicUiElementEnum.slider) {
-      return PrefSlider(
-        key: Key(widget.configs.first.group),
-        prefs: widget.prefs,
+      return PropSlider(
+        key: ValueKey(widget.configs.first.group),
+        props: widget.props,
         preferenceConfigs: widget.configs,
         onUpdated: widget.onUpdated,
       );
@@ -35,17 +35,17 @@ class PrefState extends State<Pref> {
 
     if (widget.configs.first.uiElement ==
         PreferenceConfigPublicUiElementEnum.genderPicker) {
-      return GenderRangePicker(
-          key: Key(widget.configs.first.group),
-          prefs: widget.prefs,
+      return GenderPicker(
+          key: ValueKey(widget.configs.first.group),
+          props: widget.props,
           preferenceConfigs: widget.configs,
           onUpdated: widget.onUpdated);
     }
     if (widget.configs.first.uiElement ==
         PreferenceConfigPublicUiElementEnum.locationPicker) {
-      return LocationRangePicker(
-          key: Key(widget.configs.first.group),
-          prefs: widget.prefs,
+      return LocationPicker(
+          key: ValueKey(widget.configs.first.group),
+          props: widget.props,
           preferenceConfigs: widget.configs,
           onUpdated: widget.onUpdated);
     }

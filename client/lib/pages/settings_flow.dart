@@ -1,8 +1,8 @@
-import 'package:client/components/prop_pref_components/pref.dart';
-import 'package:client/components/prop_pref_components/prop.dart';
-import 'package:client/components/responsive_scaffold.dart';
+import 'package:client/components/settings/prop_pref_components/pref.dart';
+import 'package:client/components/settings/prop_pref_components/prop.dart';
 import 'package:client/models/page_state_model.dart';
 import 'package:client/models/user_model.dart';
+import 'package:client/router.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -41,87 +41,86 @@ class SettingsFlowPageState extends State<SettingsFlowPage> {
     var (_, configs, index) = pageStateModel.getCurrentGroup();
     var (props, prefs) = userModel.getPropertyGroup(configs);
 
-    var optional = configs.first.optional;
     var unset = props.any((p) => p.value == -32768);
 
     return PopScope(
       onPopInvoked: (_) => pageStateModel.revertGroup(context),
-      child: ResponsiveForm(
-        progress: pageStateModel.percentDone(),
-        titleAtTop: true,
-        formKey: formKey,
-        title: configs.first.category.toString(),
-        body: Column(
-          children: [
-            if (configs.first.valueQuestion.isNotEmpty) ...[
-              Text(configs.first.valueQuestion,
-                  style: Theme.of(context).textTheme.titleLarge),
-              const SizedBox(height: 20),
-              Prop(
-                  configs: configs,
-                  props: props,
-                  onUpdated: (props) {
-                    userModel.setPropertyGroup(props, prefs, index);
-                    setState(() {});
-                  }),
-              const SizedBox(height: 40),
-            ],
-            Text(configs.first.rangeQuestion,
+      child: Column(
+        children: [
+          if (configs.first.valueQuestion.isNotEmpty) ...[
+            Text(configs.first.valueQuestion,
                 style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 20),
-            Pref(
+            Prop(
                 configs: configs,
-                prefs: prefs,
-                onUpdated: (prefs) {
+                props: props,
+                onUpdated: (props) {
                   userModel.setPropertyGroup(props, prefs, index);
                   setState(() {});
                 }),
-            //next button
             const SizedBox(height: 40),
-            Row(
-              //align buttons left and right
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                //button with left arrow icon
-                ElevatedButton(
-                  onPressed: () {
-                    //pop one page
-                    Navigator.pop(context);
-                  },
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.arrow_back),
-                      Text('Back'),
-                    ],
-                  ),
-                ),
-                //button with right arrow icon
-                ElevatedButton(
-                  onPressed: (!optional && unset) || _loading
-                      ? null
-                      : () async {
-                          setState(() {
-                            _loading = true;
-                          });
-                          await pageStateModel.advanceGroup(context);
-                          setState(() {
-                            _loading = false;
-                          });
-                        },
-                  focusNode: _buttonFocusNode,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _loading ? const Text('Loading...') : const Text('Next'),
-                      const Icon(Icons.arrow_forward),
-                    ],
-                  ),
-                ),
-              ],
-            ),
           ],
-        ),
+          Text(configs.first.rangeQuestion,
+              style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 20),
+          Pref(
+              configs: configs,
+              prefs: prefs,
+              onUpdated: (prefs) {
+                userModel.setPropertyGroup(props, prefs, index);
+                setState(() {});
+              }),
+          //next button
+          const SizedBox(height: 40),
+          Row(
+            //align buttons left and right
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              //button with left arrow icon
+              ElevatedButton(
+                onPressed: () {
+                  //pop one page
+                  EloNav.goBack(context);
+                },
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.arrow_back),
+                    Text('Back'),
+                  ],
+                ),
+              ),
+              //button with right arrow icon
+              ElevatedButton(
+                onPressed:
+                    (configs.first.nonOptionalMessage != null && unset) ||
+                            _loading
+                        ? null
+                        : () async {
+                            setState(() {
+                              _loading = true;
+                            });
+                            await pageStateModel.advanceGroup(context);
+                            setState(() {
+                              _loading = false;
+                            });
+                          },
+                focusNode: _buttonFocusNode,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _loading
+                        ? const Text('Loading...')
+                        : (configs.first.nonOptionalMessage != null && unset)
+                            ? Text(configs.first.nonOptionalMessage!)
+                            : const Text('Next'),
+                    const Icon(Icons.arrow_forward),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

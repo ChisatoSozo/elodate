@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:client/api/pkg/lib/api.dart';
-import 'package:client/pages/login.dart';
+import 'package:client/router.dart';
 import 'package:client/utils/prefs_utils.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -62,11 +62,13 @@ class UserModel extends ChangeNotifier {
   Future<UserModel> initAll(BuildContext context) async {
     var jwt = localStorage.getItem('jwt');
     if (jwt == null) {
+      print("No JWT found");
       throw Exception('No JWT found');
     }
 
     var uuid = localStorage.getItem('uuid');
     if (uuid == null) {
+      print("No UUID found");
       throw Exception('No UUID found');
     }
 
@@ -81,10 +83,7 @@ class UserModel extends ChangeNotifier {
       if (!context.mounted) {
         rethrow;
       }
-      Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (context) => const LoginPage()),
-          (route) => false);
+      EloNav.goLogin(context);
       return this;
     }
     await initAdditionalPrefs();

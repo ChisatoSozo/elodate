@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:client/api/pkg/lib/api.dart';
 import 'package:client/components/uuid_image_provider.dart';
 import 'package:client/models/user_model.dart';
-import 'package:client/pages/home_chat_single.dart';
+import 'package:client/router.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:visibility_detector/visibility_detector.dart';
@@ -46,7 +46,7 @@ class ChatPageState extends State<ChatPage> {
           children: loadedChats.map((chatPair) {
             final (user, chat) = chatPair;
             return VisibilityDetector(
-              key: Key(chat.uuid),
+              key: ValueKey(chat.uuid),
               onVisibilityChanged: (VisibilityInfo info) {
                 if (info.visibleFraction > 0.1) {
                   // If more than 10% of the item is visible, load more if needed
@@ -92,12 +92,7 @@ class ChatPageState extends State<ChatPage> {
                       )
                     : null,
                 onTap: () {
-                  Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => ChatScreen(
-                            chatId: chat.uuid, displayName: user.displayName),
-                      ));
+                  EloNav.goChat(context, chat.uuid, user.displayName);
                 },
               ),
             );
@@ -132,6 +127,10 @@ class ChatPageState extends State<ChatPage> {
     for (var i = 0; i < result.length; i++) {
       newChats.add((users[i], result[i]));
     }
+
+    //sort chats by most recent message
+    newChats.sort((a, b) =>
+        b.$2.mostRecentMessageSentAt.compareTo(a.$2.mostRecentMessageSentAt));
 
     setState(() {
       chats = newChats;

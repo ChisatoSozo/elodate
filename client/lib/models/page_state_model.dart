@@ -1,7 +1,6 @@
 import 'package:client/api/pkg/lib/api.dart';
 import 'package:client/models/user_model.dart';
-import 'package:client/pages/redir.dart';
-import 'package:client/pages/settings_flow.dart';
+import 'package:client/router.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -66,21 +65,10 @@ class PageStateModel extends ChangeNotifier {
       if (!context.mounted) {
         throw Exception('Context is not mounted');
       }
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(
-          builder: (context) => const RedirPage(),
-        ),
-        (route) => false,
-      );
+      EloNav.goRedir(context);
       return;
     }
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const SettingsFlowPage(),
-      ),
-    );
+    EloNav.goSettings(context);
     notifyListeners();
   }
 

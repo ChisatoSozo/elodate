@@ -1,9 +1,10 @@
 import 'package:client/api/pkg/lib/api.dart';
-import 'package:client/components/labeled_radio.dart';
+import 'package:client/components/settings/labeled_radio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 const maxGridSize = 300.0;
+const cornerHitRadius = 50.0;
 
 class GenderPicker extends StatefulWidget {
   final List<ApiUserPropsInner> props;
@@ -56,6 +57,12 @@ class GenderPickerState extends State<GenderPicker> {
     widget.props[0].value = percentMale.round();
     widget.props[1].value = percentFemale.round();
     widget.onUpdated(widget.props);
+  }
+
+  void _updateGenderValueByDetails(dynamic details) {
+    var x = details.localPosition.dx.clamp(0, maxGridSize).toDouble();
+    var y = details.localPosition.dy.clamp(0, maxGridSize).toDouble();
+    _updateGenderValue(Offset(x, y));
   }
 
   Offset getOffset() {
@@ -138,16 +145,11 @@ class GenderPickerState extends State<GenderPicker> {
         if (getGenderValue() == "Advanced") ...[
           const SizedBox(height: 20),
           GestureDetector(
-            onPanUpdate: (details) {
-              var x = details.localPosition.dx.clamp(0, maxGridSize).toDouble();
-              var y = details.localPosition.dy.clamp(0, maxGridSize).toDouble();
-              _updateGenderValue(Offset(x, y));
-            },
-            onTapDown: (details) {
-              var x = details.localPosition.dx.clamp(0, maxGridSize).toDouble();
-              var y = details.localPosition.dy.clamp(0, maxGridSize).toDouble();
-              _updateGenderValue(Offset(x, y));
-            },
+            behavior: HitTestBehavior.opaque,
+            onPanUpdate: _updateGenderValueByDetails,
+            onVerticalDragUpdate: _updateGenderValueByDetails,
+            onPanDown: _updateGenderValueByDetails,
+            onTapDown: _updateGenderValueByDetails,
             child: GenderPainterWidget(
               painter: GridPainter(getOffset()),
               maxGridSize: maxGridSize,
@@ -546,6 +548,7 @@ class GenderRangePickerState extends State<GenderRangePicker> {
         if (getGenderValue() == "Advanced") ...[
           const SizedBox(height: 20),
           GestureDetector(
+            behavior: HitTestBehavior.opaque,
             onPanUpdate: (details) {
               if (dragStart != null) {
                 if (isDraggingCorner) {
@@ -553,47 +556,85 @@ class GenderRangePickerState extends State<GenderRangePicker> {
                 }
               }
             },
+            onVerticalDragUpdate: (details) {
+              if (dragStart != null) {
+                if (isDraggingCorner) {
+                  _updateRangeDrag(details.localPosition, hoveringCornerIndex);
+                }
+              }
+            },
+            onTapDown: (details) {
+              dragStart = details.localPosition;
+              var (start, end) = getRangeBounds();
+              isDraggingCorner = true;
+              hoveringCornerIndex = -1;
+
+              if ((dragStart! - start).distance < cornerHitRadius) {
+                hoveringCornerIndex = 0;
+              } else if ((dragStart! - Offset(end.dx, start.dy)).distance <
+                  cornerHitRadius) {
+                hoveringCornerIndex = 1;
+              } else if ((dragStart! - end).distance < cornerHitRadius) {
+                hoveringCornerIndex = 2;
+              } else if ((dragStart! - Offset(start.dx, end.dy)).distance <
+                  cornerHitRadius) {
+                hoveringCornerIndex = 3;
+              } else {
+                isDraggingCorner = false;
+              }
+              setState(() {
+                hoveringCornerIndex = hoveringCornerIndex;
+              });
+            },
             onPanStart: (details) {
               dragStart = details.localPosition;
               var (start, end) = getRangeBounds();
               isDraggingCorner = true;
               hoveringCornerIndex = -1;
 
-              if ((dragStart! - start).distance < 20) {
+              if ((dragStart! - start).distance < cornerHitRadius) {
                 hoveringCornerIndex = 0;
               } else if ((dragStart! - Offset(end.dx, start.dy)).distance <
-                  20) {
+                  cornerHitRadius) {
                 hoveringCornerIndex = 1;
-              } else if ((dragStart! - end).distance < 20) {
+              } else if ((dragStart! - end).distance < cornerHitRadius) {
                 hoveringCornerIndex = 2;
               } else if ((dragStart! - Offset(start.dx, end.dy)).distance <
-                  20) {
+                  cornerHitRadius) {
                 hoveringCornerIndex = 3;
               } else {
                 isDraggingCorner = false;
               }
+              setState(() {
+                hoveringCornerIndex = hoveringCornerIndex;
+              });
             },
             onPanEnd: (_) {
               dragStart = null;
               isDraggingCorner = false;
               hoveringCornerIndex = -1;
+              setState(() {
+                hoveringCornerIndex = hoveringCornerIndex;
+              });
             },
             child: MouseRegion(
               onHover: (details) {
                 var (start, end) = getRangeBounds();
                 int newHoveringCornerIndex = -1;
 
-                if ((details.localPosition - start).distance < 20) {
+                if ((details.localPosition - start).distance <
+                    cornerHitRadius) {
                   newHoveringCornerIndex = 0;
                 } else if ((details.localPosition - Offset(end.dx, start.dy))
                         .distance <
-                    20) {
+                    cornerHitRadius) {
                   newHoveringCornerIndex = 1;
-                } else if ((details.localPosition - end).distance < 20) {
+                } else if ((details.localPosition - end).distance <
+                    cornerHitRadius) {
                   newHoveringCornerIndex = 2;
                 } else if ((details.localPosition - Offset(start.dx, end.dy))
                         .distance <
-                    20) {
+                    cornerHitRadius) {
                   newHoveringCornerIndex = 3;
                 }
 

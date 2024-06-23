@@ -1,3 +1,4 @@
+import 'package:client/components/loading.dart';
 import 'package:client/components/uuid_image_provider.dart';
 import 'package:client/models/user_model.dart';
 import 'package:client/utils/utils.dart';
@@ -23,16 +24,12 @@ class AdaptiveFilePicker extends StatefulWidget {
 class AdaptiveFilePickerState extends State<AdaptiveFilePicker> {
   String? imageUuid;
   bool loading = false;
+  String? errorMessage;
 
   @override
   void initState() {
     super.initState();
     imageUuid = widget.initialUuid;
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
   }
 
   @override
@@ -47,7 +44,7 @@ class AdaptiveFilePickerState extends State<AdaptiveFilePicker> {
       children: [
         ElevatedButton(
           onPressed: () => _pickFile(userModel),
-          child: const Text('Pick Image'),
+          child: Text(errorMessage != null ? 'Retry' : 'Pick Image'),
         ),
         const SizedBox(height: 8),
         buildContent(),
@@ -71,7 +68,7 @@ class AdaptiveFilePickerState extends State<AdaptiveFilePicker> {
 
   Widget buildContent() {
     if (loading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: Loading(text: "Processing..."));
     }
 
     var userModel = Provider.of<UserModel>(context, listen: false);
@@ -93,48 +90,77 @@ class AdaptiveFilePickerState extends State<AdaptiveFilePicker> {
                 fit: BoxFit.cover,
               ),
             )
-          : const Center(
+          : Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.add, size: 50, color: Colors.grey),
-                  SizedBox(height: 8),
+                  const Icon(Icons.add, size: 50, color: Colors.grey),
+                  const SizedBox(height: 8),
                   Text(
-                    'Add Image',
-                    style: TextStyle(color: Colors.grey, fontSize: 16),
+                    errorMessage != null ? 'Retry' : 'Add Image',
+                    style: const TextStyle(color: Colors.grey, fontSize: 16),
                   ),
+                  if (errorMessage != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text(
+                        errorMessage!,
+                        style: const TextStyle(color: Colors.red, fontSize: 12),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
                 ],
               ),
             ),
     );
   }
 
-  Future<String?> _pickFile(UserModel userModel) async {
+  Future<void> _pickFile(UserModel userModel) async {
     setState(() {
       loading = true;
+      errorMessage = null;
     });
-    FilePickerResult? result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['jpg', 'jpeg', 'png', 'webp'],
-      withData: true,
-    );
 
-    if (result != null && result.files.single.bytes != null) {
-      return await _onAfterPickFile(userModel, result.files.single.bytes!);
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['jpg', 'jpeg', 'png', 'webp'],
+        withData: true,
+      );
+
+      if (result != null && result.files.single.bytes != null) {
+        await _onAfterPickFile(userModel, result.files.single.bytes!);
+      } else {
+        // User canceled the picker
+        setState(() {
+          loading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        loading = false;
+        errorMessage = 'Failed to pick image. Please try again.';
+      });
     }
-    return null;
   }
 
-  Future<String?> _onAfterPickFile(UserModel userModel, Uint8List bytes) async {
-    Uint8List? compressedBytes = await compressImage(bytes);
+  Future<void> _onAfterPickFile(UserModel userModel, Uint8List bytes) async {
+    try {
+      Uint8List? compressedBytes = await compressImage(bytes);
 
-    String uuid = await userModel.putImage(compressedBytes, null);
-    widget.onUuidChanged(uuid);
+      String uuid = await userModel.putImage(compressedBytes, null);
+      widget.onUuidChanged(uuid);
 
-    setState(() {
-      imageUuid = uuid;
-      loading = false;
-    });
-    return uuid;
+      setState(() {
+        imageUuid = uuid;
+        loading = false;
+        errorMessage = null;
+      });
+    } catch (e) {
+      setState(() {
+        loading = false;
+        errorMessage = 'Failed to process image. Please try again.';
+      });
+    }
   }
 }

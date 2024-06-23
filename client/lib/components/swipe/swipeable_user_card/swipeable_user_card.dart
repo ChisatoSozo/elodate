@@ -1,9 +1,10 @@
 import 'package:client/api/pkg/lib/api.dart';
 import 'package:client/components/elo_badge.dart';
-import 'package:client/components/swipeable_user_card/page_indicator.dart';
-import 'package:client/components/swipeable_user_card/swipe_overlay.dart';
-import 'package:client/components/swipeable_user_card/swipeable_image_view.dart';
-import 'package:client/components/swipeable_user_card/user_details.dart';
+import 'package:client/components/loading.dart';
+import 'package:client/components/swipe/swipeable_user_card/page_indicator.dart';
+import 'package:client/components/swipe/swipeable_user_card/swipe_overlay.dart';
+import 'package:client/components/swipe/swipeable_user_card/swipeable_image_view.dart';
+import 'package:client/components/swipe/swipeable_user_card/user_details.dart';
 import 'package:client/components/uuid_image_provider.dart';
 import 'package:client/models/user_model.dart';
 import 'package:flutter/material.dart';
@@ -139,7 +140,8 @@ class SwipeableUserCardState extends State<SwipeableUserCard>
               ClipRRect(
                 borderRadius: BorderRadius.circular(20.0),
                 child: _cachedImages == null
-                    ? const Center(child: CircularProgressIndicator())
+                    ? const Center(
+                        child: Loading(text: 'Loading User For Match...'))
                     : SwipeableImageView(
                         images: _cachedImages!,
                         controller: _pageController,

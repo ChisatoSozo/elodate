@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:client/api/pkg/lib/api.dart';
+import 'package:client/components/loading.dart';
 import 'package:client/models/user_model.dart';
 import 'package:client/utils/prefs_utils.dart';
 import 'package:flutter/foundation.dart';
@@ -175,7 +176,8 @@ class LocationPickerState extends State<LocationPicker> {
       var position = await getCurrentPosition();
       if (position == null) {
         setState(() {
-          locationError = 'Failed to get location';
+          locationError =
+              'Failed to get location, please enable location permissions.';
         });
       } else {
         var newLatitude = position['latitude']!;
@@ -267,7 +269,7 @@ class LocationPickerState extends State<LocationPicker> {
                 textAlign: TextAlign.center,
               ),
             ),
-          if (isLoading) const CircularProgressIndicator(),
+          if (isLoading) const Loading(text: 'Getting location...'),
           if (!isLoading) ...[
             ...(!unset
                 ? [

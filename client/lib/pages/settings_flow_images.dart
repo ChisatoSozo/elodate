@@ -1,8 +1,7 @@
-import 'package:client/components/image_picker.dart';
-import 'package:client/components/responsive_scaffold.dart';
+import 'package:client/components/settings/image_picker.dart';
 import 'package:client/models/page_state_model.dart';
 import 'package:client/models/user_model.dart';
-import 'package:client/pages/settings_flow.dart';
+import 'package:client/router.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -36,62 +35,58 @@ class SettingsFlowImagesPageState extends State<SettingsFlowImagesPage> {
   Widget build(BuildContext context) {
     var userModel = Provider.of<UserModel>(context, listen: true);
 
-    return ResponsiveForm(
-      formKey: formKey,
-      title: "Upload your images:",
-      body: Column(
-        children: [
-          GridView.builder(
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
-              childAspectRatio: 9 / 16,
-              mainAxisSpacing: 8,
-              crossAxisSpacing: 8,
-            ),
-            itemCount: 6,
-            itemBuilder: (context, index) {
-              return AdaptiveFilePicker(
-                onUuidChanged: (newUuid) {
-                  if (index < userModel.me.images.length) {
-                    userModel.me.images[index] = newUuid;
-                  } else {
-                    userModel.me.images = [
-                      ...userModel.me.images,
-                      newUuid,
-                    ];
-                  }
-                },
-                initialUuid: index < userModel.me.images.length
-                    ? userModel.me.images[index]
-                    : null,
-              );
-            },
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
+    return Column(
+      children: [
+        GridView.builder(
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 3,
+            childAspectRatio: 9 / 16,
+            mainAxisSpacing: 8,
+            crossAxisSpacing: 8,
           ),
-          const SizedBox(height: 20),
-          Row(
-            //align button to the right
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              //button with right arrow icon
-              ElevatedButton(
-                onPressed: () {
-                  _saveImagesAndProceed();
-                },
-                focusNode: _buttonFocusNode,
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text('Next'),
-                    Icon(Icons.arrow_forward),
-                  ],
-                ),
+          itemCount: 6,
+          itemBuilder: (context, index) {
+            return AdaptiveFilePicker(
+              onUuidChanged: (newUuid) {
+                if (index < userModel.me.images.length) {
+                  userModel.me.images[index] = newUuid;
+                } else {
+                  userModel.me.images = [
+                    ...userModel.me.images,
+                    newUuid,
+                  ];
+                }
+              },
+              initialUuid: index < userModel.me.images.length
+                  ? userModel.me.images[index]
+                  : null,
+            );
+          },
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+        ),
+        const SizedBox(height: 20),
+        Row(
+          //align button to the right
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            //button with right arrow icon
+            ElevatedButton(
+              onPressed: () {
+                _saveImagesAndProceed();
+              },
+              focusNode: _buttonFocusNode,
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('Next'),
+                  Icon(Icons.arrow_forward),
+                ],
               ),
-            ],
-          ),
-        ],
-      ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
@@ -105,9 +100,6 @@ class SettingsFlowImagesPageState extends State<SettingsFlowImagesPage> {
     }
 
     //push material page route
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const SettingsFlowPage()),
-    );
+    EloNav.goSettings(context);
   }
 }

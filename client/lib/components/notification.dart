@@ -34,7 +34,7 @@ class NotificationComponentState extends State<NotificationComponent> {
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(
-              maxWidth: 400), // Adjust the maxWidth as needed
+              maxWidth: 350), // Adjust the maxWidth as needed
 
           child: Container(
             margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),

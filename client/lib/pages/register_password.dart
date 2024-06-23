@@ -1,5 +1,5 @@
-import 'package:client/components/responsive_scaffold.dart';
 import 'package:client/models/register_model.dart';
+import 'package:client/router.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -17,6 +17,17 @@ class RegisterPasswordPageState extends State<RegisterPasswordPage> {
   final TextEditingController _confirmPasswordController =
       TextEditingController();
 
+  @override
+  void initState() {
+    super.initState();
+    var password = Provider.of<RegisterModel>(context, listen: false).password;
+    //if it's set, initialize the controller
+    if (password != null) {
+      _passwordController.text = password;
+      _confirmPasswordController.text = password;
+    }
+  }
+
   bool _isPasswordValid(String password) {
     // Implement your own password validation logic
     //password must be at least 8 characters long
@@ -32,16 +43,15 @@ class RegisterPasswordPageState extends State<RegisterPasswordPage> {
       Provider.of<RegisterModel>(context, listen: false)
           .setPassword(_passwordController.text);
 
-      nextPage(context, widget);
+      EloNav.goRegisterBirthdate(context);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return ResponsiveForm(
-      formKey: formKey,
-      title: 'Pick a password. If it sucks and you get hacked that\'s on you.',
-      body: Column(
+    return Form(
+      key: formKey,
+      child: Column(
         children: [
           TextFormField(
             controller: _passwordController,

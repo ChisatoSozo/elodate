@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:client/api/pkg/lib/api.dart';
-import 'package:client/components/chat_bubble.dart';
+import 'package:client/components/chat/chat_bubble.dart';
 import 'package:client/components/elodate_scaffold.dart';
 import 'package:client/components/uuid_image_provider.dart';
 import 'package:client/models/user_model.dart';
@@ -72,10 +72,7 @@ class ChatScreenState extends State<ChatScreen> {
       ),
       body: Form(
         key: formKey,
-        child: Container(
-            constraints: const BoxConstraints(maxWidth: 600),
-            margin: const EdgeInsets.fromLTRB(10, 0, 10, 4),
-            child: _buildMessageList(context)),
+        child: _buildMessageList(context),
       ),
       bottomNavigationBar: _buildInputSection(chatBarColor!, inputFieldColor!),
     );
@@ -89,7 +86,7 @@ class ChatScreenState extends State<ChatScreen> {
         final message = _messages[_messages.length - index - 1];
         final isMe = message.author == userModel.me.uuid;
         return ChatBubble(
-          key: Key(message.uuid),
+          key: ValueKey(message.uuid),
           text: message.content,
           image: _buildMessageImage(message, userModel),
           isMe: isMe,

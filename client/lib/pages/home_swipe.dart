@@ -1,8 +1,11 @@
 import 'package:client/api/pkg/lib/api.dart';
-import 'package:client/components/swipeable_user_card/swipeable_user_card.dart';
+import 'package:client/components/loading.dart';
+import 'package:client/components/swipe/swipeable_user_card/match_modal.dart';
+import 'package:client/components/swipe/swipeable_user_card/swipeable_user_card.dart';
 import 'package:client/models/user_model.dart';
 import 'package:client/utils/utils.dart';
 import 'package:flutter/material.dart';
+import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
 import 'package:provider/provider.dart';
 
 class SwipePage extends StatefulWidget {
@@ -65,9 +68,7 @@ class SwipePageState extends State<SwipePage> {
       var match = await likeUser(user);
       if (match) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("It's a match!")),
-        );
+        _showMatchModal(user);
       }
     } else {
       await dislikeUser(user);
@@ -81,10 +82,17 @@ class SwipePageState extends State<SwipePage> {
     await _loadNextUser(1);
   }
 
+  void _showMatchModal(ApiUser user) {
+    showMaterialModalBottomSheet(
+      context: context,
+      builder: (context) => MatchModal(user: user),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: Loading(text: 'Loading users...'));
     }
 
     if (_error != null) {
@@ -92,24 +100,17 @@ class SwipePageState extends State<SwipePage> {
     }
 
     return Center(
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(context).size.height, maxWidth: 400),
-        child: Stack(
-          children: _userStack.reversed.map((user) {
-            if (user == null) {
-              return const Center(
-                  child: Text('End of users, expand your prefs'));
-            }
-            return Positioned.fill(
-              child: SwipeableUserCard(
-                user: user,
-                onSwipe: handleSwipe,
-                key: ValueKey(user.uuid),
-              ),
-            );
-          }).toList(),
-        ),
+      child: Stack(
+        children: _userStack.reversed.map((user) {
+          if (user == null) {
+            return const Center(child: Text('End of users, expand your prefs'));
+          }
+          return SwipeableUserCard(
+            user: user,
+            onSwipe: handleSwipe,
+            key: ValueKey(user.uuid),
+          );
+        }).toList(),
       ),
     );
   }

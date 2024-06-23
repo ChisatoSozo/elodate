@@ -32,8 +32,6 @@ class NotificationsModel extends ChangeNotifier {
   }
 
   void startNotificationLoop(UserModel userModel) {
-    //every 5 seconds, fetch notifications
-    print('Starting notification loop');
     if (loopRunning) {
       return;
     }
@@ -141,7 +139,6 @@ class NotificationsModel extends ChangeNotifier {
 
   void fetchNotifications(UserModel userModel) async {
     var notifications = await userModel.getNotifications();
-    print("notifications: $notifications");
     for (var notification in notifications) {
       showNotification(notification, userModel);
     }

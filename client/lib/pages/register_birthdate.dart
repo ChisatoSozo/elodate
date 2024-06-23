@@ -1,5 +1,5 @@
-import 'package:client/components/responsive_scaffold.dart';
 import 'package:client/models/register_model.dart';
+import 'package:client/router.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -18,11 +18,9 @@ class RegisterBirthdatePageState extends State<RegisterBirthdatePage> {
 
   @override
   Widget build(BuildContext context) {
-    return ResponsiveForm(
-      formKey: formKey,
-      title:
-          "Hello ${Provider.of<RegisterModel>(context).displayName}, please enter your birthdate.",
-      body: Column(
+    return Form(
+      key: formKey,
+      child: Column(
         children: [
           TextFormField(
             controller: birthdateController,
@@ -87,6 +85,6 @@ class RegisterBirthdatePageState extends State<RegisterBirthdatePage> {
 
     Provider.of<RegisterModel>(context, listen: false)
         .setBirthdate(selectedDate!.millisecondsSinceEpoch ~/ 1000);
-    nextPage(context, widget);
+    EloNav.goRegisterFinish(context);
   }
 }
