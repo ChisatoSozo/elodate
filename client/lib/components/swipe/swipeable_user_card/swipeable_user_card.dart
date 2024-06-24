@@ -131,60 +131,66 @@ class SwipeableUserCardState extends State<SwipeableUserCard>
       onPanUpdate: _onPanUpdate,
       onPanEnd: _onPanEnd,
       onTapUp: (details) => _onTapUp(details, context),
-      child: Transform.translate(
-        offset: _cardOffset,
-        child: Transform.rotate(
-          angle: _cardRotation,
-          child: Stack(
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(20.0),
-                child: _cachedImages == null
-                    ? const Center(
-                        child: Loading(text: 'Loading User For Match...'))
-                    : SwipeableImageView(
-                        images: _cachedImages!,
-                        controller: _pageController,
-                        onPageChanged: (index) {
-                          setState(() {
-                            _currentIndex = index;
-                          });
-                        },
-                      ),
+      child: Center(
+        child: SizedBox(
+          width: 400,
+          child: Transform.translate(
+            offset: _cardOffset,
+            child: Transform.rotate(
+              angle: _cardRotation,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(20.0),
+                    child: _cachedImages == null
+                        ? const Center(
+                            child: Loading(text: 'Loading User For Match...'))
+                        : SwipeableImageView(
+                            images: _cachedImages!,
+                            controller: _pageController,
+                            onPageChanged: (index) {
+                              setState(() {
+                                _currentIndex = index;
+                              });
+                            },
+                          ),
+                  ),
+                  SwipeOverlay(
+                    overlayColor: _isLiked
+                        ? Colors.green.withOpacity(0.7)
+                        : _cardOffset == Offset.zero
+                            ? Colors.transparent
+                            : Colors.red.withOpacity(0.7),
+                    swipeOffset: _cardOffset.dx,
+                  ),
+                  Positioned(
+                    bottom: 60.0,
+                    left: 0,
+                    right: 0,
+                    child: PageIndicator(
+                      currentIndex: _currentIndex,
+                      itemCount: widget.user.images.length,
+                    ),
+                  ),
+                  Positioned(
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    child: UserDetails(
+                        isCardExpanded: _isCardExpanded,
+                        toggleCard: _toggleCard,
+                        user: widget.user),
+                  ),
+                  Positioned(
+                    top: 0,
+                    right: 16,
+                    child: EloBadge(
+                        eloLabel: widget.user.elo, elo: widget.user.eloNum),
+                  ),
+                ],
               ),
-              SwipeOverlay(
-                overlayColor: _isLiked
-                    ? Colors.green.withOpacity(0.7)
-                    : _cardOffset == Offset.zero
-                        ? Colors.transparent
-                        : Colors.red.withOpacity(0.7),
-                swipeOffset: _cardOffset.dx,
-              ),
-              Positioned(
-                bottom: 60.0,
-                left: 0,
-                right: 0,
-                child: PageIndicator(
-                  currentIndex: _currentIndex,
-                  itemCount: widget.user.images.length,
-                ),
-              ),
-              Positioned(
-                bottom: 0,
-                left: 0,
-                right: 0,
-                child: UserDetails(
-                    isCardExpanded: _isCardExpanded,
-                    toggleCard: _toggleCard,
-                    user: widget.user),
-              ),
-              Positioned(
-                top: 0,
-                right: 16,
-                child: EloBadge(
-                    eloLabel: widget.user.elo, elo: widget.user.eloNum),
-              ),
-            ],
+            ),
           ),
         ),
       ),

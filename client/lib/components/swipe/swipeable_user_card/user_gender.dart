@@ -1,4 +1,4 @@
-import 'package:client/components/settings/prop_pref_components/gender_prop_pref.dart';
+import 'package:client/pages/home/settings/prop_pref_components/gender_prop_pref.dart';
 import 'package:flutter/material.dart';
 
 class GenderDisplay extends StatefulWidget {

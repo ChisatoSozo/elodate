@@ -123,7 +123,7 @@ impl InternalUser {
         }
         let mandatory_props = PREFS_CONFIG
             .iter()
-            .filter(|p| !p.optional)
+            .filter(|p| p.non_optional_message.is_some())
             .map(|p| p.name)
             .collect::<Vec<_>>();
 

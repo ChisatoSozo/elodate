@@ -1,17 +1,16 @@
 import 'dart:convert';
 
-import 'package:client/components/settings/image_picker.dart';
+import 'package:client/pages/home/settings/image_picker.dart';
 import 'package:client/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../components/elo_badge.dart';
-import '../../models/user_model.dart';
+import '../../../models/user_model.dart';
 
-class BasicInfoPanel extends StatelessWidget {
+class BasicSettings extends StatelessWidget {
   final VoidCallback onModified;
 
-  const BasicInfoPanel({super.key, required this.onModified});
+  const BasicSettings({super.key, required this.onModified});
 
   @override
   Widget build(BuildContext context) {
@@ -20,44 +19,23 @@ class BasicInfoPanel extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  children: [
-                    _buildTextFormField(
-                      initialValue: userModel.me.displayName,
-                      labelText: 'Display Name',
-                      onChanged: (value) {
-                        userModel.me.displayName = value;
-                        onModified();
-                      },
-                    ),
-                    const SizedBox(height: 20),
-                    _buildTextFormField(
-                      initialValue: userModel.me.description,
-                      labelText: 'Description',
-                      onChanged: (value) {
-                        userModel.me.description = value;
-                        onModified();
-                      },
-                      maxLines: 10,
-                    ),
-                  ],
-                ),
-              ),
-              Column(
-                children: [
-                  Text('My Elo',
-                      style: Theme.of(context).textTheme.titleMedium),
-                  const SizedBox(height: 20),
-                  EloBadge(
-                      eloLabel: userModel.me.elo, elo: userModel.me.eloNum),
-                ],
-              ),
-            ],
+          _buildTextFormField(
+            initialValue: userModel.me.displayName,
+            labelText: 'Display Name',
+            onChanged: (value) {
+              userModel.me.displayName = value;
+              onModified();
+            },
+          ),
+          const SizedBox(height: 20),
+          _buildTextFormField(
+            initialValue: userModel.me.description,
+            labelText: 'Description',
+            onChanged: (value) {
+              userModel.me.description = value;
+              onModified();
+            },
+            maxLines: 10,
           ),
           const SizedBox(height: 20),
           Text('Images', style: Theme.of(context).textTheme.titleMedium),

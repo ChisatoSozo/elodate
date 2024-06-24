@@ -92,7 +92,7 @@ class ChatPageState extends State<ChatPage> {
                       )
                     : null,
                 onTap: () {
-                  EloNav.goChat(context, chat.uuid, user.displayName);
+                  EloNav.goChat(chat.uuid, user.displayName);
                 },
               ),
             );

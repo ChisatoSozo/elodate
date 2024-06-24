@@ -65,10 +65,10 @@ class PageStateModel extends ChangeNotifier {
       if (!context.mounted) {
         throw Exception('Context is not mounted');
       }
-      EloNav.goRedir(context);
+      EloNav.goRedir();
       return;
     }
-    EloNav.goSettings(context);
+    EloNav.goSettings();
     notifyListeners();
   }
 

@@ -30,7 +30,7 @@ class RedirPageState extends State<RedirPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       var canLoad = userModel.canLoad();
       if (!canLoad) {
-        EloNav.goLogin(context);
+        EloNav.goLogin();
         return;
       }
 
@@ -39,10 +39,10 @@ class RedirPageState extends State<RedirPage> {
 
       if (isLoaded) {
         if (!userModel.me.published && userModel.me.images.isEmpty) {
-          EloNav.goSettingsImages(context);
+          EloNav.goSettingsImages();
           return;
         }
-        EloNav.goHomeSwipe(context);
+        EloNav.goHomeSwipe();
         return;
       }
       if (!isLoading) {

@@ -41,6 +41,8 @@ class UserModel extends ChangeNotifier {
   ApiUser? _me;
   bool isLoading = false;
   bool isLoaded = false;
+  int numUsersIPrefer = 0;
+  int numUsersMutuallyPrefer = 0;
 
   ApiUser get me => _me!;
   bool get loggedIn => _me != null && !isLoading && isLoaded;
@@ -83,10 +85,12 @@ class UserModel extends ChangeNotifier {
       if (!context.mounted) {
         rethrow;
       }
-      EloNav.goLogin(context);
+      EloNav.goLogin();
       return this;
     }
     await initAdditionalPrefs();
+    await getNumUsersIPreferDryRun();
+    await getNumUsersMutuallyPreferDryRun();
     isLoading = false;
     isLoaded = true;
     notifyListeners();
@@ -207,23 +211,25 @@ class UserModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<int> getNumUsersIPreferDryRun() async {
+  Future<void> getNumUsersIPreferDryRun() async {
     var result = await client.getUsersIPerferCountDryRunPost(me.prefs
         .map((p) => LabeledPreferenceRange(name: p.name, range: p.range))
         .toList());
     if (result == null) {
       throw Exception('Failed to get num users I prefer dry run');
     }
-    return result;
+    numUsersIPrefer = result;
+    notifyListeners();
   }
 
-  Future<int> getNumUsersMutuallyPreferDryRun() async {
+  Future<void> getNumUsersMutuallyPreferDryRun() async {
     var result = await client.getUsersMutualPerferCountDryRunPost(
         PropsAndPrefs(prefs: me.prefs, props: me.props));
     if (result == null) {
       throw Exception('Failed to get num users mutually prefer dry run');
     }
-    return result;
+    numUsersMutuallyPrefer = result;
+    notifyListeners();
   }
 
   Future<List<ApiNotification>> getNotifications() async {

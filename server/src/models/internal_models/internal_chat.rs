@@ -14,11 +14,13 @@ pub struct InternalChat {
     pub messages: Vec<InternalUuid<InternalMessage>>,
     pub most_recent_message: String,
     pub most_recent_sender: Option<InternalUuid<InternalUser>>,
+    pub most_recent_message_sent_at: i64,
 }
 
 impl InternalChat {
     pub fn new(users: Vec<InternalUuid<InternalUser>>) -> InternalChat {
         let users_len = users.len();
+        let now = chrono::Utc::now().timestamp();
         InternalChat {
             uuid: InternalUuid::<InternalChat>::new(),
             users,
@@ -26,6 +28,7 @@ impl InternalChat {
             messages: vec![],
             most_recent_message: "No messages yet".to_string(),
             most_recent_sender: None,
+            most_recent_message_sent_at: now,
         }
     }
 }

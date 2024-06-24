@@ -40,6 +40,7 @@ impl InternalMessage {
                 _ => self.content.clone(),
             };
             chat.most_recent_sender = Some(self.author.clone());
+            chat.most_recent_message_sent_at = self.sent_at;
             chat.unread = chat
                 .users
                 .iter()

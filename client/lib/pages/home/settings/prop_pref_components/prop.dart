@@ -1,7 +1,7 @@
 import 'package:client/api/pkg/lib/api.dart';
-import 'package:client/components/settings/prop_pref_components/gender_prop_pref.dart';
-import 'package:client/components/settings/prop_pref_components/location_prop_pref.dart';
-import 'package:client/components/settings/prop_pref_components/slider_prop_pref.dart';
+import 'package:client/pages/home/settings/prop_pref_components/gender_prop_pref.dart';
+import 'package:client/pages/home/settings/prop_pref_components/location_prop_pref.dart';
+import 'package:client/pages/home/settings/prop_pref_components/slider_prop_pref.dart';
 import 'package:flutter/material.dart';
 
 class Prop extends StatefulWidget {

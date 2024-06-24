@@ -1,5 +1,5 @@
 import 'package:client/api/pkg/lib/api.dart';
-import 'package:client/components/settings/labeled_radio.dart';
+import 'package:client/pages/home/settings/labeled_radio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 

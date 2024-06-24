@@ -1,26 +1,50 @@
 import 'package:client/api/pkg/lib/api.dart';
-import 'package:client/components/settings/prop_pref_components/pref.dart';
-import 'package:client/components/settings/prop_pref_components/prop.dart';
+import 'package:client/models/page_state_model.dart';
+import 'package:client/pages/home/settings/prop_pref_components/pref.dart';
+import 'package:client/pages/home/settings/prop_pref_components/prop.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../models/user_model.dart';
+import '../../../models/user_model.dart';
 
-class CategoryPanel extends StatelessWidget {
-  final (
-    PreferenceConfigPublicCategoryEnum,
-    List<(String, List<PreferenceConfigPublic>, int)>
-  ) categoryAndGroup;
+class SettingsCategory extends StatefulWidget {
+  final String category;
   final VoidCallback onModified;
 
-  const CategoryPanel({
+  const SettingsCategory({
     super.key,
-    required this.categoryAndGroup,
+    required this.category,
     required this.onModified,
   });
+  @override
+  SettingsCategoryState createState() => SettingsCategoryState();
+}
+
+class SettingsCategoryState extends State<SettingsCategory> {
+  late List<
+      (
+        PreferenceConfigPublicCategoryEnum,
+        List<(String, List<PreferenceConfigPublic>, int)>
+      )> categoriesAndGroups;
+
+  @override
+  //init
+  void initState() {
+    super.initState();
+    final userModel = Provider.of<UserModel>(context, listen: false);
+    categoriesAndGroups =
+        preferenceConfigsToCategoriesAndGroups(userModel.preferenceConfigs!);
+  }
 
   @override
   Widget build(BuildContext context) {
+    var categoryAndGrouExists = categoriesAndGroups
+        .any((element) => element.$1.toString() == widget.category);
+    if (!categoryAndGrouExists) {
+      return const Text('No data found');
+    }
+    var categoryAndGroup = categoriesAndGroups
+        .firstWhere((element) => element.$1.toString() == widget.category);
     return Column(
       children: categoryAndGroup.$2.map((group) {
         final userModel = Provider.of<UserModel>(context, listen: false);
@@ -53,7 +77,7 @@ class CategoryPanel extends StatelessWidget {
             onUpdated: (updatedProps) {
               final userModel = Provider.of<UserModel>(context, listen: false);
               userModel.setPropertyGroup(updatedProps, prefs, index);
-              onModified();
+              widget.onModified();
             },
           ),
           const SizedBox(height: 20),
@@ -65,7 +89,7 @@ class CategoryPanel extends StatelessWidget {
           onUpdated: (updatedPrefs) {
             final userModel = Provider.of<UserModel>(context, listen: false);
             userModel.setPropertyGroup(props, updatedPrefs, index);
-            onModified();
+            widget.onModified();
           },
         ),
         const SizedBox(height: 40),

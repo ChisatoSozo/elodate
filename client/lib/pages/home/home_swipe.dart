@@ -99,19 +99,18 @@ class SwipePageState extends State<SwipePage> {
       return Center(child: Text(_error!));
     }
 
-    return Center(
-      child: Stack(
-        children: _userStack.reversed.map((user) {
-          if (user == null) {
-            return const Center(child: Text('End of users, expand your prefs'));
-          }
-          return SwipeableUserCard(
-            user: user,
-            onSwipe: handleSwipe,
-            key: ValueKey(user.uuid),
-          );
-        }).toList(),
-      ),
+    return Stack(
+      clipBehavior: Clip.none,
+      children: _userStack.reversed.map((user) {
+        if (user == null) {
+          return const Center(child: Text('End of users, expand your prefs'));
+        }
+        return SwipeableUserCard(
+          user: user,
+          onSwipe: handleSwipe,
+          key: ValueKey(user.uuid),
+        );
+      }).toList(),
     );
   }
 

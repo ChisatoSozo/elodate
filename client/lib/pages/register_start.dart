@@ -101,7 +101,7 @@ class RegisterStartPageState extends State<RegisterStartPage> {
           .setDisplayName(displayNameController.text);
 
       // Proceed to the next page or complete registration
-      EloNav.goRegisterPassword(context);
+      EloNav.goRegisterPassword();
     } catch (e) {
       if (!mounted) return;
 

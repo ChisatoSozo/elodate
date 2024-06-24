@@ -85,6 +85,6 @@ class RegisterBirthdatePageState extends State<RegisterBirthdatePage> {
 
     Provider.of<RegisterModel>(context, listen: false)
         .setBirthdate(selectedDate!.millisecondsSinceEpoch ~/ 1000);
-    EloNav.goRegisterFinish(context);
+    EloNav.goRegisterFinish();
   }
 }

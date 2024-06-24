@@ -72,7 +72,7 @@ async fn main() -> std::io::Result<()> {
     //     std::thread::spawn(move || {
     //         println!("Waiting 1 seconds before starting bots");
     //         std::thread::sleep(std::time::Duration::from_secs(1));
-    //         let uuid_jwt = init_bots(&db_clone, host.clone().as_str()).unwrap();
+    //         let uuid_jwt = init_bots(&db_clone, &host).unwrap();
     //         let clients: [Arc<reqwest::blocking::Client>; NUM_BOT_THREADS] =
     //             array::from_fn(|_| Arc::new(reqwest::blocking::Client::new()));
     //         loop {

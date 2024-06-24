@@ -1,6 +1,6 @@
-import 'package:client/components/settings/image_picker.dart';
 import 'package:client/models/page_state_model.dart';
 import 'package:client/models/user_model.dart';
+import 'package:client/pages/home/settings/image_picker.dart';
 import 'package:client/router.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -100,6 +100,6 @@ class SettingsFlowImagesPageState extends State<SettingsFlowImagesPage> {
     }
 
     //push material page route
-    EloNav.goSettings(context);
+    EloNav.goSettings();
   }
 }

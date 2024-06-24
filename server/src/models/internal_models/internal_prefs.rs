@@ -1,6 +1,5 @@
 use crate::test::fake::Gen;
 use crate::vec::shared::VectorSearch;
-use std::array;
 use std::collections::HashSet;
 
 use super::internal_prefs_config::PREFS_CARDINALITY;
@@ -266,14 +265,14 @@ pub enum Category {
 }
 
 #[derive(Debug, Apiv2Schema, Clone, PartialEq)]
-pub struct PreferenceConfig<'a> {
-    pub name: &'a str,
-    pub display: &'a str,
+pub struct PreferenceConfig {
+    pub name: &'static str,
+    pub display: &'static str,
     pub category: Category,
-    pub group: &'a str,
+    pub group: &'static str,
     pub ui_element: UIElement,
-    pub value_question: &'a str,
-    pub range_question: &'a str,
+    pub value_question: &'static str,
+    pub range_question: &'static str,
     pub min: i16,
     pub max: i16,
     pub mean: f64,
@@ -281,13 +280,13 @@ pub struct PreferenceConfig<'a> {
     pub mean_alteration: MeanAlteration,
     pub std_dev_alteration: StdDevAlteration,
     pub linear_mapping: Option<LinearMapping>,
-    pub optional: bool,
+    pub non_optional_message: Option<&'static str>,
     pub default: Option<i16>,
     pub probability_to_be_none: f64,
-    pub labels: Option<[&'a str; 5]>,
+    pub labels: Option<&'static [&'static str]>,
 }
 
-impl PreferenceConfig<'_> {
+impl PreferenceConfig {
     pub fn get_public(&self) -> PreferenceConfigPublic {
         PreferenceConfigPublic {
             name: self.name.to_string(),
@@ -300,14 +299,10 @@ impl PreferenceConfig<'_> {
             min: self.min,
             max: self.max,
             linear_mapping: self.linear_mapping.clone(),
-            labels: self.labels.map(|labels| {
-                let mut new_labels = array::from_fn::<String, 5, _>(|_| "".to_string());
-                for i in 0..5 {
-                    new_labels[i] = labels[i].to_string();
-                }
-                new_labels
-            }),
-            optional: self.optional,
+            labels: self
+                .labels
+                .map(|l| l.to_vec().iter().map(|s| s.to_string()).collect()),
+            non_optional_message: self.non_optional_message.map(|s| s.to_string()),
         }
     }
 }
@@ -324,8 +319,8 @@ pub struct PreferenceConfigPublic {
     pub min: i16,
     pub max: i16,
     pub linear_mapping: Option<LinearMapping>,
-    pub labels: Option<[String; 5]>,
-    pub optional: bool,
+    pub labels: Option<Vec<String>>,
+    pub non_optional_message: Option<String>,
 }
 
 fn f64_to_i16(value: f64, preference: &PreferenceConfig) -> i16 {
@@ -404,7 +399,7 @@ fn sample_range_from_preference_and_prop(
     PreferenceRange { min, max }
 }
 
-impl<'a> PreferenceConfig<'a> {
+impl PreferenceConfig {
     pub fn sample(&self, rng: &mut ThreadRng) -> i16 {
         //get if none
         if rng.gen_range(0.0..1.0) < P_NONE_PROP {

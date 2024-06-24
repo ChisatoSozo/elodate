@@ -17,6 +17,7 @@ pub struct ApiChat {
     pub messages: Vec<ApiUuid<InternalMessage>>,
     pub most_recent_message: String,
     pub most_recent_sender: Option<ApiUuid<InternalUser>>,
+    pub most_recent_message_sent_at: i64,
 }
 
 impl ApiChat {
@@ -34,6 +35,7 @@ impl ApiChat {
             messages: chat.messages.into_iter().map(|m| m.into()).collect(),
             most_recent_message: chat.most_recent_message.clone(),
             most_recent_sender: chat.most_recent_sender.map(|s| s.into()),
+            most_recent_message_sent_at: chat.most_recent_message_sent_at,
         })
     }
 }

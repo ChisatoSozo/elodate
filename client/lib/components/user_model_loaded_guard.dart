@@ -18,7 +18,7 @@ class UserModelLoadedGuardState extends State<UserModelLoadedGuard> {
   Widget build(BuildContext context) {
     var userModel = Provider.of<UserModel>(context, listen: true);
     if (!userModel.canLoad()) {
-      EloNav.goRedir(context);
+      EloNav.goRedir();
     }
     if (!userModel.isLoading && !userModel.isLoaded) {
       userModel.initAll(context);

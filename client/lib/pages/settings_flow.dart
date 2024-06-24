@@ -1,7 +1,7 @@
-import 'package:client/components/settings/prop_pref_components/pref.dart';
-import 'package:client/components/settings/prop_pref_components/prop.dart';
 import 'package:client/models/page_state_model.dart';
 import 'package:client/models/user_model.dart';
+import 'package:client/pages/home/settings/prop_pref_components/pref.dart';
+import 'package:client/pages/home/settings/prop_pref_components/prop.dart';
 import 'package:client/router.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -80,7 +80,7 @@ class SettingsFlowPageState extends State<SettingsFlowPage> {
               ElevatedButton(
                 onPressed: () {
                   //pop one page
-                  EloNav.goBack(context);
+                  EloNav.goBack();
                 },
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,

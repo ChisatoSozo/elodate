@@ -1,9 +1,9 @@
 import 'package:client/components/bug_report_button.dart';
 import 'package:client/components/user_model_loaded_guard.dart';
-import 'package:client/pages/home_chat.dart';
-import 'package:client/pages/home_chat_single.dart';
-import 'package:client/pages/home_settings.dart';
-import 'package:client/pages/home_swipe.dart';
+import 'package:client/pages/chat_screen.dart';
+import 'package:client/pages/home/settings/settings_basic.dart';
+import 'package:client/pages/home/settings/settings_category.dart';
+import 'package:client/pages/home/sliding_home_page.dart';
 import 'package:client/pages/login.dart';
 import 'package:client/pages/redir.dart';
 import 'package:client/pages/register_birthdate.dart';
@@ -31,128 +31,12 @@ class Page {
   });
 }
 
-final pages = [
-  Page(
-    path: '/home',
-    builder: (context, child) => child!,
-    routes: [
-      Page(
-        path: '/home/swipe',
-        builder: (context, _) => const UserModelLoadedGuard(child: SwipePage()),
-      ),
-      Page(
-        path: '/home/chat',
-        builder: (context, _) => const UserModelLoadedGuard(child: ChatPage()),
-      ),
-      Page(
-        path: '/home/settings',
-        builder: (context, _) =>
-            const UserModelLoadedGuard(child: SettingsPage()),
-      ),
-    ],
-    bottomNav: BottomNavigationBar(
-      items: const [
-        BottomNavigationBarItem(
-          icon: Icon(Icons.favorite),
-          label: 'Swipe',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.chat),
-          label: 'Chat',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.settings),
-          label: 'Settings',
-        ),
-      ],
-    ),
-  ),
-  Page(
-    path: '/register',
-    builder: (context, _) => const RegisterStartPage(),
-    appBar: AppBar(
-      title: const Text('Register'),
-    ),
-  ),
-  Page(
-    path: '/register/password',
-    builder: (context, _) => const RegisterPasswordPage(),
-    appBar: AppBar(
-      title: const Text('Register Password'),
-    ),
-  ),
-  Page(
-    path: '/login',
-    builder: (context, _) => const LoginPage(),
-  ),
-  Page(
-    path: '/register/birthdate',
-    builder: (context, _) => const RegisterBirthdatePage(),
-    appBar: AppBar(
-      title: const Text('Register Birthdate'),
-    ),
-  ),
-  Page(
-    path: '/register/finish',
-    builder: (context, _) => const RegisterFinishPage(),
-    appBar: AppBar(
-      title: const Text('Register Finish'),
-    ),
-  ),
-  Page(
-    path: '/chat/:id',
-    builder: (context, _) => UserModelLoadedGuard(
-      child: ChatScreen(
-        chatId: GoRouterState.of(context).pathParameters['id'] ?? '',
-        displayName:
-            GoRouterState.of(context).uri.queryParameters['displayName'] ?? '',
-      ),
-    ),
-  ),
-  Page(
-    path: '/settings',
-    builder: (context, _) =>
-        const UserModelLoadedGuard(child: SettingsFlowPage()),
-    appBar: AppBar(
-      title: const Text('Settings'),
-    ),
-  ),
-  Page(
-    path: '/settings/images',
-    builder: (context, _) => const SettingsFlowImagesPage(),
-    appBar: AppBar(
-      title: const Text('Settings Images'),
-    ),
-  ),
-];
-
 final GlobalKey<NavigatorState> _rootNavigatorKey =
     GlobalKey<NavigatorState>(debugLabel: 'root');
-final GlobalKey<NavigatorState> _shellNavigatorKey =
+final GlobalKey<NavigatorState> _mainShellNavigatorKey =
     GlobalKey<NavigatorState>(debugLabel: 'shell');
-
-final routes = pages
-    .map((page) => page.routes == null
-        ? GoRoute(
-            path: page.path,
-            name: page.path,
-            builder: (context, state) => page.builder(context, null),
-          )
-        : ShellRoute(
-            navigatorKey: GlobalKey<NavigatorState>(),
-            builder: (context, state, child) {
-              return page.builder(context, child);
-            },
-            routes: page.routes!
-                .map((subPage) => GoRoute(
-                      path: subPage.path,
-                      name: subPage.path,
-                      builder: (context, state) =>
-                          subPage.builder(context, null),
-                    ))
-                .toList(),
-          ))
-    .toList();
+final GlobalKey<NavigatorState> _scrollableShellNavigatorKey =
+    GlobalKey<NavigatorState>(debugLabel: 'scroll');
 
 final GoRouter router = GoRouter(
   navigatorKey: _rootNavigatorKey,
@@ -163,54 +47,141 @@ final GoRouter router = GoRouter(
       builder: (_, __) => const RedirPage(),
     ),
     ShellRoute(
-      parentNavigatorKey: _rootNavigatorKey,
-      navigatorKey: _shellNavigatorKey,
-      builder: (context, state, child) {
-        var topRoute = "/${state.uri.pathSegments[0]}";
+        parentNavigatorKey: _rootNavigatorKey,
+        navigatorKey: _mainShellNavigatorKey,
+        builder: (context, state, child) {
+          return Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Scaffold(resizeToAvoidBottomInset: true, body: child),
+              const BugReportButton()
+            ],
+          );
+        },
+        routes: [
+          //home shell
+          GoRoute(
+            path: '/home/:tab',
+            builder: (context, state) => UserModelLoadedGuard(
+              child: SlidingHomePage(tab: state.pathParameters['tab']!),
+            ),
+          ),
 
-        return Stack(
-          children: [
-            Scaffold(
-              appBar:
-                  //check if the page has an app bar, if not return null
-                  pages.where((page) => page.path == topRoute).isEmpty
-                      ? null
-                      : pages
-                          .firstWhere((page) => page.path == topRoute)
-                          .appBar,
-              bottomNavigationBar:
-                  //check if the page has a bottom nav, if not return null
-                  pages.where((page) => page.path == topRoute).isEmpty
-                      ? null
-                      : pages
-                          .firstWhere((page) => page.path == topRoute)
-                          .bottomNav,
-              resizeToAvoidBottomInset: true,
-              body: Center(
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    return SingleChildScrollView(
-                      child: SizedBox(
-                        width: constraints.maxWidth,
-                        child: Center(
-                          child: Container(
-                            constraints: const BoxConstraints(maxWidth: 400),
-                            margin: const EdgeInsets.symmetric(horizontal: 24),
-                            child: child,
-                          ),
-                        ),
+          ShellRoute(
+            parentNavigatorKey: _mainShellNavigatorKey,
+            navigatorKey: _scrollableShellNavigatorKey,
+            builder: (context, state, child) {
+              return Scaffold(
+                appBar: AppBar(
+                  leading: IconButton(
+                    icon: const Icon(Icons.arrow_back),
+                    onPressed: () => EloNav.goBack(),
+                  ),
+                  title: Center(
+                    child: (state.topRoute?.name ?? 'Name error')
+                            .startsWith('param:')
+                        ? Text(state.pathParameters[
+                            state.topRoute?.name!.split(':')[1]]!)
+                        : (state.topRoute?.name ?? "Name error")
+                                .startsWith('qparam:')
+                            ? Text(state.uri.queryParameters[
+                                state.topRoute?.name!.split(':')[1]]!)
+                            : Text(state.topRoute?.name ?? "Name error"),
+                  ),
+                ),
+                body: SingleChildScrollView(
+                  child: Center(
+                    child: Container(
+                      constraints: const BoxConstraints(
+                        maxWidth: 400,
                       ),
-                    );
-                  },
+                      child: Column(
+                        children: [
+                          const SizedBox(height: 20),
+                          child,
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+            routes: [
+              GoRoute(
+                path: '/home/settings/basic',
+                name: 'Basic Settings',
+                builder: (context, state) => UserModelLoadedGuard(
+                  child: BasicSettings(
+                    onModified: () {},
+                  ),
                 ),
               ),
-            ),
-            const BugReportButton()
-          ],
-        );
-      },
-      routes: routes,
-    ),
+              GoRoute(
+                path: '/home/settings/:category',
+                name: 'param:category',
+                builder: (context, state) => UserModelLoadedGuard(
+                  child: SettingsCategory(
+                    category: state.pathParameters['category']!,
+                    onModified: () {},
+                  ),
+                ),
+              ),
+              GoRoute(
+                parentNavigatorKey: _scrollableShellNavigatorKey,
+                path: '/login',
+                name: 'Login',
+                builder: (context, state) => const LoginPage(),
+              ),
+              GoRoute(
+                name: 'Register',
+                parentNavigatorKey: _scrollableShellNavigatorKey,
+                path: '/register',
+                builder: (context, state) => const RegisterStartPage(),
+              ),
+              GoRoute(
+                name: 'Register Password',
+                parentNavigatorKey: _scrollableShellNavigatorKey,
+                path: '/register_password',
+                builder: (context, state) => const RegisterPasswordPage(),
+              ),
+              GoRoute(
+                name: 'Register Birthdate',
+                parentNavigatorKey: _scrollableShellNavigatorKey,
+                path: '/register_birthdate',
+                builder: (context, state) => const RegisterBirthdatePage(),
+              ),
+              GoRoute(
+                name: 'Register Finish',
+                parentNavigatorKey: _scrollableShellNavigatorKey,
+                path: '/register_finish',
+                builder: (context, state) => const RegisterFinishPage(),
+              ),
+              GoRoute(
+                name: 'Settings',
+                parentNavigatorKey: _scrollableShellNavigatorKey,
+                path: '/settings',
+                builder: (context, state) => const SettingsFlowPage(),
+              ),
+              GoRoute(
+                name: 'Images',
+                parentNavigatorKey: _scrollableShellNavigatorKey,
+                path: '/settings_images',
+                builder: (context, state) => const SettingsFlowImagesPage(),
+              ),
+              GoRoute(
+                name: 'qparam:displayName',
+                parentNavigatorKey: _scrollableShellNavigatorKey,
+                path: '/chat/:id',
+                builder: (context, state) => UserModelLoadedGuard(
+                  child: ChatScreen(
+                    chatId: state.pathParameters['id'] ?? '',
+                    displayName: state.uri.queryParameters['displayName'] ?? '',
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ]),
   ],
   errorBuilder: (context, state) => Scaffold(
     body: Center(
@@ -220,29 +191,26 @@ final GoRouter router = GoRouter(
 );
 
 class EloNav {
-  static void _go(BuildContext context, String path,
-      [Map<String, String>? params]) {
+  static void _go(String path, [Map<String, String>? params]) {
     final uri = Uri(path: path, queryParameters: params);
-    GoRouter.of(context).go(uri.toString());
+    var context = _rootNavigatorKey.currentContext;
+    GoRouter.of(context!).push(uri.toString());
   }
 
-  static void goHomeSwipe(BuildContext context) => _go(context, '/home/swipe');
-  static void goHomeChat(BuildContext context) => _go(context, '/home/chat');
-  static void goHomeSettings(BuildContext context) =>
-      _go(context, '/home/settings');
-  static void goLogin(BuildContext context) => _go(context, '/login');
-  static void goRegister(BuildContext context) => _go(context, '/register');
-  static void goSettings(BuildContext context) => _go(context, '/settings');
-  static void goSettingsImages(BuildContext context) =>
-      _go(context, '/settings/images');
-  static void goChat(BuildContext context, String id, String displayName) =>
-      _go(context, '/chat/$id', {'displayName': displayName});
-  static void goRegisterPassword(BuildContext context) =>
-      _go(context, '/register/password');
-  static void goRegisterBirthdate(BuildContext context) =>
-      _go(context, '/register/birthdate');
-  static void goRegisterFinish(BuildContext context) =>
-      _go(context, '/register/finish');
-  static void goRedir(BuildContext context) => _go(context, '/');
-  static void goBack(BuildContext context) => GoRouter.of(context).pop();
+  static void goHomeSwipe() => _go('/home/swipe');
+  static void goHomeChat() => _go('/home/chat');
+  static void goHomeSettings() => _go('/home/settings');
+  static void goLogin() => _go('/login');
+  static void goRegister() => _go('/register');
+  static void goSettings() => _go('/settings');
+  static void goSettingsImages() => _go('/settings_images');
+  static void goChat(String id, String displayName) =>
+      _go('/chat/$id', {'displayName': displayName});
+  static void goRegisterPassword() => _go('/register_password');
+  static void goRegisterBirthdate() => _go('/register_birthdate');
+  static void goRegisterFinish() => _go('/register_finish');
+  static void goHomeSettingsCategory(String category) =>
+      _go('/home/settings/$category');
+  static void goRedir() => _go('/');
+  static void goBack() => GoRouter.of(_rootNavigatorKey.currentContext!).pop();
 }

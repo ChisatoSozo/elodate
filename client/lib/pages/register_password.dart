@@ -43,7 +43,7 @@ class RegisterPasswordPageState extends State<RegisterPasswordPage> {
       Provider.of<RegisterModel>(context, listen: false)
           .setPassword(_passwordController.text);
 
-      EloNav.goRegisterBirthdate(context);
+      EloNav.goRegisterBirthdate();
     }
   }
 

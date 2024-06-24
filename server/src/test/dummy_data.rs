@@ -94,6 +94,7 @@ fn insert_dummy_data() -> Result<(), Box<dyn std::error::Error>> {
             most_recent_message: messages.last().unwrap().content.clone(),
             unread: vec![0, 0],
             most_recent_sender: Some(uuids[n].clone()),
+            most_recent_message_sent_at: messages.last().unwrap().sent_at,
         };
 
         for message in messages {

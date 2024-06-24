@@ -61,7 +61,7 @@ class RegisterFinishPageState extends State<RegisterFinishPage> {
         registered = true;
       });
       if (!mounted) return;
-      EloNav.goRedir(context);
+      EloNav.goRedir();
     } catch (e) {
       setState(() {
         registerError = e.toString();

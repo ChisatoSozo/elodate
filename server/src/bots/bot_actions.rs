@@ -52,7 +52,7 @@ pub fn post_with_jwt(
 ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
     let res = {
         let res = client
-            .post(&format!("http://{}/{}", url, path))
+            .post(&format!("http://{}:8080/{}", url, path))
             .body(body)
             .header("Content-Type", "application/json")
             .header("Authorization", format!("Bearer {}", jwt))
