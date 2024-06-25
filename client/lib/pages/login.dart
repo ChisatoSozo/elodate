@@ -38,7 +38,7 @@ class LoginPageState extends State<LoginPage> {
           .login(_usernameController.text, _passwordController.text, context);
 
       if (!mounted) return;
-      EloNav.goHomeSwipe();
+      EloNav.goHomeSwipe(context);
     } catch (e) {
       setState(() {
         _error = formatApiError(e.toString());
@@ -115,7 +115,7 @@ class LoginPageState extends State<LoginPage> {
                       Provider.of<RegisterModel>(context, listen: false)
                           .setPassword(_passwordController.text);
                     }
-                    EloNav.goRegister();
+                    EloNav.goRegister(context);
                   },
                   child: const Text('Register'),
                 ),

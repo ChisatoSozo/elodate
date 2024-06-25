@@ -18,10 +18,16 @@ class RegisterBirthdatePageState extends State<RegisterBirthdatePage> {
 
   @override
   Widget build(BuildContext context) {
+    var theme = Theme.of(context);
     return Form(
       key: formKey,
       child: Column(
         children: [
+          Text(
+            'How old are you?',
+            style: theme.textTheme.titleLarge,
+          ),
+          const SizedBox(height: 20),
           TextFormField(
             controller: birthdateController,
             decoration: const InputDecoration(
@@ -32,15 +38,20 @@ class RegisterBirthdatePageState extends State<RegisterBirthdatePage> {
             validator: (value) => _validateBirthdate(value),
           ),
           const SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: _goNext,
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text('Next'),
-                Icon(Icons.arrow_forward),
-              ],
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              ElevatedButton(
+                onPressed: _submit,
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('Next'),
+                    Icon(Icons.arrow_forward),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -77,7 +88,7 @@ class RegisterBirthdatePageState extends State<RegisterBirthdatePage> {
     return null;
   }
 
-  Future<void> _goNext() async {
+  Future<void> _submit() async {
     if (!formKey.currentState!.validate()) return;
 
     // Assuming validation passed and setting the birthdate in the model
@@ -85,6 +96,6 @@ class RegisterBirthdatePageState extends State<RegisterBirthdatePage> {
 
     Provider.of<RegisterModel>(context, listen: false)
         .setBirthdate(selectedDate!.millisecondsSinceEpoch ~/ 1000);
-    EloNav.goRegisterFinish();
+    EloNav.goRegisterFinish(context);
   }
 }

@@ -75,13 +75,13 @@ class SlidingHomePageState extends State<SlidingHomePage> {
   void _updateRoute(int index) {
     switch (index) {
       case 0:
-        EloNav.goHomeSettings();
+        EloNav.goHomeSettings(context);
         break;
       case 1:
-        EloNav.goHomeSwipe();
+        EloNav.goHomeSwipe(context);
         break;
       case 2:
-        EloNav.goHomeChat();
+        EloNav.goHomeChat(context);
         break;
     }
   }

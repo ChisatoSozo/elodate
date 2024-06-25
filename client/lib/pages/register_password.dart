@@ -43,22 +43,29 @@ class RegisterPasswordPageState extends State<RegisterPasswordPage> {
       Provider.of<RegisterModel>(context, listen: false)
           .setPassword(_passwordController.text);
 
-      EloNav.goRegisterBirthdate();
+      EloNav.goRegisterBirthdate(context);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    var theme = Theme.of(context);
     return Form(
       key: formKey,
       child: Column(
         children: [
+          Text(
+            "Pick a Password. If it sucks and you get hacked, that's on you.",
+            style: theme.textTheme.titleLarge,
+          ),
+          const SizedBox(height: 24),
           TextFormField(
             controller: _passwordController,
             obscureText: true,
             decoration: const InputDecoration(
               labelText: 'Password',
               hintText: 'Enter your password',
+              border: OutlineInputBorder(),
             ),
             validator: (value) {
               if (value == null || value.isEmpty || !_isPasswordValid(value)) {
@@ -74,6 +81,7 @@ class RegisterPasswordPageState extends State<RegisterPasswordPage> {
             decoration: const InputDecoration(
               labelText: 'Confirm Password',
               hintText: 'Confirm your password',
+              border: OutlineInputBorder(),
             ),
             validator: (value) {
               if (value == null ||
@@ -86,9 +94,20 @@ class RegisterPasswordPageState extends State<RegisterPasswordPage> {
             },
           ),
           const SizedBox(height: 40),
-          ElevatedButton(
-            onPressed: _submit,
-            child: const Text('Next'),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              ElevatedButton(
+                onPressed: _submit,
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('Next'),
+                    Icon(Icons.arrow_forward),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),

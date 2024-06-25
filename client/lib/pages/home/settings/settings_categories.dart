@@ -97,6 +97,6 @@ class SettingsCategoriesState extends State<SettingsCategories> {
     return ListTile(
         title: Text(title),
         trailing: const Icon(Icons.chevron_right),
-        onTap: () => EloNav.goHomeSettingsCategory(title));
+        onTap: () => EloNav.goHomeSettingsCategory(context, title));
   }
 }

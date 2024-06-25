@@ -1,4 +1,3 @@
-import 'package:client/models/page_state_model.dart';
 import 'package:client/models/user_model.dart';
 import 'package:client/pages/home/settings/image_picker.dart';
 import 'package:client/router.dart';
@@ -20,9 +19,6 @@ class SettingsFlowImagesPageState extends State<SettingsFlowImagesPage> {
   @override
   void initState() {
     super.initState();
-    var userModel = Provider.of<UserModel>(context, listen: false);
-    var pageStateModel = Provider.of<PageStateModel>(context, listen: false);
-    pageStateModel.initPrefsCategories(userModel);
     _buttonFocusNode.requestFocus();
   }
 
@@ -68,8 +64,23 @@ class SettingsFlowImagesPageState extends State<SettingsFlowImagesPage> {
         const SizedBox(height: 20),
         Row(
           //align button to the right
-          mainAxisAlignment: MainAxisAlignment.end,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          //space between
+
           children: [
+            ElevatedButton(
+              onPressed: () {
+                userModel.logout(context);
+              },
+              focusNode: _buttonFocusNode,
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.arrow_back),
+                  Text('Logout'),
+                ],
+              ),
+            ),
             //button with right arrow icon
             ElevatedButton(
               onPressed: () {
@@ -100,6 +111,6 @@ class SettingsFlowImagesPageState extends State<SettingsFlowImagesPage> {
     }
 
     //push material page route
-    EloNav.goSettings();
+    EloNav.goSettings(context, 0, 0);
   }
 }

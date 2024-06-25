@@ -1,57 +1,34 @@
-import 'package:client/components/loading.dart';
 import 'package:client/models/user_model.dart';
 import 'package:client/router.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-class RedirPage extends StatefulWidget {
-  const RedirPage({super.key});
-
-  @override
-  RedirPageState createState() => RedirPageState();
-}
-
-class RedirPageState extends State<RedirPage> {
-  @override
-  void initState() {
-    super.initState();
-
-    var userModel = Provider.of<UserModel>(context, listen: false);
-
-    if (!userModel.isLoading && !userModel.isLoaded && userModel.canLoad()) {
-      userModel.initAll(context);
-    }
+void redir(BuildContext context) {
+  var userModel = Provider.of<UserModel>(context, listen: false);
+  var canLoad = userModel.canLoad();
+  print("canLoad: $canLoad");
+  if (!canLoad) {
+    print("Redirecting to login");
+    EloNav.goLogin(context);
+    return;
   }
 
-  @override
-  Widget build(BuildContext context) {
-    var userModel = Provider.of<UserModel>(context, listen: true);
+  var isLoaded = userModel.isLoaded;
+  var isLoading = userModel.isLoading;
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      var canLoad = userModel.canLoad();
-      if (!canLoad) {
-        EloNav.goLogin();
-        return;
-      }
-
-      var isLoaded = userModel.isLoaded;
-      var isLoading = userModel.isLoading;
-
-      if (isLoaded) {
-        if (!userModel.me.published && userModel.me.images.isEmpty) {
-          EloNav.goSettingsImages();
-          return;
-        }
-        EloNav.goHomeSwipe();
-        return;
-      }
-      if (!isLoading) {
-        userModel.initAll(context);
-      }
-    });
-
-    return const Scaffold(
-        body:
-            Center(child: Loading(text: "Loading User Model For Redirect...")));
+  if (isLoaded) {
+    if (!userModel.me.published && userModel.me.images.isEmpty) {
+      print("Redirecting to settings images");
+      EloNav.goSettingsImages(context);
+      return;
+    }
+    print("Redirecting to home swipe");
+    EloNav.goHomeSwipe(context);
+    return;
+  }
+  if (!isLoading) {
+    userModel.initAll(context).then(
+          (_) => redir(context),
+        );
   }
 }

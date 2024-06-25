@@ -1,7 +1,6 @@
 // ignore_for_file: use_build_context_synchronously
 
 import 'package:client/api/pkg/lib/api.dart';
-import 'package:client/models/page_state_model.dart';
 import 'package:client/models/user_model.dart';
 import 'package:flutter/material.dart';
 import 'package:localstorage/localstorage.dart';
@@ -84,10 +83,8 @@ class RegisterModel extends ChangeNotifier {
     }
 
     var userModel = Provider.of<UserModel>(context, listen: false);
-    var pageStateModel = Provider.of<PageStateModel>(context, listen: false);
 
     userModel.clear();
-    pageStateModel.clear();
 
     localStorage.setItem("jwt", jwt.jwt);
     localStorage.setItem("uuid", jwt.uuid);

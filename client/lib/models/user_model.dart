@@ -61,6 +61,12 @@ class UserModel extends ChangeNotifier {
     isLoaded = false;
   }
 
+  void logout(BuildContext context) {
+    clear();
+    localStorage.clear();
+    EloNav.goLogin(context);
+  }
+
   Future<UserModel> initAll(BuildContext context) async {
     var jwt = localStorage.getItem('jwt');
     if (jwt == null) {
@@ -85,7 +91,7 @@ class UserModel extends ChangeNotifier {
       if (!context.mounted) {
         rethrow;
       }
-      EloNav.goLogin();
+      EloNav.goLogin(context);
       return this;
     }
     await initAdditionalPrefs();

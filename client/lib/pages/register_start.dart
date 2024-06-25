@@ -29,14 +29,20 @@ class RegisterStartPageState extends State<RegisterStartPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Form(
       key: formKey,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
+            "Account Setup",
+            style: theme.textTheme.titleLarge,
+          ),
+          const SizedBox(height: 24),
+          Text(
             "Choose a unique username for your account:",
-            style: TextStyle(fontWeight: FontWeight.bold),
+            style: theme.textTheme.titleMedium,
           ),
           const SizedBox(height: 8),
           TextFormField(
@@ -50,9 +56,9 @@ class RegisterStartPageState extends State<RegisterStartPage> {
                 value!.isEmpty ? 'Username cannot be empty' : null,
           ),
           const SizedBox(height: 20),
-          const Text(
+          Text(
             "Enter your display name:",
-            style: TextStyle(fontWeight: FontWeight.bold),
+            style: theme.textTheme.titleMedium,
           ),
           const SizedBox(height: 8),
           TextFormField(
@@ -66,15 +72,20 @@ class RegisterStartPageState extends State<RegisterStartPage> {
                 value!.isEmpty ? 'Display name cannot be empty' : null,
           ),
           const SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: _submitForm,
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text('Create Account'),
-                Icon(Icons.arrow_forward),
-              ],
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              ElevatedButton(
+                onPressed: _submitForm,
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('Next'),
+                    Icon(Icons.arrow_forward),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -101,7 +112,7 @@ class RegisterStartPageState extends State<RegisterStartPage> {
           .setDisplayName(displayNameController.text);
 
       // Proceed to the next page or complete registration
-      EloNav.goRegisterPassword();
+      EloNav.goRegisterPassword(context);
     } catch (e) {
       if (!mounted) return;
 
