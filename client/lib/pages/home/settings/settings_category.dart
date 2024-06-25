@@ -9,12 +9,10 @@ import '../../../models/user_model.dart';
 
 class SettingsCategory extends StatefulWidget {
   final String category;
-  final VoidCallback onModified;
 
   const SettingsCategory({
     super.key,
     required this.category,
-    required this.onModified,
   });
   @override
   SettingsCategoryState createState() => SettingsCategoryState();
@@ -77,7 +75,6 @@ class SettingsCategoryState extends State<SettingsCategory> {
             onUpdated: (updatedProps) {
               final userModel = Provider.of<UserModel>(context, listen: false);
               userModel.setPropertyGroup(updatedProps, prefs, index);
-              widget.onModified();
             },
           ),
           const SizedBox(height: 20),
@@ -89,7 +86,6 @@ class SettingsCategoryState extends State<SettingsCategory> {
           onUpdated: (updatedPrefs) {
             final userModel = Provider.of<UserModel>(context, listen: false);
             userModel.setPropertyGroup(props, updatedPrefs, index);
-            widget.onModified();
           },
         ),
         const SizedBox(height: 40),

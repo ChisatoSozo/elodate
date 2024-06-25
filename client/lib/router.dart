@@ -1,6 +1,7 @@
 import 'package:client/components/bug_report_button.dart';
 import 'package:client/components/loading.dart';
 import 'package:client/components/user_model_loaded_guard.dart';
+import 'package:client/pages/home/settings/settings_category.dart';
 import 'package:client/pages/home/sliding_home_page.dart';
 import 'package:client/pages/login.dart';
 import 'package:client/pages/redir.dart';
@@ -81,6 +82,7 @@ class EloRouterDelegate extends RouterDelegate<String>
         redir(context);
       });
     }
+    print("building with $_routeStack");
     return Navigator(
       key: navigatorKey,
       pages: [
@@ -108,8 +110,18 @@ class EloRouterDelegate extends RouterDelegate<String>
   }
 
   void push(String newRoute) {
-    print("pushing $newRoute");
-    _routeStack.add(newRoute);
+    //if newRoute is /home/something, and the last route is /home/something, replace, don't push
+    if (_routeStack.isNotEmpty &&
+        _routeStack.last.startsWith('/home/') &&
+        newRoute.startsWith('/home/') &&
+        !newRoute.startsWith('/home/settings/') &&
+        _routeStack.last != newRoute) {
+      _routeStack.last = newRoute;
+    } else if (_routeStack.isNotEmpty && _routeStack.last == newRoute) {
+      return;
+    } else {
+      _routeStack.add(newRoute);
+    }
     notifyListeners();
   }
 
@@ -129,6 +141,26 @@ class EloRouterDelegate extends RouterDelegate<String>
   }
 
   Page _wrapPage(Widget child, BuildContext context, String route) {
+    var routeKey = route;
+    if (route.startsWith('/home/') && !route.startsWith('/home/settings/')) {
+      routeKey = '/home';
+    }
+
+    var nonScrollableRoutes = [
+      '/home/swipe',
+    ];
+
+    if (!nonScrollableRoutes.contains(route)) {
+      child = Center(
+        child: SingleChildScrollView(
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 400),
+            child: child,
+          ),
+        ),
+      );
+    }
+
     var content = Stack(
       clipBehavior: Clip.none,
       children: [
@@ -139,25 +171,16 @@ class EloRouterDelegate extends RouterDelegate<String>
                   title: Text(titleFromPath(route) ?? ''),
                 ),
           resizeToAvoidBottomInset: true,
-          body: Center(
-            child: SingleChildScrollView(
-              child: Center(
-                child: Container(
-                  constraints: const BoxConstraints(maxWidth: 400),
-                  child: child,
-                ),
-              ),
-            ),
-          ),
+          body: child,
         ),
         const BugReportButton()
       ],
     );
     if (route.startsWith('/home/')) {
-      return PageRouteNoAnim(child: content);
+      return PageRouteNoAnim(key: ValueKey(routeKey), child: content);
     }
 
-    return PageRouteSlideAnim(child: content);
+    return PageRouteSlideAnim(key: ValueKey(routeKey), child: content);
   }
 
   Widget _wrapInUserModelLoadedGuard(Widget child) {
@@ -175,9 +198,14 @@ class EloRouterDelegate extends RouterDelegate<String>
           categoryIndex: categoryIndex, groupIndex: groupIndex));
     }
 
-    if (route.startsWith('/home/')) {
+    if (route.startsWith('/home/') && !route.startsWith('/home/settings/')) {
       var tab = route.split("/")[2];
-      return SlidingHomePage(tab: tab);
+      return _wrapInUserModelLoadedGuard(SlidingHomePage(tab: tab));
+    }
+
+    if (route.startsWith('/home/settings/')) {
+      var category = route.split("/")[3];
+      return _wrapInUserModelLoadedGuard(SettingsCategory(category: category));
     }
 
     switch (route) {
