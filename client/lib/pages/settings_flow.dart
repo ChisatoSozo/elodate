@@ -3,7 +3,7 @@ import 'package:client/models/page_state_model.dart';
 import 'package:client/models/user_model.dart';
 import 'package:client/pages/home/settings/prop_pref_components/pref.dart';
 import 'package:client/pages/home/settings/prop_pref_components/prop.dart';
-import 'package:client/router.dart';
+import 'package:client/router/elo_router_nav.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 

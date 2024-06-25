@@ -8,9 +8,7 @@ import 'package:provider/provider.dart';
 import '../../../models/user_model.dart';
 
 class BasicSettings extends StatelessWidget {
-  final VoidCallback onModified;
-
-  const BasicSettings({super.key, required this.onModified});
+  const BasicSettings({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -24,7 +22,6 @@ class BasicSettings extends StatelessWidget {
             labelText: 'Display Name',
             onChanged: (value) {
               userModel.me.displayName = value;
-              onModified();
             },
           ),
           const SizedBox(height: 20),
@@ -33,7 +30,6 @@ class BasicSettings extends StatelessWidget {
             labelText: 'Description',
             onChanged: (value) {
               userModel.me.description = value;
-              onModified();
             },
             maxLines: 10,
           ),
@@ -87,7 +83,6 @@ class BasicSettings extends StatelessWidget {
             } else {
               userModel.me.images = [...userModel.me.images, newUuid];
             }
-            onModified();
           },
           initialUuid: index < userModel.me.images.length
               ? userModel.me.images[index]

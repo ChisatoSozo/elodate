@@ -1,7 +1,7 @@
 import 'package:client/pages/home/home_chat.dart';
-import 'package:client/pages/home/home_swipe.dart';
 import 'package:client/pages/home/settings/settings_categories.dart';
-import 'package:client/router.dart';
+import 'package:client/pages/home/swipe/home_swipe.dart';
+import 'package:client/router/elo_router_nav.dart';
 import 'package:flutter/material.dart';
 
 class SlidingHomePage extends StatefulWidget {

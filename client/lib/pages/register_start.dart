@@ -1,7 +1,7 @@
 import 'package:client/api/pkg/lib/api.dart';
 import 'package:client/models/register_model.dart';
 import 'package:client/models/user_model.dart';
-import 'package:client/router.dart';
+import 'package:client/router/elo_router_nav.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 

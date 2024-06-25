@@ -1,8 +1,8 @@
 import 'package:client/api/pkg/lib/api.dart';
 import 'package:client/components/loading.dart';
-import 'package:client/components/swipe/swipeable_user_card/match_modal.dart';
-import 'package:client/components/swipe/swipeable_user_card/swipeable_user_card.dart';
 import 'package:client/models/user_model.dart';
+import 'package:client/pages/home/swipe/match_modal.dart';
+import 'package:client/pages/home/swipe/swipeable_user_card.dart';
 import 'package:client/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';

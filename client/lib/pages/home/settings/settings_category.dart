@@ -36,9 +36,9 @@ class SettingsCategoryState extends State<SettingsCategory> {
 
   @override
   Widget build(BuildContext context) {
-    var categoryAndGrouExists = categoriesAndGroups
+    var categoryAndGroupExists = categoriesAndGroups
         .any((element) => element.$1.toString() == widget.category);
-    if (!categoryAndGrouExists) {
+    if (!categoryAndGroupExists) {
       return const Text('No data found');
     }
     var categoryAndGroup = categoriesAndGroups

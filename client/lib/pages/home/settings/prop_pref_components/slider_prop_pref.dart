@@ -32,6 +32,7 @@ String formatLabel(int intValue, PreferenceConfigPublic config) {
 
 abstract class BaseSlider<Item> extends StatefulWidget {
   final List<Item> items;
+  final String unsetLabel;
   final List<PreferenceConfigPublic> preferenceConfigs;
   final Function(List<Item>) onUpdated;
 
@@ -39,6 +40,7 @@ abstract class BaseSlider<Item> extends StatefulWidget {
     required this.items,
     required this.preferenceConfigs,
     required this.onUpdated,
+    required this.unsetLabel,
     super.key,
   });
 
@@ -49,7 +51,7 @@ abstract class BaseSlider<Item> extends StatefulWidget {
 abstract class BaseSliderState<Item, UpdateValue, T extends BaseSlider<Item>>
     extends State<T> {
   late PreferenceConfigPublic _preferenceConfig;
-  bool _isUnset = false;
+  bool isUnset();
 
   @override
   void initState() {
@@ -66,14 +68,7 @@ abstract class BaseSliderState<Item, UpdateValue, T extends BaseSlider<Item>>
 
   void updateValue(UpdateValue value);
 
-  void toggleUnset(bool? checked) {
-    setState(() {
-      _isUnset = checked ?? false;
-    });
-    updateUnsetValue();
-  }
-
-  void updateUnsetValue();
+  void updateUnsetValue(bool? newUnset);
 
   Widget buildSlider();
 
@@ -93,16 +88,15 @@ abstract class BaseSliderState<Item, UpdateValue, T extends BaseSlider<Item>>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Opacity(
-          opacity: _isUnset ? 0.5 : 1.0,
+          opacity: isUnset() ? 0.5 : 1.0,
           child: buildSlider(),
         ),
         LabeledCheckbox(
-          alignRight: true,
-          labelOnRight: false,
-          label: 'Unset',
-          checked: _isUnset,
-          onChanged: toggleUnset,
-        ),
+            alignRight: true,
+            labelOnRight: false,
+            label: widget.unsetLabel,
+            checked: isUnset(),
+            onChanged: updateUnsetValue),
       ],
     );
   }
@@ -116,6 +110,7 @@ class PropSlider<T> extends BaseSlider<T> {
     super.key,
   }) : super(
           items: props,
+          unsetLabel: 'No answer',
         );
 
   @override
@@ -127,24 +122,27 @@ class PropSliderState extends BaseSliderState<ApiUserPropsInner, int,
   late int _value;
 
   @override
+  bool isUnset() {
+    return widget.items.first.value == -32768;
+  }
+
+  @override
   void initializeState() {
     _value = widget.items.first.value;
-    _isUnset = _value == -32768;
   }
 
   @override
   void updateValue(int value) {
     setState(() {
       _value = value;
-      _isUnset = false;
     });
     widget.items[0].value = _value;
     widget.onUpdated(widget.items.cast<ApiUserPropsInner>());
   }
 
   @override
-  void updateUnsetValue() {
-    _value = _isUnset ? -32768 : _preferenceConfig.min;
+  void updateUnsetValue(bool? newUnset) {
+    _value = newUnset == true ? -32768 : _preferenceConfig.min;
     updateValue(_value);
   }
 
@@ -154,13 +152,13 @@ class PropSliderState extends BaseSliderState<ApiUserPropsInner, int,
       children: [
         Slider(
           value:
-              _isUnset ? _preferenceConfig.min.toDouble() : _value.toDouble(),
+              isUnset() ? _preferenceConfig.min.toDouble() : _value.toDouble(),
           min: _preferenceConfig.min.toDouble(),
           max: _preferenceConfig.max.toDouble(),
           divisions: _preferenceConfig.max - _preferenceConfig.min,
           onChanged: (value) => updateValue(value.round()),
         ),
-        if (!_isUnset)
+        if (!isUnset())
           Text(
             formatLabel(_value, _preferenceConfig),
             style: Theme.of(context).textTheme.bodySmall,
@@ -187,6 +185,7 @@ class PrefSlider<T> extends BaseSlider<T> {
     super.key,
   }) : super(
           items: prefs,
+          unsetLabel: 'No preference',
         );
 
   @override
@@ -198,26 +197,33 @@ class PrefSliderState extends BaseSliderState<ApiUserPrefsInner,
   late ApiUserPrefsInnerRange range;
 
   @override
+  bool isUnset() {
+    return widget.items.first.range.max == 32767 &&
+        widget.items.first.range.min == -32768;
+  }
+
+  @override
   void initializeState() {
     range = widget.items.first.range;
-    _isUnset = range.min <= _preferenceConfig.min &&
-        range.max >= _preferenceConfig.max;
   }
 
   @override
   void updateValue(ApiUserPrefsInnerRange value) {
+    //are the values min and max? if so, set to -32768 and 32767
+    if (value.min == _preferenceConfig.min &&
+        value.max == _preferenceConfig.max) {
+      value = ApiUserPrefsInnerRange(min: -32768, max: 32767);
+    }
     setState(() {
       range = value;
-      _isUnset = value.min == _preferenceConfig.min &&
-          value.max == _preferenceConfig.max;
     });
     widget.items[0].range = range;
     widget.onUpdated(widget.items.cast<ApiUserPrefsInner>());
   }
 
   @override
-  void updateUnsetValue() {
-    range = _isUnset
+  void updateUnsetValue(bool? newUnset) {
+    range = newUnset == true
         ? ApiUserPrefsInnerRange(min: -32768, max: 32767)
         : ApiUserPrefsInnerRange(
             min: _preferenceConfig.min + 1, max: _preferenceConfig.max);
@@ -229,7 +235,7 @@ class PrefSliderState extends BaseSliderState<ApiUserPrefsInner,
     return Column(
       children: [
         RangeSlider(
-          values: _isUnset
+          values: isUnset()
               ? RangeValues(_preferenceConfig.min.toDouble(),
                   _preferenceConfig.max.toDouble())
               : RangeValues(
@@ -246,7 +252,7 @@ class PrefSliderState extends BaseSliderState<ApiUserPrefsInner,
             max: values.end.round(),
           )),
         ),
-        if (!_isUnset)
+        if (!isUnset())
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [

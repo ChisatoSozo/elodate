@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:client/components/loading.dart';
 import 'package:client/models/register_model.dart';
-import 'package:client/router.dart';
+import 'package:client/router/elo_router_nav.dart';
 import 'package:flutter/material.dart';
 //import local storage package
 import 'package:localstorage/localstorage.dart';

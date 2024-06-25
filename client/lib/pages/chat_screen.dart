@@ -3,10 +3,9 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:client/api/pkg/lib/api.dart';
-import 'package:client/components/chat/chat_bubble.dart';
-import 'package:client/components/elodate_scaffold.dart';
 import 'package:client/components/uuid_image_provider.dart';
 import 'package:client/models/user_model.dart';
+import 'package:client/pages/chat/chat_bubble.dart';
 import 'package:client/utils/utils.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -63,18 +62,19 @@ class ChatScreenState extends State<ChatScreen> {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final chatBarColor = isDarkMode ? Colors.grey[850] : Colors.grey[300];
     final inputFieldColor = isDarkMode ? Colors.grey[800] : Colors.grey[200];
-    final formKey = GlobalKey<FormState>();
 
-    return ElodateScaffold(
-      reverseScrollDirection: true,
+    return Scaffold(
       appBar: AppBar(
         title: Text(widget.displayName),
       ),
-      body: Form(
-        key: formKey,
-        child: _buildMessageList(context),
+      body: Column(
+        children: [
+          Expanded(
+            child: _buildMessageList(context),
+          ),
+          _buildInputSection(chatBarColor!, inputFieldColor!),
+        ],
       ),
-      bottomNavigationBar: _buildInputSection(chatBarColor!, inputFieldColor!),
     );
   }
 
@@ -85,18 +85,22 @@ class ChatScreenState extends State<ChatScreen> {
       itemBuilder: (context, index) {
         final message = _messages[_messages.length - index - 1];
         final isMe = message.author == userModel.me.uuid;
-        return ChatBubble(
-          key: ValueKey(message.uuid),
-          text: message.content,
-          image: _buildMessageImage(message, userModel),
-          isMe: isMe,
-          timestamp: DateTime.fromMillisecondsSinceEpoch(
-            message.sentAt * 1000,
+        return Center(
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 400),
+            child: ChatBubble(
+              key: ValueKey(message.uuid),
+              text: message.content,
+              image: _buildMessageImage(message, userModel),
+              isMe: isMe,
+              timestamp: DateTime.fromMillisecondsSinceEpoch(
+                message.sentAt * 1000,
+              ),
+            ),
           ),
         );
       },
       reverse: true,
-      shrinkWrap: true,
     );
   }
 

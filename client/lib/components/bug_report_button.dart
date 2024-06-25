@@ -32,7 +32,7 @@ class BugReportButtonState extends State<BugReportButton> {
       child: Stack(
         children: [
           Positioned(
-            top: 50,
+            top: 60,
             left: 0,
             child: ElevatedButton(
               onPressed: _loading ? null : _captureScreenshot,

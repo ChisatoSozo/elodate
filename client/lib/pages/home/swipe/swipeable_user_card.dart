@@ -1,12 +1,12 @@
 import 'package:client/api/pkg/lib/api.dart';
 import 'package:client/components/elo_badge.dart';
 import 'package:client/components/loading.dart';
-import 'package:client/components/swipe/swipeable_user_card/page_indicator.dart';
-import 'package:client/components/swipe/swipeable_user_card/swipe_overlay.dart';
-import 'package:client/components/swipe/swipeable_user_card/swipeable_image_view.dart';
-import 'package:client/components/swipe/swipeable_user_card/user_details.dart';
 import 'package:client/components/uuid_image_provider.dart';
 import 'package:client/models/user_model.dart';
+import 'package:client/pages/home/swipe/page_indicator.dart';
+import 'package:client/pages/home/swipe/swipe_overlay.dart';
+import 'package:client/pages/home/swipe/swipeable_image_view.dart';
+import 'package:client/pages/home/swipe/user_details.dart';
 import 'package:flutter/material.dart';
 import 'package:preload_page_view/preload_page_view.dart';
 import 'package:provider/provider.dart';

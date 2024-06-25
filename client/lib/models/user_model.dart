@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:client/api/pkg/lib/api.dart';
-import 'package:client/router.dart';
+import 'package:client/router/elo_router_nav.dart';
 import 'package:client/utils/prefs_utils.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -46,6 +46,13 @@ class UserModel extends ChangeNotifier {
 
   ApiUser get me => _me!;
   bool get loggedIn => _me != null && !isLoading && isLoaded;
+
+  bool _metric = true;
+  bool get metric => _metric;
+  set metric(bool value) {
+    _metric = value;
+    notifyListeners();
+  }
 
   bool canLoad() {
     var jwt = localStorage.getItem('jwt');
