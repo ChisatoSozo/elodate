@@ -39,8 +39,4 @@ impl Save for InternalChat {
     }
 }
 
-impl Bucket for InternalChat {
-    fn bucket() -> &'static str {
-        "chats"
-    }
-}
+impl Bucket for InternalChat {}

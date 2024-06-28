@@ -4,6 +4,7 @@ use std::collections::HashSet;
 
 use super::internal_prefs_config::PREFS_CARDINALITY;
 use super::internal_prefs_config::PREFS_CONFIG;
+use super::internal_prefs_config::P_NONE;
 use super::internal_prefs_config::P_NONE_PROP;
 use super::internal_user::InternalUser;
 use super::shared::GetBbox;
@@ -258,11 +259,14 @@ pub enum Category {
     Future,
     Lgbt,
     Beliefs,
+    Background,
     Hobbies,
     Diet,
     Sexual,
     Substances,
     Lifestyle,
+    RelationshipStyle,
+    Misc,
 }
 
 #[derive(Debug, Apiv2Schema, Clone, PartialEq)]
@@ -285,6 +289,29 @@ pub struct PreferenceConfig {
     pub default: Option<i16>,
     pub probability_to_be_none: f64,
     pub labels: Option<&'static [&'static str]>,
+}
+
+pub const fn default_preference_config() -> PreferenceConfig {
+    PreferenceConfig {
+        name: "default",
+        display: "default",
+        category: Category::Misc,
+        group: "default",
+        ui_element: UIElement::Slider,
+        value_question: "default",
+        range_question: "default",
+        min: 0,
+        max: 4,
+        mean: 2.0,
+        std_dev: 1.0,
+        mean_alteration: MeanAlteration::Set,
+        std_dev_alteration: StdDevAlteration::None,
+        linear_mapping: None,
+        non_optional_message: None,
+        default: None,
+        probability_to_be_none: P_NONE,
+        labels: None,
+    }
 }
 
 impl PreferenceConfig {

@@ -84,8 +84,4 @@ impl InternalMessage {
     }
 }
 
-impl Bucket for InternalMessage {
-    fn bucket() -> &'static str {
-        "messages"
-    }
-}
+impl Bucket for InternalMessage {}

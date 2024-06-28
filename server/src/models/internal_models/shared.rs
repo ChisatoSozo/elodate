@@ -99,5 +99,15 @@ pub trait GetVector {
 }
 
 pub trait Bucket {
-    fn bucket() -> &'static str;
+    fn bucket() -> &'static str {
+        //match the type of the object that implements this trait
+        let type_name = std::any::type_name::<Self>().split("::").last().unwrap();
+        match type_name {
+            "InternalChat" => "chat",
+            "InternalImage" => "image",
+            "InternalUser" => "user",
+            "InternalMessage" => "message",
+            _ => panic!("Unknown bucket"),
+        }
+    }
 }

@@ -5,4 +5,5 @@ pub mod internal_message;
 pub mod internal_prefs;
 pub mod internal_prefs_config;
 pub mod internal_user;
+pub mod migration;
 pub mod shared;

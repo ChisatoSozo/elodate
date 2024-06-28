@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:client/api/pkg/lib/api.dart';
@@ -43,6 +44,7 @@ class UserModel extends ChangeNotifier {
   bool isLoaded = false;
   int numUsersIPrefer = 0;
   int numUsersMutuallyPrefer = 0;
+  bool changes = false;
 
   ApiUser get me => _me!;
   bool get loggedIn => _me != null && !isLoading && isLoaded;
@@ -137,11 +139,13 @@ class UserModel extends ChangeNotifier {
 
   Future<void> setProperty(ApiUserPropsInner property, int index) async {
     me.props[index] = property;
+    changes = true;
     notifyListeners();
   }
 
   Future<void> setPreference(ApiUserPrefsInner preference, int index) async {
     me.prefs[index] = preference;
+    changes = true;
     notifyListeners();
   }
 
@@ -197,6 +201,8 @@ class UserModel extends ChangeNotifier {
   }
 
   Future<void> updateMe() async {
+    changes = false;
+    notifyListeners();
     var result = await client.putUserPost(ApiUserWritable(
       birthdate: me.birthdate,
       description: me.description,
@@ -224,6 +230,19 @@ class UserModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  Timer? _debounceTimer;
+
+  Future<void> updateUsersPerfered() async {
+    if (_debounceTimer?.isActive ?? false) _debounceTimer!.cancel();
+
+    _debounceTimer = Timer(const Duration(milliseconds: 300), _executeUpdate);
+  }
+
+  Future<void> _executeUpdate() async {
+    await getNumUsersIPreferDryRun();
+    await getNumUsersMutuallyPreferDryRun();
+  }
+
   Future<void> getNumUsersIPreferDryRun() async {
     var result = await client.getUsersIPerferCountDryRunPost(me.prefs
         .map((p) => LabeledPreferenceRange(name: p.name, range: p.range))
@@ -243,6 +262,12 @@ class UserModel extends ChangeNotifier {
     }
     numUsersMutuallyPrefer = result;
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    _debounceTimer?.cancel();
   }
 
   Future<List<ApiNotification>> getNotifications() async {

@@ -136,11 +136,7 @@ impl InternalUser {
     }
 }
 
-impl Bucket for InternalUser {
-    fn bucket() -> &'static str {
-        "users"
-    }
-}
+impl Bucket for InternalUser {}
 
 impl Save for InternalUser {
     fn save(self, db: &DB) -> Result<InternalUuid<InternalUser>, Box<dyn Error>> {

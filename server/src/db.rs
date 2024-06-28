@@ -18,7 +18,7 @@ use std::{
 use crate::models::internal_models::{
     internal_prefs_config::PREFS_CARDINALITY,
     internal_user::InternalUser,
-    shared::{GetBbox, GetVector, InternalUuid},
+    shared::{Bucket, GetBbox, GetVector, InternalUuid},
 };
 use crate::vec::search_linear::LinearSearch;
 use crate::vec::shared::VectorSearch;
@@ -97,6 +97,24 @@ impl DB {
         let value_str = if value { "t" } else { "f" };
         let bucket = self.store.bucket::<Raw, String>(Some("raw"))?;
         bucket.set(&key_raw, &value_str.to_string())?;
+        Ok(())
+    }
+
+    pub fn get_version<T: Bucket>(&self) -> Result<u64, kv::Error> {
+        let bucket = self.store.bucket::<String, String>(Some("version"))?;
+        let key = T::bucket();
+        let result = bucket.get(&key.to_string())?;
+        match result {
+            Some(value) => Ok(value.parse::<u64>().unwrap()),
+            None => Ok(0),
+        }
+    }
+
+    pub fn increment_version<T: Bucket>(&self) -> Result<(), kv::Error> {
+        let version = self.get_version::<T>()?;
+        let bucket = self.store.bucket::<String, String>(Some("version"))?;
+        let key = T::bucket();
+        bucket.set(&key.to_string(), &(version + 1).to_string())?;
         Ok(())
     }
 

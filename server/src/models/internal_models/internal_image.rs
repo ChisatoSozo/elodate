@@ -37,8 +37,4 @@ impl Save for InternalImage {
     }
 }
 
-impl Bucket for InternalImage {
-    fn bucket() -> &'static str {
-        "image"
-    }
-}
+impl Bucket for InternalImage {}

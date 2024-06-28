@@ -1,4 +1,5 @@
 import 'package:client/pages/chat_screen.dart';
+import 'package:client/pages/home/settings/prefer_count_and_save.dart';
 import 'package:client/pages/home/settings/settings_basic.dart';
 import 'package:flutter/material.dart';
 
@@ -154,7 +155,13 @@ class EloRouterDelegate extends RouterDelegate<String>
         child: Center(
           child: Container(
             constraints: const BoxConstraints(maxWidth: maxPageWidth),
-            child: child,
+            child: Column(
+              children: [
+                const SizedBox(height: 20),
+                child,
+                const SizedBox(height: 20),
+              ],
+            ),
           ),
         ),
       ),
@@ -162,13 +169,25 @@ class EloRouterDelegate extends RouterDelegate<String>
   }
 
   Widget _buildPageContent(Widget child, String route) {
+    var routeType = _getRouteType(route);
+    Widget? bottomNav;
+    if (routeType == RouteType.homeSettings) {
+      bottomNav = Container(
+          constraints: const BoxConstraints(maxWidth: maxPageWidth),
+          child: const Center(child: PreferCountAndSave()));
+    }
     return Stack(
       clipBehavior: Clip.none,
       children: [
         Scaffold(
           appBar: _buildAppBar(route),
           resizeToAvoidBottomInset: true,
-          body: child,
+          body: Column(
+            children: [
+              Expanded(child: child),
+              if (bottomNav != null) bottomNav,
+            ],
+          ),
         ),
         const BugReportButton()
       ],
