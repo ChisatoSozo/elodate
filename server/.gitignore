@@ -10,3 +10,5 @@ cargo-flamegraph.stacks
 !/public/.gitkeep
 /report/*
 openapi.json
+*.log
+access_codes.json

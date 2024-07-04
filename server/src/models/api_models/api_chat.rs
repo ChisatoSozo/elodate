@@ -9,7 +9,7 @@ use crate::models::internal_models::{
 
 use super::shared::ApiUuid;
 
-#[derive(Debug, Clone, Serialize, Deserialize, Apiv2Schema)]
+#[derive(Debug, Serialize, Deserialize, Apiv2Schema)]
 pub struct ApiChat {
     pub uuid: ApiUuid<InternalChat>,
     pub users: Vec<ApiUuid<InternalUser>>,

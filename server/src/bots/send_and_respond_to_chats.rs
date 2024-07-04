@@ -76,7 +76,7 @@ pub fn send_and_respond_to_chats(
             }
         }
         Err(e) => {
-            println!("Error fetching chats: {:?}", e);
+            log::error!("Error fetching chats: {:?}", e);
         }
     }
     Ok(())

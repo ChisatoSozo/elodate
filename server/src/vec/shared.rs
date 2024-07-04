@@ -5,7 +5,7 @@ use std::hash::Hasher;
 use serde::Deserialize;
 use serde::Serialize;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct LabelPairVec<const N: usize> {
     pub label: String,
     #[serde(
@@ -29,7 +29,7 @@ impl<const N: usize> Hash for LabelPairVec<N> {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct LabelPairBbox<const N: usize> {
     pub label: String,
     pub bbox: Bbox<N>,
@@ -49,7 +49,7 @@ impl<const N: usize> Hash for LabelPairBbox<N> {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Bbox<const N: usize> {
     #[serde(
         serialize_with = "array_helpers::serialize",

@@ -29,7 +29,7 @@ async fn put_user(
         //did they choose a new username, and it already exists
         if new_user.username != user.username {
             let user_with_username = db.get_user_by_username(&new_user.username).map_err(|e| {
-                println!("Failed to get user by username {:?}", e);
+                log::error!("Failed to get user by username {:?}", e);
                 actix_web::error::ErrorInternalServerError("Failed to get user by username")
             })?;
             if user_with_username.is_some() {
@@ -37,9 +37,14 @@ async fn put_user(
             }
         }
 
-        let new_user_internal = new_user.to_internal(db)?;
+        let mut new_user_internal = new_user.to_internal(db, false)?;
+        let publish_message = new_user_internal.publishable_msg();
+
+        let publishable = publish_message.is_empty();
+
+        new_user_internal.published = publishable;
         new_user_internal.save(db).map_err(|e| {
-            println!("Failed to save user {:?}", e);
+            log::error!("Failed to save user {:?}", e);
             actix_web::error::ErrorInternalServerError("Failed to save user")
         })?;
 

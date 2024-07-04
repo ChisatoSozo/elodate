@@ -10,7 +10,7 @@ use super::{
     shared::{Bucket, InternalUuid},
 };
 
-#[derive(Debug, Clone, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
+#[derive(Debug, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
 #[archive(compare(PartialEq), check_bytes)]
 pub struct InternalMessage {
     pub uuid: InternalUuid<InternalMessage>,

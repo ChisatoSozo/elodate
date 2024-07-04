@@ -93,7 +93,7 @@ fn run_test_suite() {
         let search_bbox_result: Vec<_> = search_bbox.search_inverse(first_vec, None).collect();
         let duration_search_inverse = start_search_inverse.elapsed();
 
-        println!(
+        log::info!(
             "------{} Search Test Results for DIM = {}, N = {}------\nVecs: {}\nConstruct: {:?}\nSearch: {:?}\n\nBboxes: {}\nConstruct: {:?}\nSearch: {:?}\n",
             search_type,
             N,

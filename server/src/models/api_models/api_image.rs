@@ -9,7 +9,7 @@ use crate::test::fake::Gen;
 use super::super::internal_models::internal_image::InternalImage;
 use super::shared::ApiUuid;
 
-#[derive(Debug, Clone, Deserialize, Apiv2Schema)]
+#[derive(Debug, Deserialize, Apiv2Schema)]
 pub struct ApiImageWritable {
     pub content: Vec<u8>,
 }
@@ -42,7 +42,7 @@ impl ApiImageWritable {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Apiv2Schema)]
+#[derive(Debug, Serialize, Apiv2Schema)]
 pub struct ApiImage {
     pub uuid: ApiUuid<InternalImage>,
     pub content: String,

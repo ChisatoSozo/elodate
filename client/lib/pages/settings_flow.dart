@@ -22,6 +22,8 @@ class SettingsFlowPageState extends State<SettingsFlowPage> {
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
   final FocusNode _buttonFocusNode = FocusNode();
   bool _loading = false;
+  bool _loadingFinish = false;
+  String? _error;
 
   @override
   void initState() {
@@ -44,6 +46,27 @@ class SettingsFlowPageState extends State<SettingsFlowPage> {
         List<(String, List<PreferenceConfigPublic>, int)>
       )> categories;
 
+  Future<void> finish(BuildContext context) async {
+    var userModel = Provider.of<UserModel>(context, listen: false);
+    try {
+      await userModel.updateMe();
+    } catch (e) {
+      setState(() {
+        _loadingFinish = false;
+        _error = e.toString();
+      });
+      return;
+    }
+    if (!context.mounted) {
+      setState(() {
+        _loadingFinish = false;
+        _error = 'Failed to update user, ctx not mounted?';
+      });
+      return;
+    }
+    EloNav.goRedir(context);
+  }
+
   Future<void> advanceGroup(BuildContext context) async {
     var newGroupIndex = widget.groupIndex;
     var newCategoryIndex = widget.categoryIndex;
@@ -53,12 +76,7 @@ class SettingsFlowPageState extends State<SettingsFlowPage> {
       newCategoryIndex++;
       newGroupIndex = 0;
     } else {
-      var userModel = Provider.of<UserModel>(context, listen: false);
-      await userModel.updateMe();
-      if (!context.mounted) {
-        throw Exception('Context is not mounted');
-      }
-      EloNav.goRedir(context);
+      await finish(context);
       return;
     }
     EloNav.goSettings(context, newCategoryIndex, newGroupIndex);
@@ -104,7 +122,7 @@ class SettingsFlowPageState extends State<SettingsFlowPage> {
           Prop(
               configs: configs,
               props: props,
-              onUpdated: (props) {
+              onUpdated: (_) {
                 userModel.setPropertyGroup(props, prefs, index);
                 setState(() {});
               }),
@@ -116,12 +134,14 @@ class SettingsFlowPageState extends State<SettingsFlowPage> {
         Pref(
             configs: configs,
             prefs: prefs,
-            onUpdated: (prefs) {
+            onUpdated: (_) {
               userModel.setPropertyGroup(props, prefs, index);
               setState(() {});
             }),
         //next button
-        const SizedBox(height: 40),
+        const SizedBox(height: 20),
+        if (_error != null) Text(_error!),
+        const SizedBox(height: 20),
         Row(
           //align buttons left and right
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -140,13 +160,18 @@ class SettingsFlowPageState extends State<SettingsFlowPage> {
                 ],
               ),
             ),
+
             if (widget.categoryIndex > 0)
               ElevatedButton(
-                onPressed: () {
-                  //pop one page
-                  EloNav.goHomeSwipe(context);
+                onPressed: () async {
+                  setState(() {
+                    _loadingFinish = true;
+                  });
+                  await finish(context);
                 },
-                child: const Text('Skip All'),
+                child: _loadingFinish
+                    ? const Text('Loading...')
+                    : const Text('Skip All'),
               ),
             //button with right arrow icon
             ElevatedButton(

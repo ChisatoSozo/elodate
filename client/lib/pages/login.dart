@@ -36,15 +36,14 @@ class LoginPageState extends State<LoginPage> {
     try {
       await Provider.of<RegisterModel>(context, listen: false)
           .login(_usernameController.text, _passwordController.text, context);
-
       if (!mounted) return;
-      EloNav.goHomeSwipe(context);
+      EloNav.goRedir(context);
+      setState(() {
+        _loggingIn = false;
+      });
     } catch (e) {
       setState(() {
         _error = formatApiError(e.toString());
-      });
-    } finally {
-      setState(() {
         _loggingIn = false;
       });
     }
@@ -88,9 +87,24 @@ class LoginPageState extends State<LoginPage> {
               validator: (value) =>
                   value!.isEmpty ? 'Please enter your password' : null,
             ),
+            if (_error != null) ...[
+              const SizedBox(height: 20),
+              Text(
+                _error!,
+                style: const TextStyle(color: Colors.red),
+                textAlign: TextAlign.center,
+              ),
+            ],
             const SizedBox(height: 20),
             const Text(
-              "This is an INDEV build of elodate. You are likely to encounter bugs. Please report them. We have migration now, so your profile (with high likelihood) won't be randomly deleted.",
+              "Welcome to the Elodate alpha! 🚀\n\n"
+              "To get the most out of this early version:\n"
+              "1. Set your own properties (sliders) ✅\n"
+              "2. Leave most preferences (ranges) unset for now ⏳\n"
+              "3. Set your location preference to 'Global' 🌍\n\n"
+              "Expect bugs - we're still growing! 🐛\n"
+              "Found an issue or have a suggestion? Tap the button in the top left to let us know. Your input shapes Elodate's future!\n\n"
+              "Thank you for being an early adopter! 💖",
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 20),
@@ -121,14 +135,6 @@ class LoginPageState extends State<LoginPage> {
                 ),
               ],
             ),
-            if (_error != null) ...[
-              const SizedBox(height: 20),
-              Text(
-                _error!,
-                style: const TextStyle(color: Colors.red),
-                textAlign: TextAlign.center,
-              ),
-            ],
           ],
         ),
       ),

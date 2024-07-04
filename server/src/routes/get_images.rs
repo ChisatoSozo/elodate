@@ -27,7 +27,7 @@ pub fn get_images(
             .map(|image_uuid| {
                 let internal_image_uuid: InternalUuid<InternalImage> = image_uuid.into();
                 let image = internal_image_uuid.load(db).map_err(|e| {
-                    println!("Failed to get image {:?}", e);
+                    log::error!("Failed to get image {:?}", e);
                     actix_web::error::ErrorInternalServerError("Failed to get image")
                 })?;
 

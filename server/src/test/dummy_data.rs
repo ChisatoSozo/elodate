@@ -16,11 +16,11 @@ fn insert_dummy_data() -> Result<(), Box<dyn std::error::Error>> {
 
     use bcrypt::hash;
 
-    println!("Destroying db");
+    log::info!("Destroying db");
     DB::destroy_database_for_real_dangerous("dummy");
-    println!("Creating db");
+    log::info!("Creating db");
     let db = DB::new("dummy").unwrap();
-    println!("inserting dummy data");
+    log::info!("inserting dummy data");
 
     let mut uuids = vec![];
 
@@ -28,17 +28,17 @@ fn insert_dummy_data() -> Result<(), Box<dyn std::error::Error>> {
     let count = 1000;
     for i in 0..count {
         if i % 10 == 0 {
-            println!("Inserted {} users", i);
+            log::info!("Inserted {} users", i);
         }
         let user: ApiUserWritable = ApiUserWritable::gen(&db);
-        let user: InternalUser = user.to_internal(&db)?;
+        let user: InternalUser = user.to_internal(&db, true)?;
         uuids.push(user.uuid.clone());
         user.save(&db)?;
     }
     let end_time = start_time.elapsed();
-    println!("Inserted {} users in {:?}", count, end_time);
-    println!("That's a user every {:?}", end_time / count as u32);
-    println!(
+    log::info!("Inserted {} users in {:?}", count, end_time);
+    log::info!("That's a user every {:?}", end_time / count as u32);
+    log::info!(
         "Or, {} users per second",
         count as f64 / end_time.as_secs_f64()
     );
@@ -55,17 +55,18 @@ fn insert_dummy_data() -> Result<(), Box<dyn std::error::Error>> {
         format!("{:.2} gb", size_on_disk as f64 / 1024.0 / 1024.0 / 1024.0)
     };
 
-    println!("Database size on disk: {}", size_on_disk);
+    log::info!("Database size on disk: {}", size_on_disk);
 
     //upsert main user
     let mut user: ApiUserWritable = ApiUserWritable::gen(&db);
     user.is_bot = false;
-    let mut user: InternalUser = user.to_internal(&db).unwrap();
+    let mut user: InternalUser = user.to_internal(&db, true).unwrap();
     user.published = true;
     user.username = "asdf".to_string();
     user.hashed_password = hash("asdfasdf", 4)?;
 
-    user.clone().save(&db).unwrap();
+    let uuid = user.save(&db).unwrap();
+    let mut user = uuid.load(&db).unwrap().unwrap();
 
     //upsert chats
     for n in 0..5 {

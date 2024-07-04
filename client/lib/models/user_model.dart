@@ -44,8 +44,9 @@ class UserModel extends ChangeNotifier {
   bool isLoaded = false;
   int numUsersIPrefer = 0;
   int numUsersMutuallyPrefer = 0;
-  bool changes = false;
+  bool _changes = false;
 
+  bool get changes => _changes;
   ApiUser get me => _me!;
   bool get loggedIn => _me != null && !isLoading && isLoaded;
 
@@ -54,6 +55,12 @@ class UserModel extends ChangeNotifier {
   set metric(bool value) {
     _metric = value;
     notifyListeners();
+  }
+
+  bool setChanges(bool value) {
+    _changes = value;
+    notifyListeners();
+    return value;
   }
 
   bool canLoad() {
@@ -79,13 +86,11 @@ class UserModel extends ChangeNotifier {
   Future<UserModel> initAll(BuildContext context) async {
     var jwt = localStorage.getItem('jwt');
     if (jwt == null) {
-      print("No JWT found");
       throw Exception('No JWT found');
     }
 
     var uuid = localStorage.getItem('uuid');
     if (uuid == null) {
-      print("No UUID found");
       throw Exception('No UUID found');
     }
 
@@ -100,12 +105,13 @@ class UserModel extends ChangeNotifier {
       if (!context.mounted) {
         rethrow;
       }
-      EloNav.goLogin(context);
-      return this;
+      if (EloNav.currentRoute(context) != '/login') {
+        EloNav.goLogin(context);
+        return this;
+      }
+      rethrow;
     }
     await initAdditionalPrefs();
-    await getNumUsersIPreferDryRun();
-    await getNumUsersMutuallyPreferDryRun();
     isLoading = false;
     isLoaded = true;
     notifyListeners();
@@ -139,13 +145,13 @@ class UserModel extends ChangeNotifier {
 
   Future<void> setProperty(ApiUserPropsInner property, int index) async {
     me.props[index] = property;
-    changes = true;
+    _changes = true;
     notifyListeners();
   }
 
   Future<void> setPreference(ApiUserPrefsInner preference, int index) async {
     me.prefs[index] = preference;
-    changes = true;
+    _changes = true;
     notifyListeners();
   }
 
@@ -201,7 +207,7 @@ class UserModel extends ChangeNotifier {
   }
 
   Future<void> updateMe() async {
-    changes = false;
+    _changes = false;
     notifyListeners();
     var result = await client.putUserPost(ApiUserWritable(
       birthdate: me.birthdate,
@@ -218,12 +224,6 @@ class UserModel extends ChangeNotifier {
 
     if (result == null) {
       throw Exception('Failed to update me');
-    }
-
-    result = await client.setPublishedPost(true);
-
-    if (result == null) {
-      throw Exception('Failed to publish me');
     }
 
     await initMe();

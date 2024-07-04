@@ -20,7 +20,7 @@ use crate::{
     routes::shared::route_body_mut_db,
 };
 
-#[derive(Debug, Clone, Deserialize, Apiv2Schema)]
+#[derive(Debug, Deserialize, Apiv2Schema)]
 struct SendMessageInput {
     chat_uuid: ApiUuid<InternalChat>,
     message: ApiMessageWritable,
@@ -40,7 +40,7 @@ pub fn send_message(
         let internal_chat_uuid: InternalUuid<InternalChat> = chat_uuid.into();
 
         let chat = internal_chat_uuid.load(db).map_err(|e| {
-            println!("Failed to get chat {:?}", e);
+            log::error!("Failed to get chat {:?}", e);
             actix_web::error::ErrorInternalServerError("Failed to get chat")
         })?;
 
@@ -57,7 +57,7 @@ pub fn send_message(
         let internal_message = message.into_internal(&user, &chat, db)?;
 
         internal_message.save(&mut chat, db).map_err(|e| {
-            println!("Failed to save message {:?}", e);
+            log::error!("Failed to save message {:?}", e);
             actix_web::error::ErrorInternalServerError("Failed to save message")
         })?;
 

@@ -11,6 +11,7 @@ use rkyv::{
     AlignedVec, Archive, Deserialize, Infallible, Serialize,
 };
 use std::{
+    mem,
     path::Path,
     sync::{Arc, Mutex},
 };
@@ -26,6 +27,16 @@ use crate::vec::shared::VectorSearch;
 pub const SCRATCH_SPACE_SIZE: usize = 8192;
 pub type DefaultSerializer = AllocSerializer<SCRATCH_SPACE_SIZE>;
 
+pub struct PubStore {
+    pub config: Config,
+    pub db: sled::Db,
+}
+
+pub fn flush(store: &Store) -> Result<usize, sled::Error> {
+    let public_struct = unsafe { mem::transmute::<_, &PubStore>(store) };
+    public_struct.db.flush()
+}
+
 pub struct DB {
     pub store: Store,
     pub vec_index: Arc<Mutex<LinearSearch<PREFS_CARDINALITY>>>,
@@ -34,7 +45,7 @@ pub struct DB {
 
 impl DB {
     pub fn new(path: &str) -> Result<Self, kv::Error> {
-        println!("Opening database");
+        log::info!("Opening database");
         let db_path = "db/".to_owned() + path;
 
         let cfg = Config::new(db_path.clone() + "/kv");
@@ -47,23 +58,19 @@ impl DB {
             path: db_path,
         };
 
-        let users = db.iter_obj::<InternalUser>("users");
-
-        let users = match users {
-            Ok(users) => users,
-            Err(_) => {
-                println!("No users found in database");
-                return Ok(db);
-            }
-        };
+        let users = db.iter_obj::<InternalUser>(InternalUser::bucket())?;
 
         for user in users {
             let user = user.unwrap();
             let mut vec_index = db.vec_index.lock().unwrap();
             let bbox = user.prefs.get_bbox();
             let vec = user.props.get_vector();
-            vec_index.add(&vec, &user.uuid.id);
-            vec_index.add_bbox(&bbox, &user.uuid.id);
+            if user.published {
+                vec_index.add(&vec, &user.uuid.id);
+                vec_index.add_bbox(&bbox, &user.uuid.id);
+            } else {
+                log::info!("User not published, not adding to vec index")
+            }
         }
 
         Ok(db)
@@ -74,6 +81,10 @@ impl DB {
             return;
         }
         std::fs::remove_dir_all("db/".to_owned() + path).unwrap();
+    }
+
+    pub fn flush(&self) -> Result<usize, sled::Error> {
+        flush(&self.store)
     }
 
     pub fn get_flag(&self, key: &str) -> Result<bool, Box<dyn std::error::Error>> {
@@ -118,12 +129,18 @@ impl DB {
         Ok(())
     }
 
-    pub fn write_index<T>(
+    pub fn write_index<T: Bucket>(
         &self,
         view: &str,
         value: &String,
         uuid: &InternalUuid<T>,
     ) -> Result<(), kv::Error> {
+        log::info!(
+            "Writing index value {:?} to view {:?} with uuid {:?}",
+            value,
+            view,
+            uuid.id
+        );
         let bucket = self.store.bucket::<String, String>(Some(view))?;
         bucket.set(value, &uuid.id)?;
         Ok(())
@@ -144,25 +161,32 @@ impl DB {
 
     pub fn write_object<T>(
         &self,
-        bucket: &str,
         key: &InternalUuid<T>,
         object: &T,
     ) -> Result<InternalUuid<T>, Box<dyn std::error::Error>>
     where
         T: Serialize<
-            CompositeSerializer<
-                AlignedSerializer<AlignedVec>,
-                FallbackScratch<HeapScratch<SCRATCH_SPACE_SIZE>, AllocScratch>,
-                SharedSerializeMap,
-            >,
-        >,
+                CompositeSerializer<
+                    AlignedSerializer<AlignedVec>,
+                    FallbackScratch<HeapScratch<SCRATCH_SPACE_SIZE>, AllocScratch>,
+                    SharedSerializeMap,
+                >,
+            > + Bucket,
     {
         let mut serializer = DefaultSerializer::default();
         serializer.serialize_value(object).unwrap();
         let bytes = serializer.into_serializer().into_inner();
-        let bucket = self.store.bucket::<Raw, Raw>(Some(bucket))?;
+        let bucket = self.store.bucket::<Raw, Raw>(Some(T::bucket()))?;
         let key_raw = Raw::from(key.id.as_bytes());
         let value_raw = Raw::from(bytes.as_slice());
+        let contains = bucket.contains(&key_raw)?;
+        if !contains {
+            log::info!(
+                "Writing new object to db: {:?}, it's a {:?}",
+                key.id,
+                T::bucket()
+            );
+        }
         bucket.set(&key_raw, &value_raw)?;
         Ok(key.id.clone().into())
     }

@@ -65,7 +65,7 @@ pub fn fetch_users_and_swipe(
             }
         }
         Err(e) => {
-            println!("Error fetching users: {}", e);
+            log::error!("Error fetching users: {}", e);
         }
     }
     Ok(())

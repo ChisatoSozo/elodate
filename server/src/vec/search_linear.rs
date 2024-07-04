@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use super::shared::{Bbox, LabelPairBbox, LabelPairVec, VectorSearch};
 use std::collections::HashSet;
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct LinearSearch<const N: usize> {
     vec_labels: HashSet<String>,
     bbox_labels: HashSet<String>,
@@ -62,7 +62,7 @@ impl<const N: usize> VectorSearch<N> for LinearSearch<N> {
                 }
                 for i in 0..N {
                     if label_pair.vec[i] < bbox.min[i] || label_pair.vec[i] > bbox.max[i] {
-                        // println!(
+                        // log::info!(
                         //     "[SRCH] idx: {}, min: {}, max: {}, loc: {}",
                         //     i, bbox.min[i], bbox.max[i], label_pair.vec[i]
                         // );
@@ -90,7 +90,7 @@ impl<const N: usize> VectorSearch<N> for LinearSearch<N> {
                 for i in 0..N {
                     if label_pair.bbox.min[i] > location[i] || label_pair.bbox.max[i] < location[i]
                     {
-                        // println!(
+                        // log::info!(
                         //     "[INV] idx: {}, min: {}, max: {}, loc: {}",
                         //     i, label_pair.bbox.min[i], label_pair.bbox.max[i], location[i]
                         // );

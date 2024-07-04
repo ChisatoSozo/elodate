@@ -22,6 +22,7 @@ class BasicSettings extends StatelessWidget {
             labelText: 'Display Name',
             onChanged: (value) {
               userModel.me.displayName = value;
+              userModel.setChanges(true);
             },
           ),
           const SizedBox(height: 20),
@@ -30,6 +31,7 @@ class BasicSettings extends StatelessWidget {
             labelText: 'Description',
             onChanged: (value) {
               userModel.me.description = value;
+              userModel.setChanges(true);
             },
             maxLines: 10,
           ),
@@ -83,6 +85,7 @@ class BasicSettings extends StatelessWidget {
             } else {
               userModel.me.images = [...userModel.me.images, newUuid];
             }
+            userModel.setChanges(true);
           },
           initialUuid: index < userModel.me.images.length
               ? userModel.me.images[index]

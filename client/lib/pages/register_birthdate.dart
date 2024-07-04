@@ -14,6 +14,7 @@ class RegisterBirthdatePage extends StatefulWidget {
 class RegisterBirthdatePageState extends State<RegisterBirthdatePage> {
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
   final TextEditingController birthdateController = TextEditingController();
+  bool dateSelectorHasBeenOpened = false;
   DateTime? selectedDate;
 
   @override
@@ -34,7 +35,9 @@ class RegisterBirthdatePageState extends State<RegisterBirthdatePage> {
               labelText: 'Birthdate (YYYY-MM-DD)',
               border: OutlineInputBorder(),
             ),
-            onTap: () => _selectDate(context),
+            onTap: () => {
+              if (!dateSelectorHasBeenOpened) _selectDate(context),
+            },
             validator: (value) => _validateBirthdate(value),
           ),
           const SizedBox(height: 20),
@@ -59,6 +62,9 @@ class RegisterBirthdatePageState extends State<RegisterBirthdatePage> {
   }
 
   Future<void> _selectDate(BuildContext context) async {
+    setState(() {
+      dateSelectorHasBeenOpened = true;
+    });
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: selectedDate ?? DateTime.now(),
@@ -93,6 +99,11 @@ class RegisterBirthdatePageState extends State<RegisterBirthdatePage> {
 
     // Assuming validation passed and setting the birthdate in the model
     if (!mounted) return;
+
+    if (selectedDate == null && birthdateController.text.isNotEmpty) {
+      //parse
+      selectedDate = DateTime.tryParse(birthdateController.text);
+    }
 
     Provider.of<RegisterModel>(context, listen: false)
         .setBirthdate(selectedDate!.millisecondsSinceEpoch ~/ 1000);

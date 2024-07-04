@@ -29,7 +29,7 @@ pub fn get_users(
                 internal_uuid
                     .load(db)
                     .map_err(|e| {
-                        println!("Failed to get user by uuid {:?}", e);
+                        log::error!("Failed to get user by uuid {:?}", e);
                         actix_web::error::ErrorInternalServerError("Failed to get user by uuid")
                     })
                     .and_then(|user| {
@@ -40,7 +40,7 @@ pub fn get_users(
 
         let api_users: Vec<ApiUser> = users
             .into_iter()
-            .map(|internal_user| ApiUser::from_internal(internal_user, &user))
+            .map(|internal_user| ApiUser::from_internal(internal_user, Some(&user)))
             .collect::<Result<Vec<_>, _>>()?;
         Ok(api_users)
     })

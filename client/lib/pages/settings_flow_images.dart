@@ -1,6 +1,9 @@
+import 'dart:convert';
+
 import 'package:client/models/user_model.dart';
 import 'package:client/pages/home/settings/image_picker.dart';
 import 'package:client/router/elo_router_nav.dart';
+import 'package:client/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -43,14 +46,18 @@ class SettingsFlowImagesPageState extends State<SettingsFlowImagesPage> {
           itemCount: 6,
           itemBuilder: (context, index) {
             return AdaptiveFilePicker(
-              onUuidChanged: (newUuid) {
+              onUuidChanged: (newUuid) async {
+                if (index == 0) {
+                  var image = await userModel.getImage(newUuid);
+                  var imageBytes = base64Decode(image.content);
+                  var newBytes = await makePreview(imageBytes);
+                  var previewUuid = await userModel.putImage(newBytes, null);
+                  userModel.me.previewImage = previewUuid;
+                }
                 if (index < userModel.me.images.length) {
                   userModel.me.images[index] = newUuid;
                 } else {
-                  userModel.me.images = [
-                    ...userModel.me.images,
-                    newUuid,
-                  ];
+                  userModel.me.images = [...userModel.me.images, newUuid];
                 }
               },
               initialUuid: index < userModel.me.images.length
@@ -109,6 +116,8 @@ class SettingsFlowImagesPageState extends State<SettingsFlowImagesPage> {
       );
       return;
     }
+
+    userModel.updateMe();
 
     //push material page route
     EloNav.goSettings(context, 0, 0);

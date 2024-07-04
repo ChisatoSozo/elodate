@@ -2,6 +2,7 @@
 
 import 'package:client/api/pkg/lib/api.dart';
 import 'package:client/models/user_model.dart';
+import 'package:client/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:localstorage/localstorage.dart';
 import 'package:provider/provider.dart';
@@ -37,7 +38,7 @@ class RegisterModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<Jwt?> register() async {
+  Future<Jwt?> register(String accessCode) async {
     if (_username == null || _username!.isEmpty) {
       throw Exception('Username is required');
     }
@@ -51,44 +52,54 @@ class RegisterModel extends ChangeNotifier {
       throw Exception('Birthdate is required');
     }
 
-    var input = ApiUserWritable(
-        birthdate: _birthdate!,
-        description: '',
-        displayName: _displayName!,
-        prefs: [],
-        props: [],
-        username: _username!,
-        password: _password!,
-        images: [],
-        isBot: false,
-        uuid: '');
-    var jwt = constructClient(null).signupPost(input);
-
-    return jwt;
+    var input = SignupInput(
+      user: SignupInputUser(
+          birthdate: _birthdate!,
+          description: '',
+          displayName: _displayName!,
+          prefs: [],
+          props: [],
+          username: _username!,
+          password: _password!,
+          images: [],
+          isBot: false,
+          uuid: ''),
+      accessCode: accessCode,
+    );
+    try {
+      var jwt = constructClient(null).signupPost(input);
+      return jwt;
+    } catch (e) {
+      throw Exception('Failed to register, $e');
+    }
   }
 
   Future<Jwt> login(
       String username, String password, BuildContext context) async {
     var input = LoginRequest(username: username, password: password);
-    var jwt = await constructClient(null).loginPost(input);
+    try {
+      var jwt = await constructClient(null).loginPost(input);
 
-    if (jwt == null) {
-      throw Exception('Failed to login');
+      if (jwt == null) {
+        throw Exception('Failed to login');
+      }
+
+      localStorage.clear();
+
+      if (context.mounted == false) {
+        throw Exception('Context is not mounted');
+      }
+
+      var userModel = Provider.of<UserModel>(context, listen: false);
+
+      userModel.clear();
+
+      localStorage.setItem("jwt", jwt.jwt);
+      localStorage.setItem("uuid", jwt.uuid);
+
+      return jwt;
+    } catch (e) {
+      throw Exception('Failed to login, ${formatApiError(e.toString())}');
     }
-
-    localStorage.clear();
-
-    if (context.mounted == false) {
-      throw Exception('Context is not mounted');
-    }
-
-    var userModel = Provider.of<UserModel>(context, listen: false);
-
-    userModel.clear();
-
-    localStorage.setItem("jwt", jwt.jwt);
-    localStorage.setItem("uuid", jwt.uuid);
-
-    return jwt;
   }
 }

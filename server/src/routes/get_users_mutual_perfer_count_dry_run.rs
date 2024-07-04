@@ -13,7 +13,7 @@ use crate::{
     routes::shared::route_body_mut_db,
 };
 
-#[derive(Debug, Clone, Deserialize, Apiv2Schema)]
+#[derive(Debug,  Deserialize, Apiv2Schema)]
 pub struct PropsAndPrefs {
     pub props: Vec<LabeledProperty>,
     pub prefs: Vec<LabeledPreferenceRange>,

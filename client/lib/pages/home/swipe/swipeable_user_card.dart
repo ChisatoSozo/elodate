@@ -7,6 +7,7 @@ import 'package:client/pages/home/swipe/page_indicator.dart';
 import 'package:client/pages/home/swipe/swipe_overlay.dart';
 import 'package:client/pages/home/swipe/swipeable_image_view.dart';
 import 'package:client/pages/home/swipe/user_details.dart';
+import 'package:client/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:preload_page_view/preload_page_view.dart';
 import 'package:provider/provider.dart';
@@ -127,13 +128,14 @@ class SwipeableUserCardState extends State<SwipeableUserCard>
 
   @override
   Widget build(BuildContext context) {
+    var pageWidth = calcPageWidth(context);
     return GestureDetector(
       onPanUpdate: _onPanUpdate,
       onPanEnd: _onPanEnd,
       onTapUp: (details) => _onTapUp(details, context),
       child: Center(
         child: SizedBox(
-          width: 400,
+          width: pageWidth,
           child: Transform.translate(
             offset: _cardOffset,
             child: Transform.rotate(

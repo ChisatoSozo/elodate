@@ -6,7 +6,7 @@ use paperclip::actix::{api_v2_operation, post, web::Json, Apiv2Schema};
 use serde::Deserialize;
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Deserialize, Apiv2Schema)]
+#[derive(Debug, Deserialize, Apiv2Schema)]
 struct ReportBugInput {
     content: String,
     imageb64: String,
@@ -18,13 +18,13 @@ fn report_bug(body: Json<ReportBugInput>) -> Result<Json<bool>, Error> {
     //decode image64
     #[allow(deprecated)]
     let bytes = base64::decode(&body.imageb64).map_err(|e| {
-        println!("Failed to decode image {:?}", e);
+        log::error!("Failed to decode image {:?}", e);
         std::io::Error::new(std::io::ErrorKind::Other, "Failed to decode image")
     })?;
     //autodetect format and convert to jpg
     let img = image::load_from_memory(&bytes)
         .map_err(|e| {
-            println!("Failed to load image {:?}", e);
+            log::error!("Failed to load image {:?}", e);
             std::io::Error::new(std::io::ErrorKind::Other, "Failed to load image")
         })?
         .to_rgb8();
@@ -37,7 +37,7 @@ fn report_bug(body: Json<ReportBugInput>) -> Result<Json<bool>, Error> {
             image::ExtendedColorType::Rgb8,
         )
         .map_err(|e| {
-            println!("Failed to encode image {:?}", e);
+            log::error!("Failed to encode image {:?}", e);
             std::io::Error::new(std::io::ErrorKind::Other, "Failed to encode image")
         })?;
     //save image

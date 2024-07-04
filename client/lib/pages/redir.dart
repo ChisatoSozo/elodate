@@ -22,6 +22,11 @@ void redir(BuildContext context) {
       EloNav.goSettingsImages(context);
       return;
     }
+    if (!userModel.me.published) {
+      print("Redirecting to settings categories");
+      EloNav.goSettings(context, 0, 0);
+      return;
+    }
     print("Redirecting to home swipe");
     EloNav.goHomeSwipe(context);
     return;

@@ -41,7 +41,7 @@ pub fn rate(
         let target = body.target;
         let target_internal_user_uuid: InternalUuid<InternalUser> = target.into();
         let target = target_internal_user_uuid.load(db).map_err(|e| {
-            println!("Failed to get target user by uuid {:?}", e);
+            log::error!("Failed to get target user by uuid {:?}", e);
             actix_web::error::ErrorInternalServerError("Failed to get target user by uuid")
         })?;
 

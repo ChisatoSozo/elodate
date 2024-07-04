@@ -103,7 +103,9 @@ class SwipePageState extends State<SwipePage> {
       clipBehavior: Clip.none,
       children: _userStack.reversed.map((user) {
         if (user == null) {
-          return const Center(child: Text('End of users, expand your prefs'));
+          return const Center(
+              child: Text(
+                  'End of users, we can\'t find you any more matches. Expand your preferences, be less picky ❤️'));
         }
         return SwipeableUserCard(
           user: user,

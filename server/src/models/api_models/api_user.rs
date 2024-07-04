@@ -20,7 +20,7 @@ use rand::Rng;
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 
-#[derive(Debug, Clone, Serialize, Deserialize, Apiv2Schema)]
+#[derive(Debug, Serialize, Deserialize, Apiv2Schema)]
 pub struct ApiUser {
     pub uuid: ApiUuid<InternalUser>,
     pub images: Vec<ApiUuid<InternalImage>>,
@@ -37,14 +37,14 @@ pub struct ApiUser {
     pub chats: Option<Vec<ApiUuid<InternalChat>>>,
 }
 
-#[derive(Debug, Clone, Serialize, Apiv2Schema)]
+#[derive(Debug, Serialize, Apiv2Schema)]
 pub enum ApiNotificationType {
     UnreadMessage,
     Match,
     System,
 }
 
-#[derive(Debug, Clone, Serialize, Apiv2Schema)]
+#[derive(Debug, Serialize, Apiv2Schema)]
 pub struct ApiNotification {
     notification_type: ApiNotificationType,
     message_or_uuid: String,
@@ -72,7 +72,7 @@ impl From<Notification> for ApiNotification {
 impl ApiUser {
     pub fn from_internal(
         user: InternalUser,
-        requester: &InternalUser,
+        requester: Option<&InternalUser>,
     ) -> Result<Self, Box<dyn Error>> {
         Ok(ApiUser {
             uuid: user.uuid.clone().into(),
@@ -87,7 +87,7 @@ impl ApiUser {
             props: user.props,
             birthdate: user.birthdate,
             published: user.published,
-            chats: if requester.uuid == user.uuid {
+            chats: if requester.map_or(true, |r| r.uuid == user.uuid) {
                 Some(user.chats.into_iter().map(|c| c.into()).collect())
             } else {
                 None
@@ -96,7 +96,7 @@ impl ApiUser {
     }
 }
 
-#[derive(Debug, Clone, Deserialize, Apiv2Schema)]
+#[derive(Debug, Deserialize, Apiv2Schema)]
 pub struct ApiUserWritable {
     pub uuid: ApiUuid<InternalUser>,
     pub images: Vec<ApiUuid<InternalImage>>,
@@ -112,7 +112,7 @@ pub struct ApiUserWritable {
 }
 
 impl ApiUserWritable {
-    pub fn to_internal(mut self, db: &DB) -> Result<InternalUser, Box<dyn Error>> {
+    pub fn to_internal(mut self, db: &DB, published: bool) -> Result<InternalUser, Box<dyn Error>> {
         self.fill_prefs();
         self.fill_props();
         let internal_uuid: InternalUuid<InternalUser> = self.uuid.into();
@@ -187,22 +187,51 @@ impl ApiUserWritable {
 
         let mut bot_props = None;
         if self.is_bot && internal_user.is_none() {
-            //we need bot props to be set
             bot_props = Some(BotProps::gen());
         }
-        if let Some(internal_user) = &internal_user {
-            bot_props = internal_user.bot_props.clone();
-        }
+
+        let (elo, ratings, seen, chats, actions, notifications, is_admin) =
+            if let Some(internal_user) = internal_user {
+                // If we have an internal_user, use its bot_props if our initial bot_props is None
+                if bot_props.is_none() {
+                    bot_props = internal_user.bot_props;
+                }
+                (
+                    internal_user.elo,
+                    internal_user.ratings,
+                    internal_user.seen,
+                    internal_user.chats,
+                    internal_user.actions,
+                    internal_user.notifications,
+                    internal_user.is_admin,
+                )
+            } else {
+                (
+                    0.0,
+                    vec![],
+                    vec![internal_uuid.clone()],
+                    vec![],
+                    vec![],
+                    vec![],
+                    false,
+                )
+            };
+
+        //set age
+        let age_index = self
+            .props
+            .iter()
+            .position(|p| p.name == "age")
+            .ok_or("No age")?;
+        self.props[age_index].value = get_age(self.birthdate);
 
         Ok(InternalUser {
             uuid: internal_uuid.clone(),
             hashed_password,
-            elo: internal_user.as_ref().map_or(0.0, |u| u.elo.clone()),
-            ratings: internal_user.as_ref().map_or(vec![], |u| u.ratings.clone()),
-            seen: internal_user
-                .as_ref()
-                .map_or(vec![internal_uuid.clone()], |u| u.seen.clone()),
-            chats: internal_user.as_ref().map_or(vec![], |u| u.chats.clone()),
+            elo,
+            ratings,
+            seen,
+            chats,
             images: self.images.clone().into_iter().map(|i| i.into()).collect(),
             username: self.username,
             display_name: self.display_name,
@@ -210,14 +239,12 @@ impl ApiUserWritable {
             birthdate: self.birthdate,
             prefs: self.prefs,
             props: self.props,
-            published: internal_user.as_ref().map_or(false, |u| u.published),
-            owned_images: owned_images,
+            published,
+            owned_images,
             preview_image: self.preview_image.map(|i| i.into()),
-            actions: internal_user.as_ref().map_or(vec![], |u| u.actions.clone()),
-            notifications: internal_user
-                .as_ref()
-                .map_or(vec![], |u| u.notifications.clone()),
-            is_admin: internal_user.as_ref().map_or(false, |u| u.is_admin),
+            actions,
+            notifications,
+            is_admin,
             bot_props,
         })
     }

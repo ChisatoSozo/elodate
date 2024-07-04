@@ -26,7 +26,7 @@ pub fn get_message(
     route_body_mut_db(db, req, body, |db, user, body| {
         let message_uuid: InternalUuid<InternalMessage> = body.into();
         let message = message_uuid.load(db).map_err(|e| {
-            println!("Failed to get message {:?}", e);
+            log::error!("Failed to get message {:?}", e);
             actix_web::error::ErrorInternalServerError("Failed to get message")
         })?;
 
@@ -40,7 +40,7 @@ pub fn get_message(
         //is this user in this chat?
         let internal_chat_uuid: InternalUuid<InternalChat> = chat_uuid.into();
         let chat = internal_chat_uuid.load(db).map_err(|e| {
-            println!("Failed to get chat {:?}", e);
+            log::error!("Failed to get chat {:?}", e);
             actix_web::error::ErrorInternalServerError("Failed to get chat")
         })?;
 

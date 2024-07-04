@@ -1,6 +1,8 @@
+import 'package:client/main.dart';
 import 'package:client/pages/chat_screen.dart';
 import 'package:client/pages/home/settings/prefer_count_and_save.dart';
 import 'package:client/pages/home/settings/settings_basic.dart';
+import 'package:client/utils/utils.dart';
 import 'package:flutter/material.dart';
 
 import '../components/bug_report_button.dart';
@@ -19,12 +21,12 @@ import '../pages/settings_flow_images.dart';
 import 'page_route_no_anim.dart';
 import 'page_route_slide_anim.dart';
 
-enum RouteType { home, homeSettings, chat, other }
+enum RouteType { home, homeSettings, chat, other, settingsFlow }
 
 class EloRouterDelegate extends RouterDelegate<String>
     with ChangeNotifier, PopNavigatorRouterDelegateMixin<String> {
   // Configuration
-  static const double maxPageWidth = 400.0;
+
   static const String initialRoute = '/';
   static const List<String> noScrollRoutes = ['/home/swipe', '/chat'];
 
@@ -105,6 +107,12 @@ class EloRouterDelegate extends RouterDelegate<String>
     notifyListeners();
   }
 
+  void go(String newRoute) {
+    _routeStack.clear();
+    _routeStack.add(newRoute);
+    notifyListeners();
+  }
+
   void pop() {
     if (_routeStack.length > 1) {
       _routeStack.removeLast();
@@ -126,6 +134,8 @@ class EloRouterDelegate extends RouterDelegate<String>
       return RouteType.chat;
     } else if (route.startsWith('/home/')) {
       return RouteType.home;
+    } else if (route.startsWith('/settings/')) {
+      return RouteType.settingsFlow;
     } else {
       return RouteType.other;
     }
@@ -133,14 +143,14 @@ class EloRouterDelegate extends RouterDelegate<String>
 
   Page _createPage(Widget child, BuildContext context, String route) {
     final routeKey = _getRouteType(route) == RouteType.home ? '/home' : route;
-    child = _wrapWithScroll(child, route);
-    final content = _buildPageContent(child, route);
+    child = _wrapWithScroll(context, child, route);
+    final content = _buildPageContent(context, child, route);
     return _getRouteType(route) == RouteType.home
         ? PageRouteNoAnim(key: ValueKey(routeKey), child: content)
         : PageRouteSlideAnim(key: ValueKey(routeKey), child: content);
   }
 
-  Widget _wrapWithScroll(Widget child, String route) {
+  Widget _wrapWithScroll(BuildContext context, Widget child, String route) {
     if (noScrollRoutes.any((r) => route.startsWith(r))) {
       return Column(
         children: [
@@ -150,11 +160,12 @@ class EloRouterDelegate extends RouterDelegate<String>
         ],
       );
     }
+    var pageWidth = calcPageWidth(context);
     return Center(
       child: SingleChildScrollView(
         child: Center(
           child: Container(
-            constraints: const BoxConstraints(maxWidth: maxPageWidth),
+            constraints: BoxConstraints(maxWidth: pageWidth),
             child: Column(
               children: [
                 const SizedBox(height: 20),
@@ -168,13 +179,21 @@ class EloRouterDelegate extends RouterDelegate<String>
     );
   }
 
-  Widget _buildPageContent(Widget child, String route) {
+  Widget _buildPageContent(BuildContext context, Widget child, String route) {
     var routeType = _getRouteType(route);
     Widget? bottomNav;
+
+    var pageWidth = calcPageWidth(context);
+
     if (routeType == RouteType.homeSettings) {
       bottomNav = Container(
-          constraints: const BoxConstraints(maxWidth: maxPageWidth),
+          constraints: BoxConstraints(maxWidth: pageWidth),
           child: const Center(child: PreferCountAndSave()));
+    }
+    if (routeType == RouteType.settingsFlow) {
+      bottomNav = Container(
+          constraints: BoxConstraints(maxWidth: pageWidth),
+          child: const Center(child: PreferenceCounters()));
     }
     return Stack(
       clipBehavior: Clip.none,
@@ -219,10 +238,9 @@ class EloRouterDelegate extends RouterDelegate<String>
         return _buildSettingsCategoryPage(route);
       case RouteType.chat:
         return _buildChatPage(route);
+      case RouteType.settingsFlow:
+        return _buildSettingsFlowPage(route);
       case RouteType.other:
-        if (route.startsWith('/settings/')) {
-          return _buildSettingsFlowPage(route);
-        }
         return _buildStaticPage(route);
     }
   }
@@ -243,7 +261,7 @@ class EloRouterDelegate extends RouterDelegate<String>
   Widget _buildSettingsCategoryPage(String route) {
     final category = route.split("/")[3];
     return _wrapInUserModelLoadedGuard(
-      category == "Basic"
+      category == constants["basicCategoryName"]
           ? const BasicSettings()
           : SettingsCategory(category: category),
     );

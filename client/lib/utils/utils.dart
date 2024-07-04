@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:image/image.dart' as img;
 import 'package:image_compression_flutter/image_compression_flutter.dart';
 
@@ -78,4 +79,16 @@ Future<Uint8List> makePreview(Uint8List imageBytes) async {
   final param = ImageFileConfiguration(input: input, config: config);
   final output = await compressor.compress(param);
   return output.rawBytes;
+}
+
+const double maxPageWidth = 400.0;
+const double pageMargin = 24.0;
+
+double calcPageWidth(BuildContext context) {
+  var width = MediaQuery.of(context).size.width;
+  var widthWithPadding = width - pageMargin * 2;
+  //pageWidth is the smaller of the maxPageWidth and the screen width
+  var pageWidth =
+      widthWithPadding < maxPageWidth ? widthWithPadding : maxPageWidth;
+  return pageWidth;
 }

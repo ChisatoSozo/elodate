@@ -1,5 +1,3 @@
-
-
 use actix_web::Error;
 use paperclip::actix::{
     api_v2_operation, post,
@@ -31,7 +29,7 @@ fn check_username(
     let available = db
         .get_user_by_username(&user.username)
         .map_err(|e| {
-            println!("Failed to check username availability: {:?}", e);
+            log::error!("Failed to check username availability: {:?}", e);
             actix_web::error::ErrorInternalServerError("Failed to check username availability")
         })?
         .is_none();

@@ -30,7 +30,7 @@ pub fn get_next_users(
             .into_iter()
             .filter(|u| !seen.contains(&u.uuid) && !body.contains(&u.uuid.clone().into()))
             .take(USERS_PER_SET)
-            .map(|internal_user| ApiUser::from_internal(internal_user, &user))
+            .map(|internal_user| ApiUser::from_internal(internal_user, Some(&user)))
             .collect::<Result<Vec<_>, _>>()?;
         Ok(users)
     })

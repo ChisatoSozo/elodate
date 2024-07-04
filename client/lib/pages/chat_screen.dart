@@ -80,6 +80,8 @@ class ChatScreenState extends State<ChatScreen> {
 
   Widget _buildMessageList(BuildContext context) {
     final userModel = Provider.of<UserModel>(context, listen: false);
+
+    var pageWidth = calcPageWidth(context);
     return ListView.builder(
       itemCount: _messages.length,
       itemBuilder: (context, index) {
@@ -87,7 +89,7 @@ class ChatScreenState extends State<ChatScreen> {
         final isMe = message.author == userModel.me.uuid;
         return Center(
           child: Container(
-            constraints: const BoxConstraints(maxWidth: 400),
+            constraints: BoxConstraints(maxWidth: pageWidth),
             child: ChatBubble(
               key: ValueKey(message.uuid),
               text: message.content,
@@ -115,8 +117,9 @@ class ChatScreenState extends State<ChatScreen> {
   }
 
   Widget _buildInputSection(Color chatBarColor, Color inputFieldColor) {
+    var pageWidth = calcPageWidth(context);
     return Container(
-      constraints: const BoxConstraints(maxWidth: 400),
+      constraints: BoxConstraints(maxWidth: pageWidth),
       decoration: BoxDecoration(
         color: chatBarColor,
         borderRadius: const BorderRadius.only(

@@ -27,12 +27,18 @@ String formatLabel(int intValue, PreferenceConfigPublic config) {
     formattedValue = config.labels[value.toInt()];
   }
 
+  if (config.name == 'retirement_age') {
+    if (value == 75) {
+      formattedValue = 'Never';
+    }
+  }
+
   return formattedValue;
 }
 
 abstract class BaseSlider<Item> extends StatefulWidget {
   final List<Item> items;
-  final String unsetLabel;
+  final String? unsetLabel;
   final List<PreferenceConfigPublic> preferenceConfigs;
   final Function(List<Item>) onUpdated;
 
@@ -40,7 +46,7 @@ abstract class BaseSlider<Item> extends StatefulWidget {
     required this.items,
     required this.preferenceConfigs,
     required this.onUpdated,
-    required this.unsetLabel,
+    this.unsetLabel,
     super.key,
   });
 
@@ -77,6 +83,9 @@ abstract class BaseSliderState<Item, UpdateValue, T extends BaseSlider<Item>>
     if (_preferenceConfig.min == 0 && _preferenceConfig.max == 1) {
       return buildBooleanRadioGroup();
     } else {
+      if (widget.unsetLabel == null) {
+        return buildSlider();
+      }
       return buildSliderWithUnsetOption();
     }
   }
@@ -94,7 +103,7 @@ abstract class BaseSliderState<Item, UpdateValue, T extends BaseSlider<Item>>
         LabeledCheckbox(
             alignRight: true,
             labelOnRight: false,
-            label: widget.unsetLabel,
+            label: widget.unsetLabel!,
             checked: isUnset(),
             onChanged: updateUnsetValue),
       ],
@@ -123,7 +132,7 @@ class PropSliderState extends BaseSliderState<ApiUserPropsInner, int,
 
   @override
   bool isUnset() {
-    return widget.items.first.value == -32768;
+    return _value == -32768;
   }
 
   @override
@@ -148,6 +157,9 @@ class PropSliderState extends BaseSliderState<ApiUserPropsInner, int,
 
   @override
   Widget buildSlider() {
+    if (widget.items.length > 1) {
+      return const Text('Error: Only supports a single item');
+    }
     return Column(
       children: [
         Slider(
@@ -185,7 +197,6 @@ class PrefSlider<T> extends BaseSlider<T> {
     super.key,
   }) : super(
           items: prefs,
-          unsetLabel: 'No preference',
         );
 
   @override
@@ -226,7 +237,7 @@ class PrefSliderState extends BaseSliderState<ApiUserPrefsInner,
     range = newUnset == true
         ? ApiUserPrefsInnerRange(min: -32768, max: 32767)
         : ApiUserPrefsInnerRange(
-            min: _preferenceConfig.min + 1, max: _preferenceConfig.max);
+            min: _preferenceConfig.min, max: _preferenceConfig.max - 1);
     updateValue(range);
   }
 
@@ -252,16 +263,36 @@ class PrefSliderState extends BaseSliderState<ApiUserPrefsInner,
             max: values.end.round(),
           )),
         ),
-        if (!isUnset())
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(formatLabel(range.min, _preferenceConfig),
-                  style: Theme.of(context).textTheme.bodySmall),
-              Text(formatLabel(range.max, _preferenceConfig),
-                  style: Theme.of(context).textTheme.bodySmall),
-            ],
-          ),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Flexible(
+              flex: 1,
+              child: Container(
+                alignment: Alignment.topLeft,
+                child: Text(
+                  formatLabel(range.min, _preferenceConfig),
+                  style: Theme.of(context).textTheme.bodySmall,
+                  softWrap: true,
+                  textAlign: TextAlign.left,
+                ),
+              ),
+            ),
+            const SizedBox(width: 20),
+            Flexible(
+              flex: 1,
+              child: Container(
+                alignment: Alignment.topRight,
+                child: Text(
+                  formatLabel(range.max, _preferenceConfig),
+                  style: Theme.of(context).textTheme.bodySmall,
+                  softWrap: true,
+                  textAlign: TextAlign.right,
+                ),
+              ),
+            ),
+          ],
+        ),
       ],
     );
   }

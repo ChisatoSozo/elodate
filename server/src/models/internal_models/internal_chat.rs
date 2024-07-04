@@ -5,7 +5,7 @@ use crate::db::DB;
 use super::shared::{Bucket, InternalUuid, Save};
 use super::{internal_message::InternalMessage, internal_user::InternalUser};
 
-#[derive(Debug, Clone, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
+#[derive(Debug, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
 #[archive(compare(PartialEq), check_bytes)]
 pub struct InternalChat {
     pub uuid: InternalUuid<InternalChat>,

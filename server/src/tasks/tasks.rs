@@ -5,7 +5,7 @@ use crate::{
 };
 
 pub fn run_all_tasks(db: &DB) -> Result<(), Box<dyn std::error::Error>> {
-    println!("Running all tasks");
+    log::info!("Running all tasks");
     for user in db.iter_obj::<InternalUser>("users")? {
         let mut user = user?;
         update_age(&mut user);
@@ -29,6 +29,6 @@ mod tests {
         }
 
         let end_time = start_time.elapsed();
-        println!("Ran all tasks in {:?}", end_time);
+        log::info!("Ran all tasks in {:?}", end_time);
     }
 }

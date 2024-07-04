@@ -93,7 +93,7 @@ where
                     let decoding_key = match DecodingKey::from_rsa_pem(jwk.as_bytes()) {
                         Ok(key) => key,
                         Err(e) => {
-                            println!("Failed to decode key {:?}", e);
+                            log::error!("Failed to decode key {:?}", e);
                             return Box::pin(async {
                                 Err(Error::from(actix_web::error::ErrorUnauthorized(
                                     "Invalid key format",
@@ -106,7 +106,7 @@ where
                     match decode::<Claims>(token, &decoding_key, &validation) {
                         Ok(claims) => {
                             if claims.claims.exp < chrono::Utc::now().timestamp() as usize {
-                                println!("Token expired");
+                                log::info!("Token expired");
                                 return Box::pin(async {
                                     Err(Error::from(actix_web::error::ErrorUnauthorized(
                                         "Token expired",
@@ -122,7 +122,7 @@ where
                             Box::pin(self.service.call(req))
                         }
                         Err(err) => {
-                            println!("Failed to decode token {:?}", err);
+                            log::error!("Failed to decode token {:?}", err);
                             Box::pin(async move {
                                 Err(Error::from(actix_web::error::ErrorUnauthorized(
                                     err.to_string(),
@@ -132,7 +132,7 @@ where
                     }
                 }
                 e => {
-                    println!("Failed to parse auth header {:?}", e);
+                    log::error!("Failed to parse auth header {:?}", e);
                     Box::pin(async {
                         Err(Error::from(actix_web::error::ErrorUnauthorized(
                             "Invalid token format",
@@ -141,7 +141,7 @@ where
                 }
             },
             None => {
-                println!("Missing token");
+                log::info!("Missing token");
                 Box::pin(async {
                     Err(Error::from(actix_web::error::ErrorUnauthorized(
                         "Missing token",

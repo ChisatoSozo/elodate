@@ -3,12 +3,14 @@ import 'dart:math';
 
 import 'package:client/api/pkg/lib/api.dart';
 import 'package:client/components/loading.dart';
+import 'package:client/components/location_modal.dart';
 import 'package:client/models/user_model.dart';
 import 'package:client/utils/prefs_utils.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:js/js.dart';
+import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
 import 'package:provider/provider.dart';
 
 const double minLat = -90.0;
@@ -22,9 +24,13 @@ int calculateInitialDistance(
   var lng = getPropByName(props, "longitude").value;
   var latPref = getPrefByName(prefs, "latitude").range;
   var lngPref = getPrefByName(prefs, "longitude").range;
+  print("lat: $lat, lng: $lng, latPref: $latPref, lngPref: $lngPref");
   final userLatLng = decodeLatLongFromI16(lat, lng);
   final preferenceMinLatLng = decodeLatLongFromI16(latPref.min, lngPref.min);
   final preferenceMaxLatLng = decodeLatLongFromI16(latPref.max, lngPref.max);
+
+  print(
+      "userLatLng: $userLatLng, preferenceMinLatLng: $preferenceMinLatLng, preferenceMaxLatLng: $preferenceMaxLatLng");
 
   double deltaLat = (preferenceMaxLatLng.$1 - preferenceMinLatLng.$1) / 2;
   double deltaLng = (preferenceMaxLatLng.$2 - preferenceMinLatLng.$2) / 2;
@@ -34,10 +40,13 @@ int calculateInitialDistance(
       pow(deltaLng * pi / 180 * earthRadiusKm * cos(userLatLng.$1 * pi / 180),
           2));
 
+  print("distance: $distance");
+
   return distance.round();
 }
 
 int findClosestDistanceIndex(int distance, List<int> presetDistances) {
+  print("distance: $distance");
   //go through each ajacent pair of distances and find the one that is closest to the distance
   int closestDistanceIndex = 0;
   double closestDistance = double.infinity;
@@ -61,6 +70,13 @@ int findClosestDistanceIndex(int distance, List<int> presetDistances) {
       }
     }
   }
+
+  if (distance > presetDistances.last) {
+    closestDistanceIndex = presetDistances.length - 1;
+  }
+
+  print("presetDistances: $presetDistances");
+  print("closestDistanceIndex: $closestDistanceIndex");
 
   return closestDistanceIndex;
 }
@@ -187,6 +203,16 @@ class LocationPickerState extends State<LocationPicker> {
       }
     } else {
       _determinePosition();
+    }
+
+    //is there a location error?
+    if (locationError != null) {
+      if (!context.mounted) return;
+      showMaterialModalBottomSheet(
+        // ignore: use_build_context_synchronously
+        context: context,
+        builder: (context) => const LocationModal(),
+      );
     }
 
     setState(() {

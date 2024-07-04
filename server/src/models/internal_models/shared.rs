@@ -12,11 +12,20 @@ use uuid::Uuid;
 
 use super::internal_prefs_config::PREFS_CARDINALITY;
 
-#[derive(Debug, Clone, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
+#[derive(Debug, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
 #[archive(compare(PartialEq), check_bytes)]
 pub struct InternalUuid<InternalModel> {
     pub id: String,
     pub _marker: PhantomData<InternalModel>,
+}
+
+impl<InternalModel> Clone for InternalUuid<InternalModel> {
+    fn clone(&self) -> Self {
+        Self {
+            id: self.id.clone(),
+            _marker: PhantomData,
+        }
+    }
 }
 
 impl<InternalModel> PartialEq for InternalUuid<InternalModel> {
@@ -50,7 +59,7 @@ where
         model: &InternalModel,
         db: &DB,
     ) -> Result<InternalUuid<InternalModel>, Box<dyn Error>> {
-        db.write_object(InternalModel::bucket(), &self, model)
+        db.write_object(&self, model)
     }
 
     pub fn load(&self, db: &DB) -> Result<Option<InternalModel>, Box<dyn Error>> {
@@ -107,6 +116,7 @@ pub trait Bucket {
             "InternalImage" => "image",
             "InternalUser" => "user",
             "InternalMessage" => "message",
+            "InternalAccessCode" => "access_code",
             _ => panic!("Unknown bucket"),
         }
     }

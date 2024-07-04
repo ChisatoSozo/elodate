@@ -81,3 +81,7 @@ class MainAppState extends State<MainApp> {
     );
   }
 }
+
+const constants = {
+  'basicCategoryName': "Bio and Photos",
+};

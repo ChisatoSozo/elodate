@@ -21,7 +21,7 @@ use crate::{
     routes::shared::route_body_mut_db,
 };
 
-#[derive(Debug, Clone, Serialize, Deserialize, Apiv2Schema)]
+#[derive(Debug, Serialize, Deserialize, Apiv2Schema)]
 struct GetMessagesInput {
     chat_uuid: ApiUuid<InternalChat>,
     messages: Vec<ApiUuid<InternalMessage>>,
@@ -39,7 +39,7 @@ pub fn get_messages(
         let chat_uuid = body.chat_uuid;
         let internal_chat_uuid: InternalUuid<InternalChat> = chat_uuid.into();
         let chat = internal_chat_uuid.load(db).map_err(|e| {
-            println!("Failed to get chat {:?}", e);
+            log::error!("Failed to get chat {:?}", e);
             actix_web::error::ErrorInternalServerError("Failed to get chat")
         })?;
 
@@ -61,7 +61,7 @@ pub fn get_messages(
                 internal_uuid
                     .load(db)
                     .map_err(|e| {
-                        println!("Failed to get message by uuid {:?}", e);
+                        log::error!("Failed to get message by uuid {:?}", e);
                         actix_web::error::ErrorInternalServerError("Failed to get message by uuid")
                     })
                     .and_then(|message| {

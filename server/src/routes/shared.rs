@@ -24,7 +24,7 @@ pub fn route_body_mut_db<T, R>(
     };
 
     let user = user_uuid.load(&db).map_err(|e| {
-        println!("Failed to get user by uuid {:?}", e);
+        log::error!("Failed to get user by uuid {:?}", e);
         actix_web::error::ErrorInternalServerError("Failed to get user by uuid")
     })?;
 
@@ -52,7 +52,7 @@ pub fn route_file_mut_db<R>(
     };
 
     let user = user_uuid.load(&db).map_err(|e| {
-        println!("Failed to get user by uuid {:?}", e);
+        log::error!("Failed to get user by uuid {:?}", e);
         actix_web::error::ErrorInternalServerError("Failed to get user by uuid")
     })?;
 

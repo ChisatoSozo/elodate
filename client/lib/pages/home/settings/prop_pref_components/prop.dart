@@ -54,6 +54,10 @@ class PropState extends State<Prop> {
     }
     if (widget.configs.first.uiElement ==
         PreferenceConfigPublicUiElementEnum.heightAndWeight) {
+      //check that widget.props.length == 2
+      if (widget.props.length != 2) {
+        return Text('Invalid props length: ${widget.props.length}');
+      }
       var heightProp = widget.props.first;
       var weightProp = widget.props.last;
 

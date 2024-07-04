@@ -14,14 +14,14 @@ use super::{
 
 use crate::db::DB;
 
-#[derive(Debug, Clone, rkyv::Serialize, rkyv::Deserialize, rkyv::Archive)]
+#[derive(Debug, rkyv::Serialize, rkyv::Deserialize, rkyv::Archive)]
 #[archive(compare(PartialEq), check_bytes)]
 pub enum InternalRating {
     LikedBy(InternalUuid<InternalUser>),
     PassedBy(InternalUuid<InternalUser>),
 }
 
-#[derive(Debug, Clone, rkyv::Serialize, rkyv::Deserialize, rkyv::Archive)]
+#[derive(Debug, rkyv::Serialize, rkyv::Deserialize, rkyv::Archive)]
 #[archive(compare(PartialEq), check_bytes)]
 pub enum Action {
     SendMessage,
@@ -29,14 +29,14 @@ pub enum Action {
     Rate,
 }
 
-#[derive(Debug, Clone, rkyv::Serialize, rkyv::Deserialize, rkyv::Archive)]
+#[derive(Debug, rkyv::Serialize, rkyv::Deserialize, rkyv::Archive)]
 #[archive(compare(PartialEq), check_bytes)]
 pub struct TimestampedAction {
     pub action: Action,
     pub timestamp: i64,
 }
 
-#[derive(Debug, Clone, rkyv::Serialize, rkyv::Deserialize, rkyv::Archive)]
+#[derive(Debug, rkyv::Serialize, rkyv::Deserialize, rkyv::Archive)]
 #[archive(compare(PartialEq), check_bytes)]
 pub enum Notification {
     UnreadMessage(InternalUuid<InternalMessage>),
@@ -44,7 +44,7 @@ pub enum Notification {
     System(String),
 }
 
-#[derive(Debug, Clone, rkyv::Serialize, rkyv::Deserialize, rkyv::Archive)]
+#[derive(Debug, rkyv::Serialize, rkyv::Deserialize, rkyv::Archive)]
 #[archive(compare(PartialEq), check_bytes)]
 pub struct BotProps {
     pub likelihood_to_swipe_right: f32,
@@ -64,7 +64,7 @@ impl BotProps {
     }
 }
 
-#[derive(Debug, Clone, rkyv::Serialize, rkyv::Deserialize, rkyv::Archive)]
+#[derive(Debug, rkyv::Serialize, rkyv::Deserialize, rkyv::Archive)]
 #[archive(compare(PartialEq), check_bytes)]
 pub struct InternalUser {
     pub uuid: InternalUuid<InternalUser>,
@@ -131,6 +131,14 @@ impl InternalUser {
             if !self.props.iter().any(|p| p.name == prop) {
                 return format!("You must have the property {}", prop);
             }
+            //are any of the props -32768?
+            if self
+                .props
+                .iter()
+                .any(|p| p.value == -32768 && p.name == prop)
+            {
+                return format!("You must set a value for the property {}", prop);
+            }
         }
         "".to_string()
     }
@@ -148,6 +156,8 @@ impl Save for InternalUser {
         if self.published {
             lock.add(&self.props.get_vector(), &self.uuid.id);
             lock.add_bbox(&self.prefs.get_bbox(), &self.uuid.id);
+        } else {
+            log::info!("User not published, not adding to vec index")
         }
         Ok(self.uuid)
     }

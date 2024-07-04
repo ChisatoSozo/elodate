@@ -24,16 +24,16 @@ pub struct LoginRequest {
 async fn login(db: web::Data<DB>, body: Json<LoginRequest>) -> Result<Json<Jwt>, Error> {
     let login_req = body.into_inner();
     let user = db.get_user_by_username(&login_req.username).map_err(|e| {
-        println!("Failed to get user by username {:?}", e);
+        log::error!("Failed to get user by username {:?}", e);
         actix_web::error::ErrorInternalServerError("Failed to get user by username")
     })?;
     let user = match user {
         Some(user) => user,
-        None => return Err(actix_web::error::ErrorNotFound("User not found")),
+        None => return Err(actix_web::error::ErrorBadRequest("User not found")),
     };
     let hashed_password = user.hashed_password.clone();
     let password_matches = verify_password(&login_req.password, &hashed_password).map_err(|e| {
-        println!("Failed to verify password {:?}", e);
+        log::error!("Failed to verify password {:?}", e);
         actix_web::error::ErrorInternalServerError("Failed to verify password")
     })?;
     if !password_matches {
@@ -48,7 +48,7 @@ async fn login(db: web::Data<DB>, body: Json<LoginRequest>) -> Result<Json<Jwt>,
             })
         })
         .map_err(|e| {
-            println!("Failed to make jwt {:?}", e);
+            log::error!("Failed to make jwt {:?}", e);
             actix_web::error::ErrorInternalServerError("Failed to make jwt")
         })
 }

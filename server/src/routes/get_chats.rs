@@ -29,7 +29,7 @@ pub fn get_chats(
             .map(|chat_uuid| {
                 let internal_chat_uuid: InternalUuid<InternalChat> = chat_uuid.into();
                 let chat = internal_chat_uuid.load(db).map_err(|e| {
-                    println!("Failed to get chat {:?}", e);
+                    log::error!("Failed to get chat {:?}", e);
                     actix_web::error::ErrorInternalServerError("Failed to get chat")
                 })?;
 

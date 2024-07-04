@@ -11,7 +11,7 @@ use crate::{
 
 use super::shared::ApiUuid;
 
-#[derive(Debug, Clone, Serialize, Apiv2Schema)]
+#[derive(Debug, Serialize, Apiv2Schema)]
 pub struct ApiMessage {
     pub uuid: ApiUuid<InternalMessage>,
     pub sent_at: i64,
@@ -36,7 +36,7 @@ impl From<InternalMessage> for ApiMessage {
     }
 }
 
-#[derive(Debug, Clone, Deserialize, Apiv2Schema)]
+#[derive(Debug, Deserialize, Apiv2Schema)]
 pub struct ApiMessageWritable {
     pub uuid: Option<ApiUuid<InternalMessage>>,
     pub content: String,
@@ -57,7 +57,7 @@ impl ApiMessageWritable {
             Some(message) => {
                 let internal_uuid: InternalUuid<InternalMessage> = message.into();
                 let message = internal_uuid.load(db).map_err(|e| {
-                    println!("Failed to get message {:?}", e);
+                    log::error!("Failed to get message {:?}", e);
                     actix_web::error::ErrorInternalServerError("Failed to get message")
                 })?;
                 let message = match message {
@@ -97,7 +97,7 @@ impl ApiMessageWritable {
                 //does image exist
                 let internal_uuid: InternalUuid<InternalImage> = image.into();
                 let archived = internal_uuid.load(db).map_err(|e| {
-                    println!("Failed to get image {:?}", e);
+                    log::error!("Failed to get image {:?}", e);
                     actix_web::error::ErrorInternalServerError("Failed to get image")
                 })?;
                 match archived {

@@ -17,6 +17,5 @@ pub mod put_user;
 pub mod rate;
 pub mod report_bug;
 pub mod send_message;
-pub mod set_published;
 pub mod shared;
 pub mod signup;

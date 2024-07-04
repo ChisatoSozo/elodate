@@ -1,6 +1,9 @@
 use crate::{
     db::DB,
-    models::internal_models::{internal_user::InternalUser, shared::InternalUuid},
+    models::internal_models::{
+        internal_user::InternalUser,
+        shared::{Bucket, InternalUuid},
+    },
 };
 
 use super::{
@@ -9,13 +12,13 @@ use super::{
 };
 
 pub fn init_bots(db: &DB, host: &str) -> Result<Vec<(String, String)>, Box<dyn std::error::Error>> {
-    println!("Initializing bots");
+    log::info!("Initializing bots");
     let backend_url = format!("http://{}:8080", host);
     let mut uuids_jwts = vec![];
     let mut i = 0;
-    for user in db.iter_obj::<InternalUser>("users")? {
+    for user in db.iter_obj::<InternalUser>(InternalUser::bucket())? {
         if i % 10 == 0 {
-            println!("Initialized {} bots", i);
+            log::info!("Initialized {} bots", i);
         }
         i += 1;
         let user = user?;

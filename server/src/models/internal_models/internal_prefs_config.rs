@@ -170,17 +170,9 @@ pub static PREFS_CONFIG: [PreferenceConfig; PREFS_CARDINALITY] = [
         category: Category::Financial,
         value_question: "How much do you make per year?",
         range_question: "How much do you want your partner to make?",
-        max: 100,
-        mean: 50000.0,
-        std_dev: 25000.0,
-        std_dev_alteration: StdDevAlteration::FromMean(Linear {
-            slope: 0.3,
-            intercept: 0.0,
-        }),
-        linear_mapping: Some(LinearMapping {
-            real_min: 0.0,
-            real_max: 1000000.0,
-        }),
+        max: 18,
+        mean: 4.0,
+        std_dev: 4.0,
         labels: Some(&[
             "Unemployed",
             "Unemployed (Student or Government Aid)",
@@ -211,17 +203,29 @@ pub static PREFS_CONFIG: [PreferenceConfig; PREFS_CARDINALITY] = [
         category: Category::Financial,
         value_question: "How much debt do you have?",
         range_question: "How much debt do you want your partner to have?",
-        max: 100,
-        mean: 5000.0,
-        std_dev: 5000.0,
-        std_dev_alteration: StdDevAlteration::FromMean(Linear {
-            slope: 0.3,
-            intercept: 0.0,
-        }),
-        linear_mapping: Some(LinearMapping {
-            real_min: 0.0,
-            real_max: 1000000.0,
-        }),
+        max: 18,
+        mean: 4.0,
+        std_dev: 4.0,
+        labels: Some(&[
+            "$0",
+            "$10,000",
+            "$20,000",
+            "$30,000",
+            "$40,000",
+            "$50,000",
+            "$60,000",
+            "$70,000",
+            "$80,000",
+            "$90,000",
+            "$100,000",
+            "$120,000",
+            "$150,000",
+            "$200,000",
+            "$250,000",
+            "$350,000",
+            "$500,000",
+            "$1,000,000+",
+        ]),
         ..default_preference_config()
     },
     PreferenceConfig {
@@ -264,9 +268,10 @@ pub static PREFS_CONFIG: [PreferenceConfig; PREFS_CARDINALITY] = [
         category: Category::Sexual,
         value_question: "How many times a week do you want to have Sex?",
         range_question: "How many times a week do you want your partner to want to have Sex?",
-        max: 100,
+        max: 5,
         mean: 2.0,
-        std_dev: 2.0,
+        std_dev: 1.0,
+        labels: Some(&["Never", "1-2", "3-5", "6-10", "11-20", "21-50", "50+"]),
         ..default_preference_config()
     },
     PreferenceConfig {
@@ -373,13 +378,19 @@ pub static PREFS_CONFIG: [PreferenceConfig; PREFS_CARDINALITY] = [
         category: Category::Background,  // Changed from Sexual to Background
         value_question: "How many sexual partners have you had?",
         range_question: "How many sexual partners do you want your partner to have had?",
-        max: 100,
-        mean: 5.0,
-        std_dev: 5.0,
-        std_dev_alteration: StdDevAlteration::FromValue(Linear {
-            slope: 1.0,
-            intercept: 0.0,
-        }),
+        max: 7,
+        mean: 2.0,
+        std_dev: 1.0,
+        labels: Some(&[
+            "Virgin",
+            "1-2",
+            "3-5",
+            "6-10",
+            "11-20",
+            "21-50",
+            "51-100",
+            "100+",
+        ]),
         ..default_preference_config()
     },
     PreferenceConfig {
@@ -433,9 +444,15 @@ pub static PREFS_CONFIG: [PreferenceConfig; PREFS_CARDINALITY] = [
         group: "conflict_resolution_style",
         display: "Conflict Resolution Style",
         category: Category::RelationshipStyle,
-        value_question: "How do you typically approach conflict resolution?",
-        range_question: "How would you like your partner to approach conflict resolution?",    
-        labels: Some(&["Avoidant", "Accommodating", "Compromising", "Collaborative", "Competitive"]),
+        value_question: "How do you typically approach resolving conflicts in a relationship?",
+        range_question: "What conflict resolution style would you prefer in a partner?",
+        labels: Some(&[
+            "Avoidant (Tend to withdraw or postpone addressing issues)",
+            "Accommodating (Often give in to maintain harmony)",
+            "Compromising (Seek middle ground, willing to give and take)",
+            "Collaborative (Work together to find mutually satisfying solutions)",
+            "Assertive (Directly address issues, stand firm on needs)"
+        ]),
         ..default_preference_config()
     },
     PreferenceConfig {
@@ -461,11 +478,17 @@ pub static PREFS_CONFIG: [PreferenceConfig; PREFS_CARDINALITY] = [
     PreferenceConfig {
         name: "independence_level",
         group: "independence_level",
-        display: "Level of Independence",
+        display: "Desired Personal Space in Relationship",
         category: Category::RelationshipStyle,
-        value_question: "How much independence do you need in a relationship?",
-        range_question: "How much independence do you want your partner to need?",
-        labels: Some(&["Very Dependent", "Somewhat Dependent", "Balanced", "Somewhat Independent", "Very Independent"]),
+        value_question: "How much personal space and autonomy do you need in a relationship?",
+        range_question: "How much personal space and autonomy do you want your partner to need?",
+        labels: Some(&[
+            "Prefers Constant Togetherness",
+            "Enjoys Frequent Interaction",
+            "Balanced Need for Togetherness and Alone Time",
+            "Values Significant Personal Space",
+            "Highly Values Autonomy and Independence"
+        ]),
         ..default_preference_config()
     },
     
@@ -533,21 +556,33 @@ pub static PREFS_CONFIG: [PreferenceConfig; PREFS_CARDINALITY] = [
     PreferenceConfig {
         name: "spirituality_level",
         group: "spirituality_level",
-        display: "Spirituality",
+        display: "Importance of Spirituality in Life",
         category: Category::Beliefs,
-        value_question: "How spiritual are you?",
-        range_question: "How spiritual do you want your partner to be?",
-        labels: Some(&["Not at all", "Slightly", "Moderately", "Very", "Extremely"]),
+        value_question: "How significant is spirituality or faith in your life and daily practices?",
+        range_question: "How important is it that your partner values spirituality or faith?",
+        labels: Some(&[
+            "Not spiritual at all",
+            "Open to spiritual ideas",
+            "Moderately spiritual",
+            "Spirituality is important",
+            "Spirituality is central to life"
+        ]),
         ..default_preference_config()
     },
     PreferenceConfig {
         name: "religion_importance",
         group: "religion_importance",
-        display: "Importance of Religion",
+        display: "Adherence to Organized Religion",
         category: Category::Beliefs,
-        value_question: "How important is religion in your daily life?",
-        range_question: "How important should religion be in your partner's daily life?",
-        labels: Some(&["Not important", "Somewhat important", "Important", "Very important", "Crucial"]),
+        value_question: "How actively do you participate in organized religious activities or follow religious doctrines?",
+        range_question: "How important is it that your partner participates in organized religion?",
+        labels: Some(&[
+            "Not religious at all",
+            "Culturally religious",
+            "Moderately religious",
+            "Regularly practices religion",
+            "Deeply committed to religious life"
+        ]),
         ..default_preference_config()
     },
     PreferenceConfig {
@@ -609,7 +644,7 @@ pub static PREFS_CONFIG: [PreferenceConfig; PREFS_CARDINALITY] = [
         value_question: "What's your view on gun control?",
         range_question: "What view on gun control do you want your partner to have?",
         max: 5,
-        labels: Some(&["Any object that is reasonably sharp should be confiscated by autonamous government drones", "Guns should be banned", "Guns should be heavily restricted, eg. only for hunting", "Guns should be available with background checks", "Guns should be available to all", "Gun ownership should be mandatory"]),
+        labels: Some(&["Any object that is reasonably sharp should be confiscated by autonomous government drones", "Guns should be banned", "Guns should be heavily restricted, eg. only for hunting", "Guns should be available with background checks", "Guns should be available to all", "Gun ownership should be mandatory"]),
         ..default_preference_config()
     },
     PreferenceConfig {
@@ -730,9 +765,6 @@ pub static PREFS_CONFIG: [PreferenceConfig; PREFS_CARDINALITY] = [
         category: Category::Lifestyle,
         value_question: "How flexible is your work schedule?",
         range_question: "How flexible would you like your partner's work schedule to be?",
-        max: 100,
-        mean: 50.0,
-        std_dev: 25.0,
         labels: Some(&["Very Rigid", "Somewhat Rigid", "Moderate", "Flexible", "Highly Flexible"]),
         ..default_preference_config()
     },
@@ -802,24 +834,46 @@ pub static PREFS_CONFIG: [PreferenceConfig; PREFS_CARDINALITY] = [
         category: Category::Diet,
         value_question: "How much do you spend on food",
         range_question: "How much do you want your partner to spend on food and dining out per month?",
-        max: 100,
-        mean: 50.0,
-        std_dev: 25.0,
-        linear_mapping: Some(LinearMapping{real_min: 0.0,
-            real_max: 2000.0,
-        }),
+        max: 10,
+        mean: 3.0,
+        std_dev: 2.0,
+        labels: Some(&[
+            "My food is free",
+            "$100",
+            "$200",
+            "$300",
+            "$400",
+            "$500",
+            "$750",
+            "$1,000",
+            "$1,500",
+            "$2,500",
+            "$5,000",
+            "$10,000+",
+        ]),
         ..default_preference_config()
     },
 
     // Hobbies Category
     PreferenceConfig {
-        name: "sports_interest",
-        group: "sports_interest",
-        display: "Sports Interest",
+        name: "watching_competitive_sports_interest",
+        group: "watching_competitive_sports_interest",
+        display: "Interest in Watching Competitive Sports",
         category: Category::Hobbies,
-        value_question: "How interested are you in sports?",
-        range_question: "How interested do you want your partner to be in sports?",
-        labels: Some(&["Hate sports", "Not interested", "Average", "Interested", "Fanatic"]),
+        value_question: "How interested are you in watching competitive sports?",
+        range_question: "How interested do you want your partner to be in watching competitive sports?",
+        labels: Some(&["Hate watching", "Not interested", "Average", "Interested", "Fanatic"]),
+        ..default_preference_config()
+    },
+    
+    PreferenceConfig {
+        name: "playing_competitive_sports_interest",
+        group: "playing_competitive_sports_interest",
+        display: "Interest in Playing Competitive Sports",
+        category: Category::Hobbies,
+        value_question: "How interested are you in playing competitive sports?",
+        range_question: "How interested do you want your partner to be in playing competitive sports?",
+        labels: Some(&["Hate playing", "Not interested", "Average", "Interested", "Fanatic"]),
         ..default_preference_config()
     },
     PreferenceConfig {
@@ -835,16 +889,16 @@ pub static PREFS_CONFIG: [PreferenceConfig; PREFS_CARDINALITY] = [
     PreferenceConfig {
         name: "gamerness_level",
         group: "gamerness_level",
-        display: "Gamerness Level",
+        display: "Gaming Habit and Interest",
         category: Category::Hobbies,
-        value_question: "How much of a gamer are you?",
-        range_question: "How much of a gamer do you want your partner to be?",
+        value_question: "How would you describe your gaming habits and interest?",
+        range_question: "What level of gaming interest and involvement would you prefer in a partner?",
         labels: Some(&[
-            "I don't play games",
-            "Casual",
-            "Average",
-            "Hardcore",
-            "Professional",
+            "Non-gamer (Never play)",
+            "Casual (Occasionally play simple games)",
+            "Regular (Play weekly, enjoy various games)",
+            "Enthusiast (Play daily, follow gaming news)",
+            "Hardcore (Competitive/streaming/game development)"
         ]),
         ..default_preference_config()
     },
@@ -1016,13 +1070,19 @@ pub static PREFS_CONFIG: [PreferenceConfig; PREFS_CARDINALITY] = [
         ..default_preference_config()
     },
     PreferenceConfig {
-        name: "psychedelic_use",
-        group: "psychedelic_use",
-        display: "Psychedelic Use",
+        name: "psychedelic_use_per_year",
+        group: "psychedelic_use_per_year",
+        display: "Psychedelic Use per Year",
         category: Category::Substances,
-        value_question: "How often do you use psychedelics?",
-        range_question: "How often do you want your partner to use psychedelics?",
-        labels: Some(&["Never", "Rarely", "Occasionally", "Frequently", "Regularly"]),
+        value_question: "How many times do you use psychedelics in a year?",
+        range_question: "How many times do you want your partner to use psychedelics in a year?",
+        max: 52,
+        mean: 2.0,
+        std_dev: 2.0,
+        std_dev_alteration: StdDevAlteration::FromValue(Linear {
+            slope: 1.0,
+            intercept: 0.0,
+        }),
         ..default_preference_config()
     },
     //End of Substances Category
@@ -1044,9 +1104,10 @@ pub static PREFS_CONFIG: [PreferenceConfig; PREFS_CARDINALITY] = [
         category: Category::Misc,
         value_question: "Do you use iPhone or Android?",
         range_question: "Do you want your partner to use iPhone or Android?",
+        max: 2,
         labels: Some(&["iPhone", "Depends on the year", "Android"]),
         ..default_preference_config()
     }
 ];
 
-pub const PREFS_CARDINALITY: usize = 78;
+pub const PREFS_CARDINALITY: usize = 79;

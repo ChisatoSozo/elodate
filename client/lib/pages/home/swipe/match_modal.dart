@@ -12,10 +12,10 @@ class MatchModal extends StatefulWidget {
   const MatchModal({super.key, required this.user});
 
   @override
-  _MatchModalState createState() => _MatchModalState();
+  MatchModalState createState() => MatchModalState();
 }
 
-class _MatchModalState extends State<MatchModal>
+class MatchModalState extends State<MatchModal>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
 

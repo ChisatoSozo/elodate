@@ -1,4 +1,7 @@
-use std::{array, sync::Arc, thread};
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc,
+};
 
 use actix_cors::Cors;
 use actix_files::Files;
@@ -8,8 +11,9 @@ use actix_web::{
     App, HttpServer,
 };
 
-use bots::bot_actions::{init_bots, run_all_bot_actions};
+use bots::bot_manager::start_bot_manager;
 use db::DB;
+use logger::init_logs;
 use middleware::jwt::Jwt;
 
 use paperclip::actix::{web, OpenApiExt};
@@ -21,7 +25,7 @@ use routes::{
     get_users_i_perfer_count_dry_run::get_users_i_perfer_count_dry_run,
     get_users_mutual_perfer_count_dry_run::get_users_mutual_perfer_count_dry_run, login::login,
     put_image::put_image, put_user::put_user, rate::rate, report_bug::report_bug,
-    send_message::send_message, set_published::set_published, signup::signup,
+    send_message::send_message, signup::signup,
 };
 use tasks::tasks::run_all_tasks;
 
@@ -29,6 +33,7 @@ pub mod bots;
 pub mod constants;
 pub mod db;
 pub mod elo;
+pub mod logger;
 pub mod middleware;
 pub mod models;
 pub mod routes;
@@ -38,90 +43,60 @@ pub mod util;
 pub mod vec;
 
 const JSON_SPEC_PATH: &str = "/api/spec/v2.json";
-const BOT_ACTION_DELAY: u64 = 1;
 const TASK_DELAY: u64 = 600;
-const NUM_BOT_THREADS: usize = 10;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    init_logs().unwrap();
     //fetch host and port environment variables
     let host = std::env::var("HOST").unwrap_or_else(|_| "localhost".to_string());
+    let enable_bots = std::env::var("ENABLE_BOTS").is_ok();
 
     let prod = std::env::var("PROD").is_ok();
     if !prod {
-        println!("Running in dev mode, bots will be enabled");
+        log::info!("Running in dev mode, bots will be enabled");
     }
 
     let db_name = if prod { "prod" } else { "dummy" };
 
+    let running = Arc::new(AtomicBool::new(true));
+    let running_clone = running.clone();
+    let running_clone_clone = running.clone();
+
     let db = web::Data::new(DB::new(db_name).map_err(|e| {
-        println!("Failed to create db {:?}", e);
+        log::error!("Failed to create db {:?}", e);
         std::io::Error::new(std::io::ErrorKind::Other, "Failed to create db")
     })?);
 
-    // spawn a thread that executes run_all_tasks then waits 10 minutes and repeats
+    // Task thread
     let db_clone = db.clone();
-    std::thread::spawn(move || loop {
-        run_all_tasks(&db_clone).unwrap();
-        std::thread::sleep(std::time::Duration::from_secs(TASK_DELAY));
+    std::thread::spawn(move || {
+        while running_clone.load(Ordering::SeqCst) {
+            run_all_tasks(&db_clone).unwrap();
+            std::thread::sleep(std::time::Duration::from_secs(TASK_DELAY));
+        }
     });
-    // if !prod {
-    //     let db_clone = db.clone();
-    //     let host = host.clone();
 
-    //     std::thread::spawn(move || {
-    //         println!("Waiting 1 seconds before starting bots");
-    //         std::thread::sleep(std::time::Duration::from_secs(1));
-    //         let uuid_jwt = init_bots(&db_clone, &host).unwrap();
-    //         let clients: [Arc<reqwest::blocking::Client>; NUM_BOT_THREADS] =
-    //             array::from_fn(|_| Arc::new(reqwest::blocking::Client::new()));
-    //         loop {
-    //             println!("Running bots");
-    //             let num_threads = 10;
-    //             let total = uuid_jwt.len();
-    //             let mut handles = vec![];
+    if enable_bots {
+        start_bot_manager(db.clone(), host.clone(), running_clone_clone);
+    }
 
-    //             for i in 0..num_threads {
-    //                 let db_clone = db_clone.clone();
-    //                 let uuid_jwt = uuid_jwt.clone();
-    //                 let client_clone = clients[i].clone();
-    //                 let host = host.clone();
-    //                 let handle = thread::spawn(move || {
-    //                     let start = (i * total) / num_threads;
-    //                     let mut end = ((i + 1) * total) / num_threads;
-    //                     if end > uuid_jwt.len() {
-    //                         end = uuid_jwt.len();
-    //                     }
+    log::info!("Starting server at http://{}:8080", &host);
 
-    //                     for ix in start..end {
-    //                         let uuid_jwt = &uuid_jwt[ix];
-    //                         let res =
-    //                             run_all_bot_actions(&client_clone, &db_clone, uuid_jwt, &host);
-    //                         std::thread::sleep(std::time::Duration::from_secs(BOT_ACTION_DELAY));
-    //                         match res {
-    //                             Ok(_) => {
-    //                                 continue;
-    //                             }
-    //                             Err(e) => {
-    //                                 println!("Bot failed to run {:?}", e);
-    //                             }
-    //                         }
-    //                     }
-    //                 });
-    //                 handles.push(handle);
-    //             }
+    // Generate access codes (your existing code)
+    if let Ok(_) = std::fs::read_to_string("access_codes.json") {
+        log::info!("access_codes.json exists");
+    } else {
+        let access_codes = util::generate_access_codes(10000, &db).unwrap();
+        let access_codes_json = serde_json::to_string(&access_codes).unwrap();
+        std::fs::write("access_codes.json", access_codes_json).unwrap();
+        log::info!("access_codes.json does not exist, created it");
+    }
 
-    //             // Wait for all threads to complete
-    //             for handle in handles {
-    //                 handle.join().unwrap();
-    //             }
-    //         }
-    //     });
-    // }
+    let db_clone_for_flushing = db.clone();
 
-    println!("Starting server at http://{}:8080", &host);
-
-    HttpServer::new(move || {
+    // Your existing HttpServer setup
+    let result = HttpServer::new(move || {
         App::new()
             .wrap(
                 Cors::default()
@@ -159,16 +134,21 @@ async fn main() -> std::io::Result<()> {
             .service(get_next_users)
             .service(get_images)
             .service(put_image)
-            .service(set_published)
             .service(rate)
             .service(report_bug)
             .service(fetch_notifications)
             .build()
     })
     .workers(4)
-    .client_request_timeout(std::time::Duration::from_secs(600)) // Set client timeout to 10 minutes
-    .client_disconnect_timeout(std::time::Duration::from_secs(600)) // Set client disconnect timeout to 10 minutes
+    .client_request_timeout(std::time::Duration::from_secs(600))
+    .client_disconnect_timeout(std::time::Duration::from_secs(600))
     .bind((host, 8080))?
     .run()
-    .await
+    .await;
+
+    println!("Flushing db");
+    let res = db_clone_for_flushing.flush()?;
+    println!("Flushed {:?}", res);
+
+    result
 }

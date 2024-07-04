@@ -15,8 +15,8 @@ pub fn get_me(
     body: Json<bool>,
 ) -> Result<Json<ApiUser>, Error> {
     route_body_mut_db(db, req, body, |_, user, _| {
-        ApiUser::from_internal(user.clone(), &user).map_err(|e| {
-            println!("Failed to get me {:?}", e);
+        ApiUser::from_internal(user, None).map_err(|e| {
+            log::error!("Failed to get me {:?}", e);
             actix_web::error::ErrorInternalServerError("Failed to get me")
         })
     })
