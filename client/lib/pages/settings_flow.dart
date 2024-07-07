@@ -33,6 +33,7 @@ class SettingsFlowPageState extends State<SettingsFlowPage> {
     _buttonFocusNode.requestFocus();
 
     initPrefsCategories(userModel);
+    userModel.updateUsersPerfered();
   }
 
   @override

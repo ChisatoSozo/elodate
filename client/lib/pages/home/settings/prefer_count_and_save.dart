@@ -45,6 +45,9 @@ class PreferenceCounters extends StatelessWidget {
   Widget build(BuildContext context) {
     var userModel = Provider.of<UserModel>(context, listen: true);
     return Row(
+      //align center
+      mainAxisSize: MainAxisSize.min,
+
       children: [
         CounterRow(
           text: 'I Prefer',

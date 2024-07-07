@@ -25,7 +25,7 @@ fn insert_dummy_data() -> Result<(), Box<dyn std::error::Error>> {
     let mut uuids = vec![];
 
     let start_time = std::time::Instant::now();
-    let count = 1000;
+    let count = 10;
     for i in 0..count {
         if i % 10 == 0 {
             log::info!("Inserted {} users", i);

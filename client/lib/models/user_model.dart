@@ -168,6 +168,7 @@ class UserModel extends ChangeNotifier {
       setPreference(preference, index + prefIndex);
       prefIndex++;
     }
+    updateUsersPerfered();
     notifyListeners();
   }
 

@@ -192,8 +192,9 @@ class EloRouterDelegate extends RouterDelegate<String>
     }
     if (routeType == RouteType.settingsFlow) {
       bottomNav = Container(
-          constraints: BoxConstraints(maxWidth: pageWidth),
-          child: const Center(child: PreferenceCounters()));
+        constraints: BoxConstraints(maxWidth: pageWidth),
+        child: const PreferenceCounters(),
+      );
     }
     return Stack(
       clipBehavior: Clip.none,
@@ -204,7 +205,10 @@ class EloRouterDelegate extends RouterDelegate<String>
           body: Column(
             children: [
               Expanded(child: child),
-              if (bottomNav != null) bottomNav,
+              if (bottomNav != null) ...[
+                bottomNav,
+                const SizedBox(height: 20),
+              ],
             ],
           ),
         ),

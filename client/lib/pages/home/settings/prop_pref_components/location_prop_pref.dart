@@ -211,7 +211,7 @@ class LocationPickerState extends State<LocationPicker> {
       showMaterialModalBottomSheet(
         // ignore: use_build_context_synchronously
         context: context,
-        builder: (context) => const LocationModal(),
+        builder: (context) => LocationModal(onLocationUpdate: _updateLocation),
       );
     }
 
@@ -286,15 +286,6 @@ class LocationPickerState extends State<LocationPicker> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (locationError != null)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 16.0),
-              child: Text(
-                locationError!,
-                style: const TextStyle(color: Colors.red, fontSize: 16),
-                textAlign: TextAlign.center,
-              ),
-            ),
           if (isLoading) const Loading(text: 'Getting location...'),
           if (!isLoading) ...[
             ...(!unset

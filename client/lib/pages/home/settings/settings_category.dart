@@ -75,7 +75,6 @@ class SettingsCategoryState extends State<SettingsCategory> {
             onUpdated: (updatedProps) {
               final userModel = Provider.of<UserModel>(context, listen: false);
               userModel.setPropertyGroup(updatedProps, prefs, index);
-              userModel.updateUsersPerfered();
             },
           ),
           const SizedBox(height: 20),
@@ -87,7 +86,6 @@ class SettingsCategoryState extends State<SettingsCategory> {
           onUpdated: (updatedPrefs) {
             final userModel = Provider.of<UserModel>(context, listen: false);
             userModel.setPropertyGroup(props, updatedPrefs, index);
-            userModel.updateUsersPerfered();
           },
         ),
         const SizedBox(height: 40),

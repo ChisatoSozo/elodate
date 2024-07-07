@@ -1,6 +1,7 @@
 target
 /db
 /db_old
+!/db/migration_test
 access_codes.txt
 images
 tmp
