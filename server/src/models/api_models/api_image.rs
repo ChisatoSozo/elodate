@@ -26,6 +26,15 @@ impl Gen<'_, bool> for ApiImageWritable {
 }
 
 impl ApiImageWritable {
+    pub fn new_admin() -> Self {
+        //get bytes from test.jpeg in this src folder, it's not a string, so we can't use include_str!
+        const ADMIN_IMG_BYTES: &[u8] = include_bytes!("admin.jpeg");
+        ApiImageWritable {
+            #[allow(deprecated)]
+            content: ADMIN_IMG_BYTES.to_vec(),
+        }
+    }
+
     pub fn new(content: Vec<u8>) -> Self {
         Self { content }
     }

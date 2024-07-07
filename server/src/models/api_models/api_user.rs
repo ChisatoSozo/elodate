@@ -13,7 +13,7 @@ use crate::{
     test::fake::Gen,
     util::to_i16,
 };
-use bcrypt::hash;
+use bcrypt::{hash, DEFAULT_COST};
 use fake::Fake;
 use paperclip::actix::Apiv2Schema;
 use rand::Rng;
@@ -121,7 +121,7 @@ impl ApiUserWritable {
         let hashed_password = if let Some(internal_user) = &internal_user {
             internal_user.hashed_password.clone()
         } else if let Some(password) = self.password {
-            hash(password, 4)?
+            hash(password, DEFAULT_COST)?
         } else {
             return Err("No password for no internal user".into());
         };
@@ -190,7 +190,7 @@ impl ApiUserWritable {
             bot_props = Some(BotProps::gen());
         }
 
-        let (elo, ratings, seen, chats, actions, notifications, is_admin) =
+        let (elo, ratings, seen, mut chats, actions, notifications, is_admin) =
             if let Some(internal_user) = internal_user {
                 // If we have an internal_user, use its bot_props if our initial bot_props is None
                 if bot_props.is_none() {
@@ -224,6 +224,23 @@ impl ApiUserWritable {
             .position(|p| p.name == "age")
             .ok_or("No age")?;
         self.props[age_index].value = get_age(self.birthdate);
+
+        //is chats empty?
+        if chats.is_empty() {
+            let (chat, message) = InternalChat::new_admin_chat(&internal_uuid);
+            let chat_uuid = chat.save(db)?;
+            let chat = chat_uuid.load(db)?;
+            let mut chat = match chat {
+                Some(chat) => chat,
+                None => {
+                    return Err("Failed to load chat".into());
+                }
+            };
+            message
+                .into_internal(&internal_uuid, &chat, db)?
+                .save(&mut chat, db)?;
+            chats.push(chat_uuid.into());
+        }
 
         Ok(InternalUser {
             uuid: internal_uuid.clone(),

@@ -41,7 +41,7 @@ impl<InternalModel> std::hash::Hash for InternalUuid<InternalModel> {
     }
 }
 
-impl<InternalModel: Bucket> InternalUuid<InternalModel>
+impl<InternalModel: Insertable> InternalUuid<InternalModel>
 where
     InternalModel: rkyv::Archive
         + Serialize<
@@ -63,7 +63,7 @@ where
     }
 
     pub fn load(&self, db: &DB) -> Result<Option<InternalModel>, Box<dyn Error>> {
-        let model = db.read_object(InternalModel::bucket(), &self)?;
+        let model = db.read_object(&self)?;
         Ok(model)
     }
 
@@ -74,6 +74,13 @@ where
 
     pub fn delete(self, db: &DB) -> Result<Option<InternalModel>, Box<dyn Error>> {
         db.delete_object(&self)
+    }
+
+    pub fn from_str(id: &str) -> Self {
+        Self {
+            id: id.to_string(),
+            _marker: PhantomData,
+        }
     }
 }
 
@@ -107,10 +114,12 @@ pub trait GetVector {
     fn get_vector(&self) -> [i16; PREFS_CARDINALITY];
 }
 
-pub trait Bucket {
+pub trait Insertable {
     fn bucket() -> &'static str {
         //match the type of the object that implements this trait
         let type_name = std::any::type_name::<Self>().split("::").last().unwrap();
+        //if it ends in V# remove the V#
+        let type_name = type_name.split("V").next().unwrap();
         match type_name {
             "InternalChat" => "chat",
             "InternalImage" => "image",
@@ -120,4 +129,5 @@ pub trait Bucket {
             _ => panic!("Unknown bucket"),
         }
     }
+    fn version() -> u64;
 }

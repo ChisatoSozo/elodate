@@ -54,7 +54,7 @@ pub fn send_message(
             return Err(actix_web::error::ErrorBadRequest("User not in chat"));
         }
 
-        let internal_message = message.into_internal(&user, &chat, db)?;
+        let internal_message = message.into_internal(&user.uuid, &chat, db)?;
 
         internal_message.save(&mut chat, db).map_err(|e| {
             log::error!("Failed to save message {:?}", e);

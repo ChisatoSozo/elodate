@@ -2,7 +2,7 @@ use std::error::Error;
 
 use super::{
     internal_user::InternalUser,
-    shared::{Bucket, InternalUuid, Save},
+    shared::{Insertable, InternalUuid, Save},
 };
 
 use crate::db::DB;
@@ -37,4 +37,8 @@ impl Save for InternalImage {
     }
 }
 
-impl Bucket for InternalImage {}
+impl Insertable for InternalImage {
+    fn version() -> u64 {
+        0
+    }
+}

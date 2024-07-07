@@ -7,7 +7,7 @@ use super::{
     internal_chat::InternalChat,
     internal_image::InternalImage,
     internal_user::InternalUser,
-    shared::{Bucket, InternalUuid},
+    shared::{Insertable, InternalUuid},
 };
 
 #[derive(Debug, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
@@ -60,9 +60,10 @@ impl InternalMessage {
         for user in chat.users.iter() {
             if user != &self.author {
                 let user: InternalUuid<InternalUser> = user.clone();
-                let mut user = user
-                    .load(db)?
-                    .ok_or("User not found in save internal message")?;
+                let mut user = user.load(db)?.ok_or(format!(
+                    "User not found in save internal message {}",
+                    user.id
+                ))?;
                 user.notifications
                     .push(Notification::UnreadMessage(self.uuid.clone()));
                 user.uuid.write(&user, db)?;
@@ -84,4 +85,8 @@ impl InternalMessage {
     }
 }
 
-impl Bucket for InternalMessage {}
+impl Insertable for InternalMessage {
+    fn version() -> u64 {
+        0
+    }
+}

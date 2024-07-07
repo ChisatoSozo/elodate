@@ -1,8 +1,11 @@
 use std::error::Error;
 
 use crate::db::DB;
+use crate::models::api_models::api_message::{ApiMessage, ApiMessageWritable};
+use crate::models::api_models::shared::ApiUuid;
 
-use super::shared::{Bucket, InternalUuid, Save};
+use super::migration::migration::get_admin_uuid;
+use super::shared::{Insertable, InternalUuid, Save};
 use super::{internal_message::InternalMessage, internal_user::InternalUser};
 
 #[derive(Debug, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
@@ -31,6 +34,16 @@ impl InternalChat {
             most_recent_message_sent_at: now,
         }
     }
+
+    pub fn new_admin_chat(user: &InternalUuid<InternalUser>) -> (InternalChat, ApiMessageWritable) {
+        let chat = InternalChat::new(vec![user.clone(), get_admin_uuid()]);
+        let message = ApiMessageWritable {
+            uuid: None,
+            content: "Welcome to the admin chat! You can use this chat to make requests, ask questions, report bugs, or just chat with the developers.".to_string(),
+            image: None,
+        };
+        (chat, message)
+    }
 }
 
 impl Save for InternalChat {
@@ -39,4 +52,8 @@ impl Save for InternalChat {
     }
 }
 
-impl Bucket for InternalChat {}
+impl Insertable for InternalChat {
+    fn version() -> u64 {
+        0
+    }
+}

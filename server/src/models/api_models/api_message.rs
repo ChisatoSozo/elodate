@@ -46,7 +46,7 @@ pub struct ApiMessageWritable {
 impl ApiMessageWritable {
     pub fn into_internal(
         self,
-        user: &InternalUser,
+        user_uuid: &InternalUuid<InternalUser>,
         chat: &InternalChat,
         db: &DB,
     ) -> Result<InternalMessage, actix_web::Error> {
@@ -66,7 +66,7 @@ impl ApiMessageWritable {
                         return Err(actix_web::error::ErrorBadRequest("Message does not exist"));
                     }
                 };
-                if message.author != user.uuid {
+                if &message.author != user_uuid {
                     return Err(actix_web::error::ErrorBadRequest("Not the author"));
                 }
                 //is the message in the chat?
@@ -82,11 +82,11 @@ impl ApiMessageWritable {
             None => InternalMessage {
                 uuid: InternalUuid::new(),
                 sent_at: chrono::Utc::now().timestamp(),
-                author: user.uuid.clone(),
+                author: user_uuid.clone(),
                 content: self.content,
                 edited: false,
                 image: None,
-                read_by: vec![user.uuid.clone()],
+                read_by: vec![user_uuid.clone()],
                 chat: chat.uuid.clone(),
             },
         };
@@ -103,7 +103,7 @@ impl ApiMessageWritable {
                 match archived {
                     Some(image) => {
                         //permissions?
-                        if !image.access.can_access(&user.uuid) {
+                        if !image.access.can_access(&user_uuid) {
                             return Err(actix_web::error::ErrorBadRequest("No access to image"));
                         }
                         message.image = Some(image.uuid);

@@ -6,7 +6,7 @@ use crate::{
 
 pub fn run_all_tasks(db: &DB) -> Result<(), Box<dyn std::error::Error>> {
     log::info!("Running all tasks");
-    for user in db.iter_obj::<InternalUser>("users")? {
+    for user in db.iter_obj::<InternalUser>()? {
         let mut user = user?;
         update_age(&mut user);
         update_elo(&mut user);

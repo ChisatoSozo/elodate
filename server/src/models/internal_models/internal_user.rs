@@ -9,19 +9,19 @@ use super::{
     internal_message::InternalMessage,
     internal_prefs::{LabeledPreferenceRange, LabeledProperty},
     internal_prefs_config::PREFS_CONFIG,
-    shared::{Bucket, GetBbox, GetVector, InternalUuid, Save},
+    shared::{GetBbox, GetVector, Insertable, InternalUuid, Save},
 };
 
 use crate::db::DB;
 
-#[derive(Debug, rkyv::Serialize, rkyv::Deserialize, rkyv::Archive)]
+#[derive(Debug, Clone, rkyv::Serialize, rkyv::Deserialize, rkyv::Archive)]
 #[archive(compare(PartialEq), check_bytes)]
 pub enum InternalRating {
     LikedBy(InternalUuid<InternalUser>),
     PassedBy(InternalUuid<InternalUser>),
 }
 
-#[derive(Debug, rkyv::Serialize, rkyv::Deserialize, rkyv::Archive)]
+#[derive(Debug, Clone, rkyv::Serialize, rkyv::Deserialize, rkyv::Archive)]
 #[archive(compare(PartialEq), check_bytes)]
 pub enum Action {
     SendMessage,
@@ -29,14 +29,14 @@ pub enum Action {
     Rate,
 }
 
-#[derive(Debug, rkyv::Serialize, rkyv::Deserialize, rkyv::Archive)]
+#[derive(Debug, Clone, rkyv::Serialize, rkyv::Deserialize, rkyv::Archive)]
 #[archive(compare(PartialEq), check_bytes)]
 pub struct TimestampedAction {
     pub action: Action,
     pub timestamp: i64,
 }
 
-#[derive(Debug, rkyv::Serialize, rkyv::Deserialize, rkyv::Archive)]
+#[derive(Debug, Clone, rkyv::Serialize, rkyv::Deserialize, rkyv::Archive)]
 #[archive(compare(PartialEq), check_bytes)]
 pub enum Notification {
     UnreadMessage(InternalUuid<InternalMessage>),
@@ -44,7 +44,7 @@ pub enum Notification {
     System(String),
 }
 
-#[derive(Debug, rkyv::Serialize, rkyv::Deserialize, rkyv::Archive)]
+#[derive(Debug, Clone, rkyv::Serialize, rkyv::Deserialize, rkyv::Archive)]
 #[archive(compare(PartialEq), check_bytes)]
 pub struct BotProps {
     pub likelihood_to_swipe_right: f32,
@@ -144,7 +144,11 @@ impl InternalUser {
     }
 }
 
-impl Bucket for InternalUser {}
+impl Insertable for InternalUser {
+    fn version() -> u64 {
+        1
+    }
+}
 
 impl Save for InternalUser {
     fn save(self, db: &DB) -> Result<InternalUuid<InternalUser>, Box<dyn Error>> {

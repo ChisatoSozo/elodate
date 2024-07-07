@@ -19,7 +19,7 @@ use std::{
 use crate::models::internal_models::{
     internal_prefs_config::PREFS_CARDINALITY,
     internal_user::InternalUser,
-    shared::{Bucket, GetBbox, GetVector, InternalUuid},
+    shared::{GetBbox, GetVector, Insertable, InternalUuid},
 };
 use crate::vec::search_linear::LinearSearch;
 use crate::vec::shared::VectorSearch;
@@ -58,7 +58,7 @@ impl DB {
             path: db_path,
         };
 
-        let users = db.iter_obj::<InternalUser>(InternalUser::bucket())?;
+        let users = db.iter_obj::<InternalUser>()?;
 
         for user in users {
             let user = user.unwrap();
@@ -111,7 +111,7 @@ impl DB {
         Ok(())
     }
 
-    pub fn get_version<T: Bucket>(&self) -> Result<u64, kv::Error> {
+    pub fn get_version<T: Insertable>(&self) -> Result<u64, kv::Error> {
         let bucket = self.store.bucket::<String, String>(Some("version"))?;
         let key = T::bucket();
         let result = bucket.get(&key.to_string())?;
@@ -121,7 +121,7 @@ impl DB {
         }
     }
 
-    pub fn increment_version<T: Bucket>(&self) -> Result<(), kv::Error> {
+    pub fn increment_version<T: Insertable>(&self) -> Result<(), kv::Error> {
         let version = self.get_version::<T>()?;
         let bucket = self.store.bucket::<String, String>(Some("version"))?;
         let key = T::bucket();
@@ -129,7 +129,7 @@ impl DB {
         Ok(())
     }
 
-    pub fn write_index<T: Bucket>(
+    pub fn write_index<T: Insertable>(
         &self,
         view: &str,
         value: &String,
@@ -171,8 +171,12 @@ impl DB {
                     FallbackScratch<HeapScratch<SCRATCH_SPACE_SIZE>, AllocScratch>,
                     SharedSerializeMap,
                 >,
-            > + Bucket,
+            > + Insertable,
     {
+        let version = self.get_version::<T>()?;
+        if version != T::version() {
+            return Err("Version mismatch".into());
+        }
         let mut serializer = DefaultSerializer::default();
         serializer.serialize_value(object).unwrap();
         let bytes = serializer.into_serializer().into_inner();
@@ -193,13 +197,13 @@ impl DB {
 
     pub fn read_object<T>(
         &self,
-        bucket: &str,
         key: &InternalUuid<T>,
     ) -> Result<Option<T>, Box<dyn std::error::Error>>
     where
-        T: Archive,
+        T: Archive + Insertable,
         for<'a> T::Archived: rkyv::CheckBytes<DefaultValidator<'a>> + Deserialize<T, Infallible>,
     {
+        let bucket = T::bucket();
         let bucket = self.store.bucket::<Raw, Raw>(Some(bucket))?;
         let key_raw = Raw::from(key.id.as_bytes());
         let result = bucket.get(&key_raw)?;
@@ -218,13 +222,12 @@ impl DB {
 
     pub fn iter_obj<T>(
         &self,
-        bucket: &str,
     ) -> Result<impl Iterator<Item = Result<T, Box<dyn std::error::Error>>>, kv::Error>
     where
-        T: Archive,
+        T: Archive + Insertable,
         for<'a> T::Archived: rkyv::CheckBytes<DefaultValidator<'a>> + Deserialize<T, Infallible>,
     {
-        let bucket = self.store.bucket::<Raw, Raw>(Some(bucket))?;
+        let bucket = self.store.bucket::<Raw, Raw>(Some(T::bucket()))?;
         let iter = bucket.iter().map(move |elem| {
             let item = elem.map_err(|e| Box::new(e) as Box<dyn std::error::Error>)?;
             let value: Raw = item.value()?;

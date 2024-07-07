@@ -2,7 +2,7 @@ use std::error::Error;
 
 use crate::db::DB;
 
-use super::shared::{Bucket, InternalUuid, Save};
+use super::shared::{Insertable, InternalUuid, Save};
 use rand::Rng;
 
 #[derive(Debug, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
@@ -36,7 +36,11 @@ impl InternalAccessCode {
     }
 }
 
-impl Bucket for InternalAccessCode {}
+impl Insertable for InternalAccessCode {
+    fn version() -> u64 {
+        0
+    }
+}
 
 impl Save for InternalAccessCode {
     fn save(self, db: &crate::db::DB) -> Result<InternalUuid<InternalAccessCode>, Box<dyn Error>> {

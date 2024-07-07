@@ -68,6 +68,8 @@ async fn main() -> std::io::Result<()> {
         std::io::Error::new(std::io::ErrorKind::Other, "Failed to create db")
     })?);
 
+    db.migrate_all().unwrap();
+
     // Task thread
     let db_clone = db.clone();
     std::thread::spawn(move || {
