@@ -1,3 +1,5 @@
+import 'package:client/components/custom_form_field.dart';
+import 'package:client/components/spacer.dart';
 import 'package:client/models/register_model.dart';
 import 'package:client/router/elo_router_nav.dart';
 import 'package:flutter/material.dart';
@@ -28,19 +30,17 @@ class RegisterBirthdatePageState extends State<RegisterBirthdatePage> {
             'How old are you?',
             style: theme.textTheme.titleLarge,
           ),
-          const SizedBox(height: 20),
-          TextFormField(
+          const VerticalSpacer(),
+          CustomFormField(
             controller: birthdateController,
-            decoration: const InputDecoration(
-              labelText: 'Birthdate (YYYY-MM-DD)',
-              border: OutlineInputBorder(),
-            ),
-            onTap: () => {
-              if (!dateSelectorHasBeenOpened) _selectDate(context),
+            labelText: 'Birthdate (YYYY-MM-DD)',
+            onTap: () {
+              if (!dateSelectorHasBeenOpened) _selectDate(context);
             },
-            validator: (value) => _validateBirthdate(value),
+            validator: _validateBirthdate,
+            readOnly: true,
           ),
-          const SizedBox(height: 20),
+          const VerticalSpacer(),
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
@@ -97,11 +97,9 @@ class RegisterBirthdatePageState extends State<RegisterBirthdatePage> {
   Future<void> _submit() async {
     if (!formKey.currentState!.validate()) return;
 
-    // Assuming validation passed and setting the birthdate in the model
     if (!mounted) return;
 
     if (selectedDate == null && birthdateController.text.isNotEmpty) {
-      //parse
       selectedDate = DateTime.tryParse(birthdateController.text);
     }
 

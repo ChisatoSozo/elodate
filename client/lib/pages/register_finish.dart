@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:client/components/loading.dart';
+import 'package:client/components/spacer.dart';
 import 'package:client/models/register_model.dart';
 import 'package:client/router/elo_router_nav.dart';
 import 'package:client/utils/utils.dart';
@@ -49,7 +50,7 @@ class RegisterFinishPageState extends State<RegisterFinishPage> {
                   'Enter your alpha access code to finish registration.',
                   style: theme.textTheme.titleLarge,
                 ),
-                const SizedBox(height: 20),
+                const VerticalSpacer(),
                 TextFormField(
                   controller: _accessCodeController,
                   decoration: const InputDecoration(
@@ -59,7 +60,7 @@ class RegisterFinishPageState extends State<RegisterFinishPage> {
                   ),
                 ),
                 if (registerError != null) Text(registerError!),
-                const SizedBox(height: 20),
+                const VerticalSpacer(),
                 Row(
                   //align right
                   mainAxisAlignment: MainAxisAlignment.end,

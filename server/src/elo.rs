@@ -1,6 +1,9 @@
 // use std::error::Error;
 
-use crate::models::internal_models::internal_user::{Action, InternalRating, TimestampedAction};
+use crate::models::internal_models::{
+    internal_prefs::LabeledProperty,
+    internal_user::{Action, InternalRating, TimestampedAction},
+};
 
 // use crate::{
 //     db::DB,
@@ -34,7 +37,11 @@ const MAX_MESSAGES_SENT_PER_DAY_REWARDED: usize = 20;
 const MAX_MESSAGES_RECIEVED_PER_DAY_REWARDED: usize = 20;
 const MAX_RATES_PER_DAY_REWARDED: usize = 20;
 
-pub fn calc_elo(rates: &Vec<InternalRating>, actions: &Vec<TimestampedAction>) -> f32 {
+pub fn calc_elo(
+    rates: &Vec<InternalRating>,
+    actions: &Vec<TimestampedAction>,
+    props: &Vec<LabeledProperty>,
+) -> f32 {
     let mut liked = 0;
     let mut passed = 0;
 
@@ -44,6 +51,10 @@ pub fn calc_elo(rates: &Vec<InternalRating>, actions: &Vec<TimestampedAction>) -
             InternalRating::PassedBy(_) => passed += 1,
         }
     }
+
+    let props_weight = props.len() as f32 / 1000.0;
+    let num_props_filled = props.iter().filter(|prop| prop.value != -32768).count() as f32;
+    let perc_props_filled = num_props_filled / props.len() as f32;
 
     passed += BEGINNING_LEFT_SWIPES;
 
@@ -88,70 +99,52 @@ pub fn calc_elo(rates: &Vec<InternalRating>, actions: &Vec<TimestampedAction>) -
         + message_value * MESSAGES_WEIGHT
         + recieve_message_value * RECIEVE_MESSAGES_WEIGHT
         + rate_value * RATE_WEIGHT;
+
+    let elo = (1.0 - props_weight) * elo + props_weight * perc_props_filled;
     elo
 }
 
-const NUM_ELOS: usize = 24;
+const NUM_ELOS: usize = 16;
 const ELO_LABELS: [&str; NUM_ELOS] = [
     "Bronze 1",
     "Bronze 2",
-    "Bronze 3",
     "Silver 1",
     "Silver 2",
-    "Silver 3",
     "Gold 1",
     "Gold 2",
-    "Gold 3",
     "Platinum 1",
     "Platinum 2",
-    "Platinum 3",
     "Emerald 1",
     "Emerald 2",
-    "Emerald 3",
     "Sapphire 1",
     "Sapphire 2",
-    "Sapphire 3",
     "Ruby 1",
     "Ruby 2",
-    "Ruby 3",
     "Diamond 1",
     "Diamond 2",
-    "Diamond 3",
 ];
 
-const ELO_THRESHOLDS: [f32; NUM_ELOS] = [
-    0.0,
-    1.0 / 24.0,
-    2.0 / 24.0,
-    3.0 / 24.0,
-    4.0 / 24.0,
-    5.0 / 24.0,
-    6.0 / 24.0,
-    7.0 / 24.0,
-    8.0 / 24.0,
-    9.0 / 24.0,
-    10.0 / 24.0,
-    11.0 / 24.0,
-    12.0 / 24.0,
-    13.0 / 24.0,
-    14.0 / 24.0,
-    15.0 / 24.0,
-    16.0 / 24.0,
-    17.0 / 24.0,
-    18.0 / 24.0,
-    19.0 / 24.0,
-    20.0 / 24.0,
-    21.0 / 24.0,
-    22.0 / 24.0,
-    23.0 / 24.0,
+const ELO_THRESHOLDS: [f32; NUM_ELOS - 1] = [
+    1.0 / 16.0,
+    2.0 / 16.0,
+    3.0 / 16.0,
+    4.0 / 16.0,
+    5.0 / 16.0,
+    6.0 / 16.0,
+    7.0 / 16.0,
+    8.0 / 16.0,
+    9.0 / 16.0,
+    10.0 / 16.0,
+    11.0 / 16.0,
+    12.0 / 16.0,
+    13.0 / 16.0,
+    14.0 / 16.0,
+    15.0 / 16.0,
 ];
 
 pub fn elo_to_label(elo: f32) -> String {
     let mut i = 0;
-    while i < (NUM_ELOS - 1) {
-        if elo < ELO_THRESHOLDS[i] {
-            break;
-        }
+    while i < NUM_ELOS - 1 && elo > ELO_THRESHOLDS[i] {
         i += 1;
     }
     ELO_LABELS[i].to_string()

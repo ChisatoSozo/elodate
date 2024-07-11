@@ -8,7 +8,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:localstorage/localstorage.dart';
 
-//public function to construct client
 DefaultApi constructClient(String? jwt) {
   HttpBearerAuth? auth;
 
@@ -17,7 +16,6 @@ DefaultApi constructClient(String? jwt) {
     auth.accessToken = jwt;
   }
 
-  //if kIsWeb, get host from url
   if (kIsWeb) {
     var host = Uri.base.host;
     var port = Uri.base.port;
@@ -49,6 +47,8 @@ class UserModel extends ChangeNotifier {
   bool get changes => _changes;
   ApiUser get me => _me!;
   bool get loggedIn => _me != null && !isLoading && isLoaded;
+
+  String? lastUserLoadedUuid;
 
   bool _metric = true;
   bool get metric => _metric;
@@ -100,7 +100,6 @@ class UserModel extends ChangeNotifier {
     try {
       await initMe();
     } catch (e) {
-      //pop all and go to login
       clear();
       if (!context.mounted) {
         rethrow;
@@ -120,9 +119,6 @@ class UserModel extends ChangeNotifier {
 
   Future<void> initAdditionalPrefs() async {
     var result = await client.getPrefsConfigPost(true);
-    if (result == null) {
-      throw Exception('Failed to get additional prefs');
-    }
     preferenceConfigs = result;
   }
 
@@ -136,7 +132,6 @@ class UserModel extends ChangeNotifier {
       throw Exception('Failed to get me');
     }
     var birthdate = newMe.birthdate;
-    //years old (birthdate is seconds since epoch)
     var age = DateTime.now().year -
         DateTime.fromMillisecondsSinceEpoch(birthdate * 1000).year;
     setPropByName(newMe.props, "age", age);
@@ -144,41 +139,50 @@ class UserModel extends ChangeNotifier {
   }
 
   Future<void> setProperty(ApiUserPropsInner property, int index) async {
-    me.props[index] = property;
-    _changes = true;
-    notifyListeners();
+    if (_me != null) {
+      _me!.props[index] = property;
+      _changes = true;
+      notifyListeners();
+    }
   }
 
   Future<void> setPreference(ApiUserPrefsInner preference, int index) async {
-    me.prefs[index] = preference;
-    _changes = true;
-    notifyListeners();
+    if (_me != null) {
+      _me!.prefs[index] = preference;
+      _changes = true;
+      notifyListeners();
+    }
   }
 
   void setPropertyGroup(
       List<ApiUserPropsInner> props, List<ApiUserPrefsInner> prefs, int index) {
-    var propIndex = 0;
-    for (var property in props) {
-      setProperty(property, index + propIndex);
-      propIndex++;
-    }
+    if (_me != null) {
+      var propIndex = 0;
+      for (var property in props) {
+        setProperty(property, index + propIndex);
+        propIndex++;
+      }
 
-    var prefIndex = 0;
-    for (var preference in prefs) {
-      setPreference(preference, index + prefIndex);
-      prefIndex++;
+      var prefIndex = 0;
+      for (var preference in prefs) {
+        setPreference(preference, index + prefIndex);
+        prefIndex++;
+      }
+      updateUsersPerfered();
+      notifyListeners();
     }
-    updateUsersPerfered();
-    notifyListeners();
   }
 
   (List<ApiUserPropsInner>, List<ApiUserPrefsInner>) getPropertyGroup(
       List<PreferenceConfigPublic> preferenceConfigs) {
+    if (_me == null) {
+      return ([], []);
+    }
     var names = preferenceConfigs.map((e) => e.name);
     var props =
-        me.props.where((element) => names.contains(element.name)).toList();
+        _me!.props.where((element) => names.contains(element.name)).toList();
     var prefs =
-        me.prefs.where((element) => names.contains(element.name)).toList();
+        _me!.prefs.where((element) => names.contains(element.name)).toList();
     return (props, prefs);
   }
 
@@ -189,37 +193,33 @@ class UserModel extends ChangeNotifier {
     if (result == null) {
       throw Exception('Failed to upload image');
     }
-    //remove the first and last characters if they are quotes
-    return result.substring(1, result.length - 1);
+    return result.replaceAll('"', '');
   }
 
   Future<ApiImage> getImage(String uuid) async {
     var result = await client.getImagesPost([uuid]);
-    if (result == null) {
+    if (result == null || result.isEmpty) {
       throw Exception('Failed to get image');
-    }
-    if (result.isEmpty) {
-      throw Exception('Image not found');
-    }
-    if (result.length > 1) {
-      throw Exception('Too many images found');
     }
     return result.first;
   }
 
   Future<void> updateMe() async {
+    if (_me == null) {
+      throw Exception('User not initialized');
+    }
     _changes = false;
     notifyListeners();
     var result = await client.putUserPost(ApiUserWritable(
-      birthdate: me.birthdate,
-      description: me.description,
-      displayName: me.displayName,
-      username: me.username,
-      uuid: me.uuid,
-      prefs: me.prefs,
-      props: me.props,
-      images: me.images,
-      previewImage: me.previewImage,
+      birthdate: _me!.birthdate,
+      description: _me!.description,
+      displayName: _me!.displayName,
+      username: _me!.username,
+      uuid: _me!.uuid,
+      prefs: _me!.prefs,
+      props: _me!.props,
+      images: _me!.images,
+      previewImage: _me!.previewImage,
       isBot: false,
     ));
 
@@ -245,23 +245,19 @@ class UserModel extends ChangeNotifier {
   }
 
   Future<void> getNumUsersIPreferDryRun() async {
-    var result = await client.getUsersIPerferCountDryRunPost(me.prefs
+    if (_me == null) return;
+    var result = await client.getUsersIPerferCountDryRunPost(_me!.prefs
         .map((p) => LabeledPreferenceRange(name: p.name, range: p.range))
         .toList());
-    if (result == null) {
-      throw Exception('Failed to get num users I prefer dry run');
-    }
-    numUsersIPrefer = result;
+    numUsersIPrefer = result ?? 0;
     notifyListeners();
   }
 
   Future<void> getNumUsersMutuallyPreferDryRun() async {
+    if (_me == null) return;
     var result = await client.getUsersMutualPerferCountDryRunPost(
-        PropsAndPrefs(prefs: me.prefs, props: me.props));
-    if (result == null) {
-      throw Exception('Failed to get num users mutually prefer dry run');
-    }
-    numUsersMutuallyPrefer = result;
+        PropsAndPrefs(prefs: _me!.prefs, props: _me!.props));
+    numUsersMutuallyPrefer = result ?? 0;
     notifyListeners();
   }
 
@@ -289,14 +285,8 @@ class UserModel extends ChangeNotifier {
 
   Future<ApiUser> getUser(String uuid) async {
     var result = await client.getUsersPost([uuid]);
-    if (result == null) {
-      throw Exception('Failed to get user');
-    }
-    if (result.isEmpty) {
+    if (result == null || result.isEmpty) {
       throw Exception('User not found');
-    }
-    if (result.length > 1) {
-      throw Exception('Too many users found');
     }
     return result.first;
   }

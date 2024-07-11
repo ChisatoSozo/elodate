@@ -1,50 +1,84 @@
 import 'package:flutter/material.dart';
 
-enum EloSpacerType { vertical, horizontal }
+enum SpacerType { vertical, horizontal }
 
-enum EloSpacerSize { small, medium, large }
+enum SpacerSize { small, medium, large }
 
-class EloSpacer extends StatelessWidget {
-  final EloSpacerType type;
-  final EloSpacerSize size;
+class Spacer extends StatelessWidget {
+  final SpacerType type;
+  final SpacerSize size;
 
-  const EloSpacer({
+  const Spacer({
     super.key,
-    this.type = EloSpacerType.vertical,
-    this.size = EloSpacerSize.large,
+    this.type = SpacerType.vertical,
+    this.size = SpacerSize.large,
   });
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: type == EloSpacerType.vertical
+      height: type == SpacerType.vertical
           ? _getVerticalSize(size)
           : _getHorizontalSize(size),
-      width: type == EloSpacerType.horizontal
+      width: type == SpacerType.horizontal
           ? _getHorizontalSize(size)
           : _getVerticalSize(size),
     );
   }
 
-  double _getVerticalSize(EloSpacerSize size) {
+  double _getVerticalSize(SpacerSize size) {
     switch (size) {
-      case EloSpacerSize.small:
+      case SpacerSize.small:
         return 8.0;
-      case EloSpacerSize.medium:
+      case SpacerSize.medium:
         return 16.0;
-      case EloSpacerSize.large:
+      case SpacerSize.large:
         return 24.0;
     }
   }
 
-  double _getHorizontalSize(EloSpacerSize size) {
+  double _getHorizontalSize(SpacerSize size) {
     switch (size) {
-      case EloSpacerSize.small:
+      case SpacerSize.small:
         return 8.0;
-      case EloSpacerSize.medium:
+      case SpacerSize.medium:
         return 16.0;
-      case EloSpacerSize.large:
+      case SpacerSize.large:
         return 24.0;
     }
+  }
+}
+
+class HorizontalSpacer extends StatelessWidget {
+  final SpacerSize size;
+
+  const HorizontalSpacer({
+    super.key,
+    this.size = SpacerSize.large,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Spacer(
+      type: SpacerType.horizontal,
+      size: size,
+    );
+  }
+}
+
+class VerticalSpacer extends StatelessWidget {
+  final SpacerSize size;
+
+  const VerticalSpacer({
+    super.key,
+    this.size = SpacerSize.medium,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Spacer(
+      type: SpacerType.vertical,
+      size: size,
+    );
   }
 }

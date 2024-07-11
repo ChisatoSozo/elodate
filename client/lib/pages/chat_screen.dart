@@ -6,8 +6,8 @@ import 'package:client/api/pkg/lib/api.dart';
 import 'package:client/components/uuid_image_provider.dart';
 import 'package:client/models/user_model.dart';
 import 'package:client/pages/chat/chat_bubble.dart';
+import 'package:client/utils/image_picker_util.dart';
 import 'package:client/utils/utils.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -259,7 +259,7 @@ class ChatScreenState extends State<ChatScreen> {
       uuid = uuid!.substring(1, uuid.length - 1);
     }
 
-    await client.sendMessagePost(SendMessageInput(
+    await client.putMessagePost(SendMessageInput(
       chatUuid: _chat!.uuid,
       message: SendMessageInputMessage(content: _controller.text, image: uuid),
     ));
@@ -276,28 +276,12 @@ class ChatScreenState extends State<ChatScreen> {
   }
 
   Future<void> _pickImage(ImageSource source) async {
-    if (kIsWeb) {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['jpg', 'jpeg', 'png', 'webp'],
-        withData: true,
-      );
-
-      if (result != null && result.files.single.bytes != null) {
-        setState(() {
-          _selectedImage = result.files.single.bytes;
-          _isSendButtonEnabled = true;
-        });
-      }
-    } else {
-      final pickedFile = await _picker.pickImage(source: source);
-      if (pickedFile != null) {
-        var selectedImage = await pickedFile.readAsBytes();
-        setState(() {
-          _selectedImage = selectedImage;
-          _isSendButtonEnabled = true;
-        });
-      }
+    final pickedImage = await ImagePickerUtil.pickImage(source: source);
+    if (pickedImage != null) {
+      setState(() {
+        _selectedImage = pickedImage;
+        _isSendButtonEnabled = true;
+      });
     }
   }
 

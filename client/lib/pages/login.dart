@@ -1,3 +1,5 @@
+import 'package:client/components/custom_form_field.dart';
+import 'package:client/components/spacer.dart';
 import 'package:client/models/register_model.dart';
 import 'package:client/router/elo_router_nav.dart';
 import 'package:client/utils/utils.dart';
@@ -38,15 +40,29 @@ class LoginPageState extends State<LoginPage> {
           .login(_usernameController.text, _passwordController.text, context);
       if (!mounted) return;
       EloNav.goRedir(context);
-      setState(() {
-        _loggingIn = false;
-      });
     } catch (e) {
       setState(() {
         _error = formatApiError(e.toString());
-        _loggingIn = false;
       });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _loggingIn = false;
+        });
+      }
     }
+  }
+
+  void _goToRegister() {
+    if (_usernameController.text.isNotEmpty) {
+      Provider.of<RegisterModel>(context, listen: false)
+          .setUsername(_usernameController.text);
+    }
+    if (_passwordController.text.isNotEmpty) {
+      Provider.of<RegisterModel>(context, listen: false)
+          .setPassword(_passwordController.text);
+    }
+    EloNav.goRegister(context);
   }
 
   @override
@@ -64,38 +80,47 @@ class LoginPageState extends State<LoginPage> {
               width: 300,
               height: 300,
             ),
-            const SizedBox(height: 20),
-            TextFormField(
+            const VerticalSpacer(),
+            CustomFormField(
               controller: _usernameController,
-              autofillHints: const [AutofillHints.username],
-              decoration: const InputDecoration(
-                labelText: 'Username',
-                border: OutlineInputBorder(),
-              ),
+              labelText: 'Username',
               validator: (value) =>
                   value!.isEmpty ? 'Please enter your username' : null,
+              keyboardType: TextInputType.text,
             ),
-            const SizedBox(height: 20),
-            TextFormField(
+            const VerticalSpacer(),
+            CustomFormField(
               controller: _passwordController,
-              autofillHints: const [AutofillHints.password],
+              labelText: 'Password',
               obscureText: true,
-              decoration: const InputDecoration(
-                labelText: 'Password',
-                border: OutlineInputBorder(),
-              ),
               validator: (value) =>
                   value!.isEmpty ? 'Please enter your password' : null,
             ),
             if (_error != null) ...[
-              const SizedBox(height: 20),
+              const VerticalSpacer(),
               Text(
                 _error!,
                 style: const TextStyle(color: Colors.red),
                 textAlign: TextAlign.center,
               ),
             ],
-            const SizedBox(height: 20),
+            const VerticalSpacer(),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                ElevatedButton(
+                  onPressed: _goToRegister,
+                  child: const Text('Register'),
+                ),
+                ElevatedButton(
+                  onPressed: _loggingIn ? null : _login,
+                  child: _loggingIn
+                      ? const CircularProgressIndicator()
+                      : const Text('Login'),
+                ),
+              ],
+            ),
+            const VerticalSpacer(),
             const Text(
               "Welcome to the Elodate alpha! 🚀\n\n"
               "To get the most out of this early version:\n"
@@ -107,34 +132,7 @@ class LoginPageState extends State<LoginPage> {
               "Thank you for being an early adopter! 💖",
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                ElevatedButton(
-                  onPressed: _loggingIn ? null : _login,
-                  child: _loggingIn
-                      ? const CircularProgressIndicator()
-                      : const Text('Login'),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    //set username if it's already entered
-                    if (_usernameController.text.isNotEmpty) {
-                      Provider.of<RegisterModel>(context, listen: false)
-                          .setUsername(_usernameController.text);
-                    }
-                    //set password if it's already entered
-                    if (_passwordController.text.isNotEmpty) {
-                      Provider.of<RegisterModel>(context, listen: false)
-                          .setPassword(_passwordController.text);
-                    }
-                    EloNav.goRegister(context);
-                  },
-                  child: const Text('Register'),
-                ),
-              ],
-            ),
+            const VerticalSpacer(),
           ],
         ),
       ),

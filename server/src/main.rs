@@ -18,14 +18,17 @@ use middleware::jwt::Jwt;
 
 use paperclip::actix::{web, OpenApiExt};
 
+use dotenv::dotenv;
 use routes::{
-    check_username::check_username, fetch_notifications::fetch_notifications, get_chats::get_chats,
-    get_images::get_images, get_me::get_me, get_message::get_message, get_messages::get_messages,
-    get_next_users::get_next_users, get_prefs_config::get_prefs_config, get_users::get_users,
+    check_username::check_username, delete_image::delete_image, delete_message::delete_message,
+    delete_user::delete_user, fetch_notifications::fetch_notifications, get_chats::get_chats,
+    get_images::get_images, get_internal_me::get_internal_me, get_me::get_me,
+    get_message::get_message, get_messages::get_messages, get_next_users::get_next_users,
+    get_prefs_config::get_prefs_config, get_users::get_users,
     get_users_i_perfer_count_dry_run::get_users_i_perfer_count_dry_run,
     get_users_mutual_perfer_count_dry_run::get_users_mutual_perfer_count_dry_run, login::login,
-    put_image::put_image, put_user::put_user, rate::rate, report_bug::report_bug,
-    send_message::send_message, signup::signup,
+    put_image::put_image, put_message::put_message, put_user::put_user, rate::rate, report::report,
+    signup::signup,
 };
 use tasks::tasks::run_all_tasks;
 
@@ -47,6 +50,7 @@ const TASK_DELAY: u64 = 600;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    dotenv().ok();
     init_logs().unwrap();
     //fetch host and port environment variables
     let host = std::env::var("HOST").unwrap_or_else(|_| "localhost".to_string());
@@ -127,7 +131,7 @@ async fn main() -> std::io::Result<()> {
             .service(get_message)
             .service(get_messages)
             .service(check_username)
-            .service(send_message)
+            .service(put_message)
             .service(get_prefs_config)
             .service(put_user)
             .service(get_me)
@@ -137,8 +141,12 @@ async fn main() -> std::io::Result<()> {
             .service(get_images)
             .service(put_image)
             .service(rate)
-            .service(report_bug)
+            .service(report)
             .service(fetch_notifications)
+            .service(delete_image)
+            .service(delete_user)
+            .service(delete_message)
+            .service(get_internal_me)
             .build()
     })
     .workers(4)

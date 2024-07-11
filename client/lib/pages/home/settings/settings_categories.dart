@@ -1,9 +1,9 @@
-import 'package:animated_flip_counter/animated_flip_counter.dart';
 import 'package:client/api/pkg/lib/api.dart';
-import 'package:client/components/elo_badge.dart';
+import 'package:client/components/spacer.dart';
 import 'package:client/main.dart';
 import 'package:client/models/page_state_model.dart';
 import 'package:client/models/user_model.dart';
+import 'package:client/pages/home/settings/prefer_count_and_save.dart';
 import 'package:client/router/elo_router_nav.dart';
 import 'package:client/utils/utils.dart';
 import 'package:flutter/material.dart';
@@ -66,54 +66,8 @@ class SettingsCategoriesState extends State<SettingsCategories> {
         constraints: BoxConstraints(maxWidth: pageWidth),
         child: Column(
           children: [
-            const SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.start,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Users that match my preferences:',
-                          style: Theme.of(context).textTheme.titleMedium),
-                      AnimatedFlipCounter(
-                        value: userModel.numUsersIPrefer,
-                        duration: const Duration(seconds: 1),
-                      ),
-                      const SizedBox(height: 20),
-                      Text('Users that prefer me:',
-                          style: Theme.of(context).textTheme.titleMedium),
-                      AnimatedFlipCounter(
-                        value: userModel.numUsersMutuallyPrefer,
-                        duration: const Duration(seconds: 1),
-                      ),
-                      //logout button
-                      const SizedBox(height: 40),
-                      ElevatedButton(
-                        onPressed: () {
-                          userModel.logout(context);
-                        },
-                        child: const Text('Logout'),
-                      ),
-                    ],
-                  ),
-                ),
-                SizedBox(
-                  width: 140,
-                  child: Column(
-                    children: [
-                      Text('My Elo',
-                          style: Theme.of(context).textTheme.titleMedium),
-                      const SizedBox(height: 20),
-                      EloBadge(
-                          eloLabel: userModel.me.elo, elo: userModel.me.eloNum),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+            const VerticalSpacer(),
+            const PreferCountAndElo(),
             _buildSettingsListItem(constants["basicCategoryName"]!, 0),
             ...List.generate(
               sorted.length,
@@ -121,6 +75,24 @@ class SettingsCategoriesState extends State<SettingsCategories> {
                 sorted[index].$1.toString(),
                 index + 1,
               ),
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                ElevatedButton(
+                  onPressed: () {
+                    EloNav.goManageAccount(context);
+                  },
+                  child: const Text('Manage Account'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    userModel.logout(context);
+                  },
+                  child: const Text('Logout'),
+                ),
+              ],
             ),
           ],
         ),

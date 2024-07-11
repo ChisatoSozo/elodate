@@ -203,7 +203,7 @@ pub static PREFS_CONFIG: [PreferenceConfig; PREFS_CARDINALITY] = [
         category: Category::Financial,
         value_question: "How much debt do you have?",
         range_question: "How much debt do you want your partner to have?",
-        max: 18,
+        max: 17,
         mean: 4.0,
         std_dev: 4.0,
         labels: Some(&[

@@ -16,13 +16,25 @@ class EloNav {
     (Router.of(context).routerDelegate as EloRouterDelegate).pop();
   }
 
+  static String? getChatId(BuildContext context) {
+    //does the current route start with /chat/?
+    EloRouterDelegate? delegate =
+        Router.of(context).routerDelegate as EloRouterDelegate;
+    if (delegate.currentConfiguration.startsWith('/chat/')) {
+      return delegate.currentConfiguration.split('/')[2];
+    }
+    return null;
+  }
+
   static void goHomeSwipe(BuildContext context) =>
       _push(context, '/home/swipe');
   static void goHomeChat(BuildContext context) => _push(context, '/home/chat');
   static void goHomeSettings(BuildContext context) =>
       _push(context, '/home/settings');
+  static void goManageAccount(BuildContext context) =>
+      _push(context, '/manage_account');
   static void goLogin(BuildContext context) => _go(context, '/login');
-  static void goRegister(BuildContext context) => _go(context, '/register');
+  static void goRegister(BuildContext context) => _push(context, '/register');
   static void goSettings(
           BuildContext context, int categoryIndex, int groupIndex) =>
       _push(context, '/settings/$categoryIndex/$groupIndex');
@@ -30,6 +42,7 @@ class EloNav {
       _push(context, '/settings_images');
   static void goChat(BuildContext context, String id, String displayName) =>
       _push(context, '/chat/$id/$displayName');
+
   static void goRegisterPassword(BuildContext context) =>
       _push(context, '/register_password');
   static void goRegisterBirthdate(BuildContext context) =>

@@ -3,9 +3,13 @@ import 'dart:convert';
 import 'dart:js' as js;
 
 import 'package:client/api/pkg/lib/api.dart';
+import 'package:client/components/labeled_checkbox.dart';
+import 'package:client/components/spacer.dart';
 import 'package:client/models/user_model.dart';
+import 'package:client/router/elo_router_nav.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:screenshot/screenshot.dart';
 
 class BugReportButton extends StatefulWidget {
@@ -20,9 +24,12 @@ class BugReportButtonState extends State<BugReportButton> {
   final TextEditingController _textController = TextEditingController();
   bool _formVisible = false;
   String? _image;
+  String? _reportedUserUuid;
+  String? _reportedChatUuid;
   bool _sending = false;
   bool _loading = false;
   String? _error;
+  bool _isViolation = false;
 
   @override
   Widget build(BuildContext context) {
@@ -35,7 +42,7 @@ class BugReportButtonState extends State<BugReportButton> {
             top: 60,
             left: 0,
             child: ElevatedButton(
-              onPressed: _loading ? null : _captureScreenshot,
+              onPressed: _loading ? null : _captureData,
               style: ElevatedButton.styleFrom(
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(2)),
@@ -46,7 +53,7 @@ class BugReportButtonState extends State<BugReportButton> {
                 quarterTurns: 1,
                 child: Row(
                   children: [
-                    const SizedBox(width: 5),
+                    const HorizontalSpacer(size: SpacerSize.small),
                     _loading
                         ? const SizedBox(
                             width: 10,
@@ -55,13 +62,15 @@ class BugReportButtonState extends State<BugReportButton> {
                               strokeWidth: 2,
                             ),
                           )
-                        : const Icon(Icons.bug_report, size: 10),
-                    const SizedBox(width: 5),
+                        : const Icon(Icons.report, size: 10),
+                    const HorizontalSpacer(size: SpacerSize.small),
                     Text(
-                      _loading ? 'Loading...' : 'Report Bug / Suggestion',
+                      _loading
+                          ? 'Loading...'
+                          : 'Report User / Bug / Suggestion',
                       style: const TextStyle(fontSize: 10),
                     ),
-                    const SizedBox(width: 5),
+                    const HorizontalSpacer(size: SpacerSize.small),
                   ],
                 ),
               ),
@@ -81,8 +90,25 @@ class BugReportButtonState extends State<BugReportButton> {
     );
   }
 
-  void _captureScreenshot() {
+  void _captureData() {
     setState(() => _loading = true);
+    _captureScreenshot();
+    _captureUserData();
+  }
+
+  void _captureUserData() {
+    var userModel = Provider.of<UserModel>(context, listen: false);
+    var lastUserLoadedUuid = userModel.lastUserLoadedUuid;
+    if (lastUserLoadedUuid != null) {
+      _reportedUserUuid = lastUserLoadedUuid;
+    }
+    var chatId = EloNav.getChatId(context);
+    if (chatId != null) {
+      _reportedChatUuid = chatId;
+    }
+  }
+
+  void _captureScreenshot() {
     if (kIsWeb) {
       _captureWebScreenshot();
     } else {
@@ -135,14 +161,31 @@ class BugReportButtonState extends State<BugReportButton> {
         content: SingleChildScrollView(
           child: Column(
             children: [
-              const Text('Please describe the bug or suggestion:'),
-              const SizedBox(height: 10),
+              //checkbox for violation
+
+              LabeledCheckbox(
+                label:
+                    'This is a user report, someone is being unsafe, threatening, or inappropriate',
+                checked: _isViolation,
+                onChanged: (value) {
+                  setState(() {
+                    _isViolation = value!;
+                  });
+                },
+                labelOnRight: true,
+              ),
+              const VerticalSpacer(),
+              _isViolation
+                  ? const Text(
+                      'Feel free to add extra context, all the data of any chat or user on your screen has been collected and will be sent with this report')
+                  : const Text('Please describe the bug or suggestion:'),
+              const VerticalSpacer(),
               TextField(
                 decoration: const InputDecoration(border: OutlineInputBorder()),
                 controller: _textController,
                 maxLines: 5,
               ),
-              const SizedBox(height: 10),
+              const VerticalSpacer(),
               Image.memory(base64Decode(_image!),
                   width: 400, height: 400, fit: BoxFit.contain),
             ],
@@ -169,16 +212,25 @@ class BugReportButtonState extends State<BugReportButton> {
 
     var client = constructClient(null);
     client
-        .reportBugPost(
-            ReportBugInput(content: _textController.text, imageb64: _image!))
+        .reportPost(ReportInput(
+            content: _textController.text,
+            imageb64: _image!,
+            isViolation: _isViolation,
+            chat: _reportedChatUuid,
+            userUuid: _reportedUserUuid))
         .then((_) {
       setState(() {
         _sending = false;
         _formVisible = false;
         _textController.clear();
+        _image = null;
+        _isViolation = false;
+        _reportedUserUuid = null;
+        _reportedChatUuid = null;
       });
       _showThankYouDialog();
     }).catchError((onError) {
+      print(onError);
       setState(() {
         _sending = false;
         _error = 'Failed to send report';

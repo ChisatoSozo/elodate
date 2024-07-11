@@ -13,3 +13,4 @@ cargo-flamegraph.stacks
 openapi.json
 *.log
 access_codes.json
+.env

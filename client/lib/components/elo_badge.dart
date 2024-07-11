@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
-import 'package:simple_shadow/simple_shadow.dart';
 
 var gradients = [
   ("#cd7f32", "#a97142"),
@@ -41,115 +39,51 @@ class EloBadge extends StatelessWidget {
       'diamond',
     ].indexOf(baseRank);
 
-    var textGrad = gradients[baseRankIdx + 1];
+    //rankLevel can be 1 or 2
+    var isRankLevelTwo = rankLevel == 2;
+
+    var nextGrad = gradients[baseRankIdx + 1];
+    var thisGrad = gradients[baseRankIdx];
 
     var displayNumber = (elo * 1000).toInt();
 
     return Stack(
-      alignment: Alignment.center,
       children: [
-        SimpleShadow(
-          opacity: 0.8,
-          child: SvgPicture.string(
-            makeSvg(baseRankIdx, rankLevel),
-            width: 100.0,
-            height: 200.0,
+        // Black outline for the text
+        Text(
+          displayNumber.toString(),
+          style: TextStyle(
+            fontSize: 40.0,
+            fontWeight: FontWeight.bold,
+            foreground: Paint()
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = eloLabel == "Diamond 2" ? 2 : 3
+              ..color = eloLabel == "Diamond 2"
+                  ? hexToColor(thisGrad.$1)
+                  : Colors.black,
           ),
         ),
-        Positioned(
-          top: 5.0,
-          child: Stack(
-            children: [
-              // Black outline for the text
-              Text(
-                displayNumber.toString(),
-                style: TextStyle(
-                  fontSize: 40.0,
-                  fontWeight: FontWeight.bold,
-                  foreground: Paint()
-                    ..style = PaintingStyle.stroke
-                    ..strokeWidth = 3
-                    ..color = Colors.black,
-                ),
-              ),
-              ShaderMask(
-                shaderCallback: (Rect bounds) {
-                  bounds = Rect.fromLTWH(bounds.left, bounds.top, bounds.width,
-                      bounds.height + 100);
-                  return LinearGradient(
-                    colors: [
-                      hexToColor(textGrad.$1),
-                      hexToColor(textGrad.$2),
-                    ],
-                    end: Alignment.bottomCenter,
-                  ).createShader(bounds);
-                },
-                child: Text(
-                  displayNumber.toString(),
-                  style: const TextStyle(
-                    fontSize: 40.0,
-                    fontWeight: FontWeight.bold,
-                    color:
-                        Colors.white, // This is necessary to apply the gradient
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        ClipPath(
-          clipper: BannerClipper(),
-          child: Opacity(
-            opacity: 0.1 * (8 - baseRankIdx),
-            child: Image.asset(
-              'images/elo_icons/clothxsm.png',
-              width: 100.0,
-              height: 200.0,
-              repeat: ImageRepeat.repeat,
+        ShaderMask(
+          shaderCallback: (Rect bounds) {
+            bounds = Rect.fromLTWH(bounds.left, bounds.top, bounds.width, 20);
+            return LinearGradient(
+              colors: [
+                hexToColor(thisGrad.$1),
+                hexToColor(isRankLevelTwo ? nextGrad.$1 : thisGrad.$2),
+              ],
+              end: Alignment.bottomCenter,
+            ).createShader(bounds);
+          },
+          child: Text(
+            displayNumber.toString(),
+            style: const TextStyle(
+              fontSize: 40.0,
+              fontWeight: FontWeight.bold,
+              color: Colors.white, // This is necessary to apply the gradient
             ),
           ),
         ),
       ],
     );
   }
-}
-
-String makeSvg(int gradIdx, int rankLevel) {
-  var grad11 = gradients[gradIdx].$1;
-  var grad12 = gradients[gradIdx].$2;
-  var grad21 = gradients[gradIdx + 1].$1;
-  var grad22 = gradients[gradIdx + 1].$2;
-
-  return '''<svg width="100" height="200" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:$grad11;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:$grad12;stop-opacity:1" />
-    </linearGradient>
-    <linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:$grad21;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:$grad22;stop-opacity:1" />
-    </linearGradient>
-  </defs>
-  <path style="fill: url(#grad1); stroke: black; stroke-width: 2;" d="M 10 -10 L 10 190 L 50 150 L 90 190L 90 -10 Z"/>
-  ${rankLevel > 1 ? '<path d="M 10 190 L 50 150 L 90 190L 90 170 L 50 130 L 10 170 Z" fill="url(#grad2)" stroke="black" stroke-width="2"/>' : ''}
-  ${rankLevel > 2 ? '<path d="M 10 160 L 50 120L 90 160 L 90 150 L 50 110 L 10 150 Z" fill="url(#grad2)" stroke="black" stroke-width="2"/>' : ''}
-</svg>
-''';
-}
-
-class BannerClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    return Path()
-      ..moveTo(10, -10)
-      ..lineTo(10, 190)
-      ..lineTo(50, 150)
-      ..lineTo(90, 190)
-      ..lineTo(90, -10)
-      ..close();
-  }
-
-  @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }

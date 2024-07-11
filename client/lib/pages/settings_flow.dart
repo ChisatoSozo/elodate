@@ -1,4 +1,5 @@
 import 'package:client/api/pkg/lib/api.dart';
+import 'package:client/components/spacer.dart';
 import 'package:client/models/page_state_model.dart';
 import 'package:client/models/user_model.dart';
 import 'package:client/pages/home/settings/prop_pref_components/pref.dart';
@@ -80,6 +81,8 @@ class SettingsFlowPageState extends State<SettingsFlowPage> {
       await finish(context);
       return;
     }
+    var userModel = Provider.of<UserModel>(context, listen: false);
+    userModel.updateMe();
     EloNav.goSettings(context, newCategoryIndex, newGroupIndex);
   }
 
@@ -119,7 +122,7 @@ class SettingsFlowPageState extends State<SettingsFlowPage> {
         if (configs.first.valueQuestion.isNotEmpty) ...[
           Text(configs.first.valueQuestion,
               style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 20),
+          const VerticalSpacer(),
           Prop(
               configs: configs,
               props: props,
@@ -127,11 +130,11 @@ class SettingsFlowPageState extends State<SettingsFlowPage> {
                 userModel.setPropertyGroup(props, prefs, index);
                 setState(() {});
               }),
-          const SizedBox(height: 40),
+          const VerticalSpacer(size: SpacerSize.large),
         ],
         Text(configs.first.rangeQuestion,
             style: Theme.of(context).textTheme.titleLarge),
-        const SizedBox(height: 20),
+        const VerticalSpacer(),
         Pref(
             configs: configs,
             prefs: prefs,
@@ -140,9 +143,9 @@ class SettingsFlowPageState extends State<SettingsFlowPage> {
               setState(() {});
             }),
         //next button
-        const SizedBox(height: 20),
+        const VerticalSpacer(),
         if (_error != null) Text(_error!),
-        const SizedBox(height: 20),
+        const VerticalSpacer(),
         Row(
           //align buttons left and right
           mainAxisAlignment: MainAxisAlignment.spaceBetween,

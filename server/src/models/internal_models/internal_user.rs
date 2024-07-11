@@ -1,3 +1,5 @@
+use paperclip::{actix::Apiv2Schema, v2::schema::Apiv2Schema};
+
 use crate::vec::shared::VectorSearch;
 use std::error::Error;
 
@@ -9,6 +11,7 @@ use super::{
     internal_message::InternalMessage,
     internal_prefs::{LabeledPreferenceRange, LabeledProperty},
     internal_prefs_config::PREFS_CONFIG,
+    migration::migration::get_admin_uuid,
     shared::{GetBbox, GetVector, Insertable, InternalUuid, Save},
 };
 
@@ -21,6 +24,67 @@ pub enum InternalRating {
     PassedBy(InternalUuid<InternalUser>),
 }
 
+#[derive(Debug, serde::Serialize, paperclip::actix::Apiv2Schema)]
+pub struct SerializableInternalRating {
+    pub enum_type: String,
+    pub uuid: String,
+}
+
+impl InternalRating {
+    pub fn to_serializable(&self) -> SerializableInternalRating {
+        match self {
+            InternalRating::LikedBy(uuid) => SerializableInternalRating {
+                enum_type: "LikedBy".to_string(),
+                uuid: uuid.id.to_string(),
+            },
+            InternalRating::PassedBy(uuid) => SerializableInternalRating {
+                enum_type: "PassedBy".to_string(),
+                uuid: uuid.id.to_string(),
+            },
+        }
+    }
+}
+
+impl serde::Serialize for InternalRating {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::ser::Serializer,
+    {
+        self.to_serializable().serialize(serializer)
+    }
+}
+
+impl Apiv2Schema for InternalRating {
+    fn name() -> Option<String> {
+        SerializableInternalRating::name()
+    }
+
+    fn description() -> &'static str {
+        SerializableInternalRating::description()
+    }
+
+    fn required() -> bool {
+        SerializableInternalRating::required()
+    }
+
+    fn raw_schema() -> paperclip::v2::models::DefaultSchemaRaw {
+        SerializableInternalRating::raw_schema()
+    }
+
+    fn schema_with_ref() -> paperclip::v2::models::DefaultSchemaRaw {
+        SerializableInternalRating::schema_with_ref()
+    }
+
+    fn security_scheme() -> Option<paperclip::v2::models::SecurityScheme> {
+        SerializableInternalRating::security_scheme()
+    }
+
+    fn header_parameter_schema(
+    ) -> Vec<paperclip::v2::models::Parameter<paperclip::v2::models::DefaultSchemaRaw>> {
+        SerializableInternalRating::header_parameter_schema()
+    }
+}
+
 #[derive(Debug, Clone, rkyv::Serialize, rkyv::Deserialize, rkyv::Archive)]
 #[archive(compare(PartialEq), check_bytes)]
 pub enum Action {
@@ -29,7 +93,76 @@ pub enum Action {
     Rate,
 }
 
-#[derive(Debug, Clone, rkyv::Serialize, rkyv::Deserialize, rkyv::Archive)]
+#[derive(Debug, serde::Serialize, paperclip::actix::Apiv2Schema)]
+pub struct SerializableAction {
+    pub enum_type: String,
+}
+
+impl Action {
+    pub fn to_serializable(&self) -> SerializableAction {
+        match self {
+            Action::SendMessage => SerializableAction {
+                enum_type: "SendMessage".to_string(),
+            },
+            Action::RecieveMessage => SerializableAction {
+                enum_type: "RecieveMessage".to_string(),
+            },
+            Action::Rate => SerializableAction {
+                enum_type: "Rate".to_string(),
+            },
+        }
+    }
+}
+
+impl serde::Serialize for Action {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::ser::Serializer,
+    {
+        self.to_serializable().serialize(serializer)
+    }
+}
+
+impl Apiv2Schema for Action {
+    fn name() -> Option<String> {
+        SerializableAction::name()
+    }
+
+    fn description() -> &'static str {
+        SerializableAction::description()
+    }
+
+    fn required() -> bool {
+        SerializableAction::required()
+    }
+
+    fn raw_schema() -> paperclip::v2::models::DefaultSchemaRaw {
+        SerializableAction::raw_schema()
+    }
+
+    fn schema_with_ref() -> paperclip::v2::models::DefaultSchemaRaw {
+        SerializableAction::schema_with_ref()
+    }
+
+    fn security_scheme() -> Option<paperclip::v2::models::SecurityScheme> {
+        SerializableAction::security_scheme()
+    }
+
+    fn header_parameter_schema(
+    ) -> Vec<paperclip::v2::models::Parameter<paperclip::v2::models::DefaultSchemaRaw>> {
+        SerializableAction::header_parameter_schema()
+    }
+}
+
+#[derive(
+    Debug,
+    Clone,
+    rkyv::Serialize,
+    rkyv::Deserialize,
+    rkyv::Archive,
+    serde::Serialize,
+    paperclip::actix::Apiv2Schema,
+)]
 #[archive(compare(PartialEq), check_bytes)]
 pub struct TimestampedAction {
     pub action: Action,
@@ -44,7 +177,84 @@ pub enum Notification {
     System(String),
 }
 
-#[derive(Debug, Clone, rkyv::Serialize, rkyv::Deserialize, rkyv::Archive)]
+#[derive(serde::Serialize, Apiv2Schema)]
+pub struct SerializableNotification {
+    pub enum_type: String,
+    pub message: String,
+    pub uuid: String,
+}
+
+impl Notification {
+    pub fn to_serializable(&self) -> SerializableNotification {
+        match self {
+            Notification::UnreadMessage(uuid) => SerializableNotification {
+                enum_type: "UnreadMessage".to_string(),
+                message: "".to_string(),
+                uuid: uuid.id.to_string(),
+            },
+            Notification::Match(uuid) => SerializableNotification {
+                enum_type: "Match".to_string(),
+                message: "".to_string(),
+                uuid: uuid.id.to_string(),
+            },
+            Notification::System(message) => SerializableNotification {
+                enum_type: "System".to_string(),
+                message: message.clone(),
+                uuid: "".to_string(),
+            },
+        }
+    }
+}
+
+impl serde::Serialize for Notification {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::ser::Serializer,
+    {
+        self.to_serializable().serialize(serializer)
+    }
+}
+
+impl Apiv2Schema for Notification {
+    fn name() -> Option<String> {
+        SerializableNotification::name()
+    }
+
+    fn description() -> &'static str {
+        SerializableNotification::description()
+    }
+
+    fn required() -> bool {
+        SerializableNotification::required()
+    }
+
+    fn raw_schema() -> paperclip::v2::models::DefaultSchemaRaw {
+        SerializableNotification::raw_schema()
+    }
+
+    fn schema_with_ref() -> paperclip::v2::models::DefaultSchemaRaw {
+        SerializableNotification::schema_with_ref()
+    }
+
+    fn security_scheme() -> Option<paperclip::v2::models::SecurityScheme> {
+        SerializableNotification::security_scheme()
+    }
+
+    fn header_parameter_schema(
+    ) -> Vec<paperclip::v2::models::Parameter<paperclip::v2::models::DefaultSchemaRaw>> {
+        SerializableNotification::header_parameter_schema()
+    }
+}
+
+#[derive(
+    Debug,
+    Clone,
+    rkyv::Serialize,
+    rkyv::Deserialize,
+    rkyv::Archive,
+    serde::Serialize,
+    paperclip::actix::Apiv2Schema,
+)]
 #[archive(compare(PartialEq), check_bytes)]
 pub struct BotProps {
     pub likelihood_to_swipe_right: f32,
@@ -64,7 +274,14 @@ impl BotProps {
     }
 }
 
-#[derive(Debug, rkyv::Serialize, rkyv::Deserialize, rkyv::Archive)]
+#[derive(
+    Debug,
+    rkyv::Serialize,
+    rkyv::Deserialize,
+    rkyv::Archive,
+    serde::Serialize,
+    paperclip::actix::Apiv2Schema,
+)]
 #[archive(compare(PartialEq), check_bytes)]
 pub struct InternalUser {
     pub uuid: InternalUuid<InternalUser>,
@@ -86,7 +303,6 @@ pub struct InternalUser {
     pub notifications: Vec<Notification>,
     pub published: bool,
     pub bot_props: Option<BotProps>,
-    pub is_admin: bool,
 }
 
 impl InternalUser {
@@ -95,6 +311,10 @@ impl InternalUser {
             InternalRating::LikedBy(uuid) => uuid == user,
             _ => false,
         })
+    }
+
+    pub fn is_admin(&self) -> bool {
+        self.uuid == get_admin_uuid()
     }
 
     pub fn add_chat(&mut self, chat: &InternalChat) {
@@ -142,6 +362,16 @@ impl InternalUser {
         }
         "".to_string()
     }
+
+    pub fn delete(&self, db: &DB) -> Result<(), Box<dyn Error>> {
+        db.delete_index("users.username", &self.username)?;
+        self.uuid.clone().delete(db)?;
+        let arc_clone = db.vec_index.clone();
+        let mut lock = arc_clone.lock().map_err(|_| "Could not lock vec_index")?;
+        lock.remove(&self.uuid.id);
+        lock.remove_bbox(&self.uuid.id);
+        Ok(())
+    }
 }
 
 impl Insertable for InternalUser {
@@ -177,5 +407,9 @@ impl DB {
             Some(uuid) => uuid.load(self),
             None => Ok(None),
         }
+    }
+    pub fn get_admin(&self) -> Result<InternalUser, Box<dyn Error>> {
+        let uuid = get_admin_uuid();
+        uuid.load(self)?.ok_or("Admin not found".into())
     }
 }

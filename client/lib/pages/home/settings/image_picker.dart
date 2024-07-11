@@ -1,8 +1,9 @@
 import 'package:client/components/loading.dart';
+import 'package:client/components/spacer.dart';
 import 'package:client/components/uuid_image_provider.dart';
 import 'package:client/models/user_model.dart';
+import 'package:client/utils/image_picker_util.dart';
 import 'package:client/utils/utils.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart' show Uint8List, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -46,7 +47,7 @@ class AdaptiveFilePickerState extends State<AdaptiveFilePicker> {
           onPressed: () => _pickFile(userModel),
           child: Text(errorMessage != null ? 'Retry' : 'Pick Image'),
         ),
-        const SizedBox(height: 8),
+        const VerticalSpacer(size: SpacerSize.small),
         buildContent(),
       ],
     );
@@ -95,7 +96,7 @@ class AdaptiveFilePickerState extends State<AdaptiveFilePicker> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   const Icon(Icons.add, size: 50, color: Colors.grey),
-                  const SizedBox(height: 8),
+                  const VerticalSpacer(size: SpacerSize.small),
                   Text(
                     errorMessage != null ? 'Retry' : 'Add Image',
                     style: const TextStyle(color: Colors.grey, fontSize: 16),
@@ -122,14 +123,10 @@ class AdaptiveFilePickerState extends State<AdaptiveFilePicker> {
     });
 
     try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['jpg', 'jpeg', 'png', 'webp'],
-        withData: true,
-      );
+      final pickedImage = await ImagePickerUtil.pickImage();
 
-      if (result != null && result.files.single.bytes != null) {
-        await _onAfterPickFile(userModel, result.files.single.bytes!);
+      if (pickedImage != null) {
+        await _onAfterPickFile(userModel, pickedImage);
       } else {
         // User canceled the picker
         setState(() {
@@ -146,7 +143,7 @@ class AdaptiveFilePickerState extends State<AdaptiveFilePicker> {
 
   Future<void> _onAfterPickFile(UserModel userModel, Uint8List bytes) async {
     try {
-      Uint8List? compressedBytes = await compressImage(bytes);
+      Uint8List compressedBytes = await compressImage(bytes);
 
       String uuid = await userModel.putImage(compressedBytes, null);
       widget.onUuidChanged(uuid);
@@ -159,7 +156,7 @@ class AdaptiveFilePickerState extends State<AdaptiveFilePicker> {
     } catch (e) {
       setState(() {
         loading = false;
-        errorMessage = 'Failed to process image. Please try again.';
+        errorMessage = 'Failed to process image. Please try again.\n$e';
       });
     }
   }

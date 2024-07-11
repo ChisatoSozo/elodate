@@ -7,10 +7,18 @@ use super::{
     internal_chat::InternalChat,
     internal_image::InternalImage,
     internal_user::InternalUser,
+    migration::migration::get_admin_uuid,
     shared::{Insertable, InternalUuid},
 };
 
-#[derive(Debug, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
+#[derive(
+    Debug,
+    rkyv::Serialize,
+    rkyv::Deserialize,
+    rkyv::Archive,
+    serde::Serialize,
+    paperclip::actix::Apiv2Schema,
+)]
 #[archive(compare(PartialEq), check_bytes)]
 pub struct InternalMessage {
     pub uuid: InternalUuid<InternalMessage>,
@@ -24,6 +32,14 @@ pub struct InternalMessage {
 }
 
 impl InternalMessage {
+    pub fn pprint(&self) -> Result<String, Box<dyn Error>> {
+        let pdate = chrono::DateTime::from_timestamp(self.sent_at, 0).ok_or("Invalid date")?;
+        Ok(format!(
+            "{} [{}] {} {}",
+            self.uuid.id, pdate, self.author.id, self.content
+        ))
+    }
+
     pub fn save(
         self,
         chat: &mut InternalChat,
@@ -56,17 +72,21 @@ impl InternalMessage {
             chat.uuid.write(&chat, db)?;
         };
 
+        let any_is_admin = chat.users.iter().map(|u| u == &get_admin_uuid()).any(|x| x);
+
         //notify all other users in chat
-        for user in chat.users.iter() {
-            if user != &self.author {
-                let user: InternalUuid<InternalUser> = user.clone();
-                let mut user = user.load(db)?.ok_or(format!(
-                    "User not found in save internal message {}",
-                    user.id
-                ))?;
-                user.notifications
-                    .push(Notification::UnreadMessage(self.uuid.clone()));
-                user.uuid.write(&user, db)?;
+        if !any_is_admin {
+            for user in chat.users.iter() {
+                if user != &self.author {
+                    let user: InternalUuid<InternalUser> = user.clone();
+                    let mut user = user.load(db)?.ok_or(format!(
+                        "User not found in save internal message {}",
+                        user.id
+                    ))?;
+                    user.notifications
+                        .push(Notification::UnreadMessage(self.uuid.clone()));
+                    user.uuid.write(&user, db)?;
+                }
             }
         }
 

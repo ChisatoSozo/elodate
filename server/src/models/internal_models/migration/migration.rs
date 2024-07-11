@@ -12,7 +12,7 @@ use rkyv::{
 use crate::{
     db::{DB, SCRATCH_SPACE_SIZE},
     models::{
-        api_models::{api_image::ApiImageWritable, api_user::ApiUserWritable, shared::ApiUuid},
+        api_models::{api_image::ApiImageWritable, api_user::ApiUserWritable},
         internal_models::{
             internal_access_code::InternalAccessCode,
             internal_chat::InternalChat,
@@ -70,15 +70,19 @@ impl DB {
                 db_version_user,
                 current_version_user
             );
+
             match db_version_user {
                 0 => {
                     log::info!("{}", InternalUserV0::migration_message());
+                    log::info!("Db upgraded from version 0 to 1 for InternalUser");
+                    self.set_version::<InternalUser>(1)?;
                     let admin_user = make_admin_user(self);
                     admin_user.save(self)?;
                     let users = self.iter_obj::<InternalUserV0>()?;
                     for user in users {
                         self.migrate_model(user?, ())?;
                     }
+                    log::info!("Migrated InternalUser from version 0 to 1 successfully!");
                 }
                 _ => {
                     return Err(format!(
@@ -87,7 +91,6 @@ impl DB {
                     ))?;
                 }
             }
-            self.increment_version::<InternalUser>()?;
         }
 
         if db_version_chat < current_version_chat {
@@ -104,7 +107,6 @@ impl DB {
                     ))?;
                 }
             }
-            self.increment_version::<InternalChat>()?;
         }
 
         if db_version_image < current_version_image {
@@ -121,7 +123,6 @@ impl DB {
                     ))?;
                 }
             }
-            self.increment_version::<InternalImage>()?;
         }
 
         if db_version_message < current_version_message {
@@ -138,7 +139,6 @@ impl DB {
                     ))?;
                 }
             }
-            self.increment_version::<InternalMessage>()?;
         }
 
         if db_version_access_code < current_version_access_code {
@@ -155,7 +155,6 @@ impl DB {
                     ))?;
                 }
             }
-            self.increment_version::<InternalAccessCode>()?;
         }
 
         return Ok(());
@@ -176,7 +175,7 @@ pub fn make_admin_user(db: &DB) -> InternalUser {
     let admin_image_uuid = internal_admin_image.save(db).unwrap();
 
     let admin = ApiUserWritable {
-        uuid: ApiUuid::new(),
+        uuid: get_admin_uuid().into(),
         images: vec![admin_image_uuid.clone().into()],
         username: "admin".to_string(),
         display_name: "The Friendly Admin".to_string(),

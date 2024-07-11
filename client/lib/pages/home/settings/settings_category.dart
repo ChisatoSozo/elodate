@@ -1,4 +1,5 @@
 import 'package:client/api/pkg/lib/api.dart';
+import 'package:client/components/spacer.dart';
 import 'package:client/models/page_state_model.dart';
 import 'package:client/pages/home/settings/prop_pref_components/pref.dart';
 import 'package:client/pages/home/settings/prop_pref_components/prop.dart';
@@ -66,7 +67,7 @@ class SettingsCategoryState extends State<SettingsCategory> {
       children: [
         Text(configs.first.display,
             style: Theme.of(context).textTheme.titleMedium),
-        const SizedBox(height: 20),
+        const VerticalSpacer(),
         if (configs.first.valueQuestion.isNotEmpty) ...[
           Text(configs.first.valueQuestion),
           Prop(
@@ -77,7 +78,7 @@ class SettingsCategoryState extends State<SettingsCategory> {
               userModel.setPropertyGroup(updatedProps, prefs, index);
             },
           ),
-          const SizedBox(height: 20),
+          const VerticalSpacer(),
         ],
         Text(configs.first.rangeQuestion),
         Pref(
@@ -88,7 +89,7 @@ class SettingsCategoryState extends State<SettingsCategory> {
             userModel.setPropertyGroup(props, updatedPrefs, index);
           },
         ),
-        const SizedBox(height: 40),
+        const VerticalSpacer(size: SpacerSize.large)
       ],
     );
   }

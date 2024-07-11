@@ -1,3 +1,4 @@
+import 'package:client/components/spacer.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart';
@@ -139,7 +140,7 @@ class LocationModalState extends State<LocationModal>
                 },
                 child: const Icon(Icons.add),
               ),
-              const SizedBox(height: 16),
+              const VerticalSpacer(),
               FloatingActionButton(
                 heroTag: "zoomOut",
                 onPressed: () {

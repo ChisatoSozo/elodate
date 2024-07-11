@@ -26,13 +26,13 @@ packages:
     source: hosted
     version: "0.3.4"
   archive:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: archive
-      sha256: ecf4273855368121b1caed0d10d4513c7241dfc813f7d3c8933b36622ae9b265
+      sha256: cb6a278ef2dbb298455e1a713bda08524a175630ec643a242c399c932a0a1f7d
       url: "https://pub.dev"
     source: hosted
-    version: "3.5.1"
+    version: "3.6.1"
   args:
     dependency: transitive
     description:
@@ -311,7 +311,7 @@ packages:
     source: hosted
     version: "9.2.1"
   flutter_image_compress:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: flutter_image_compress
       sha256: "45a3071868092a61b11044c70422b04d39d4d9f2ef536f3c5b11fb65a1e7dd90"
@@ -557,22 +557,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.2.0"
-  image_compression:
-    dependency: transitive
-    description:
-      name: image_compression
-      sha256: "0ab2ad255fc3877c0e425a3f46796b2872806c1d7260207ec72b723975f6f3e0"
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.0.5"
-  image_compression_flutter:
-    dependency: "direct main"
-    description:
-      name: image_compression_flutter
-      sha256: "0d7fc5d37bb69996285dd57342b3a37ad92fa4bb0616484af084ec924d6818b4"
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.0.4"
   image_picker:
     dependency: "direct main"
     description:
@@ -878,7 +862,7 @@ packages:
     source: hosted
     version: "1.0.1"
   path_provider:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: path_provider
       sha256: c9e7d3a4cd1410877472158bee69963a4579f78b68c65a2b7d40d1a7a88bb161

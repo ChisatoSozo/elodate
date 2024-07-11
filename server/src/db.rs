@@ -11,6 +11,7 @@ use rkyv::{
     AlignedVec, Archive, Deserialize, Infallible, Serialize,
 };
 use std::{
+    error::Error,
     mem,
     path::Path,
     sync::{Arc, Mutex},
@@ -121,11 +122,19 @@ impl DB {
         }
     }
 
-    pub fn increment_version<T: Insertable>(&self) -> Result<(), kv::Error> {
+    pub fn set_version<T: Insertable>(&self, new_version: usize) -> Result<(), Box<dyn Error>> {
         let version = self.get_version::<T>()?;
+        //check if new version is greater than current version by 1 or equal
+        if new_version as u64 != version + 1 && new_version as u64 != version {
+            return Err(format!(
+                "Invalid version, version must be {} or {}",
+                version + 1,
+                version
+            ))?;
+        }
         let bucket = self.store.bucket::<String, String>(Some("version"))?;
         let key = T::bucket();
-        bucket.set(&key.to_string(), &(version + 1).to_string())?;
+        bucket.set(&key.to_string(), &(new_version).to_string())?;
         Ok(())
     }
 
@@ -135,7 +144,7 @@ impl DB {
         value: &String,
         uuid: &InternalUuid<T>,
     ) -> Result<(), kv::Error> {
-        log::info!(
+        log::trace!(
             "Writing index value {:?} to view {:?} with uuid {:?}",
             value,
             view,
@@ -143,6 +152,12 @@ impl DB {
         );
         let bucket = self.store.bucket::<String, String>(Some(view))?;
         bucket.set(value, &uuid.id)?;
+        Ok(())
+    }
+
+    pub fn delete_index(&self, view: &str, value: &String) -> Result<(), kv::Error> {
+        let bucket = self.store.bucket::<String, String>(Some(view))?;
+        bucket.remove(value)?;
         Ok(())
     }
 
@@ -175,7 +190,13 @@ impl DB {
     {
         let version = self.get_version::<T>()?;
         if version != T::version() {
-            return Err("Version mismatch".into());
+            return Err(format!(
+                "Version mismatch for object {:?} of type {:?}, object has {:?}, db has {:?}",
+                key.id,
+                T::bucket(),
+                T::version(),
+                version
+            ))?;
         }
         let mut serializer = DefaultSerializer::default();
         serializer.serialize_value(object).unwrap();
@@ -185,7 +206,7 @@ impl DB {
         let value_raw = Raw::from(bytes.as_slice());
         let contains = bucket.contains(&key_raw)?;
         if !contains {
-            log::info!(
+            log::trace!(
                 "Writing new object to db: {:?}, it's a {:?}",
                 key.id,
                 T::bucket()
@@ -245,7 +266,7 @@ impl DB {
     pub fn delete_object<T>(
         &self,
         key: &InternalUuid<T>,
-    ) -> Result<Option<T>, Box<dyn std::error::Error>>
+    ) -> Result<Option<std::convert::Infallible>, Box<dyn std::error::Error>>
     where
         T: Archive,
         for<'a> T::Archived: rkyv::CheckBytes<DefaultValidator<'a>> + Deserialize<T, Infallible>,
@@ -253,17 +274,10 @@ impl DB {
         let bucket = self.store.bucket::<Raw, Raw>(Some("object_storage"))?;
         let key_raw = Raw::from(key.id.as_bytes());
         let result = bucket.remove(&key_raw)?;
-        let value_raw = match result {
-            Some(value_raw) => value_raw,
+        match result {
+            Some(_) => return Err("This should never happen, delete_object::db".into()),
             None => return Ok(None),
         };
-
-        // Ensuring value_raw is scoped to the check_archived_root and deserialize
-        {
-            let archived = rkyv::check_archived_root::<T>(&value_raw[..])?;
-            let deserialized: T = archived.deserialize(&mut Infallible)?;
-            Ok(Some(deserialized))
-        }
     }
 
     pub fn object_exists<T>(&self, key: &InternalUuid<T>) -> Result<bool, kv::Error> {

@@ -6,7 +6,8 @@ use paperclip::actix::{
 };
 
 use crate::{
-    db::DB, models::api_models::api_user::ApiUserWritable, routes::shared::route_body_mut_db,
+    db::DB, elo::calc_elo, models::api_models::api_user::ApiUserWritable,
+    routes::shared::route_body_mut_db,
 };
 
 use crate::models::internal_models::shared::Save;
@@ -41,6 +42,14 @@ async fn put_user(
         let publish_message = new_user_internal.publishable_msg();
 
         let publishable = publish_message.is_empty();
+
+        let elo = calc_elo(
+            &new_user_internal.ratings,
+            &new_user_internal.actions,
+            &new_user_internal.props,
+        );
+        log::info!("New elo: {}", elo);
+        new_user_internal.elo = elo;
 
         new_user_internal.published = publishable;
         new_user_internal.save(db).map_err(|e| {

@@ -7,13 +7,15 @@ use crate::{
         internal_image::{Access, InternalImage},
         internal_prefs::{LabeledPreferenceRange, LabeledProperty, PreferenceRange},
         internal_prefs_config::PREFS_CONFIG,
-        internal_user::{BotProps, InternalUser, Notification},
+        internal_user::{BotProps, InternalRating, InternalUser, Notification, TimestampedAction},
+        migration::migration::get_admin_uuid,
         shared::{InternalUuid, Save},
     },
     test::fake::Gen,
     util::to_i16,
 };
 use bcrypt::{hash, DEFAULT_COST};
+use chrono::{DateTime, TimeDelta, Utc};
 use fake::Fake;
 use paperclip::actix::Apiv2Schema;
 use rand::Rng;
@@ -76,8 +78,8 @@ impl ApiUser {
     ) -> Result<Self, Box<dyn Error>> {
         Ok(ApiUser {
             uuid: user.uuid.clone().into(),
-            images: user.images.into_iter().map(|i| i.into()).collect(),
-            preview_image: user.preview_image.map(|i| i.into()),
+            images: user.images.into_iter().map(Into::into).collect(),
+            preview_image: user.preview_image.map(Into::into),
             elo: elo_to_label(user.elo),
             elo_num: user.elo,
             username: user.username,
@@ -88,7 +90,7 @@ impl ApiUser {
             birthdate: user.birthdate,
             published: user.published,
             chats: if requester.map_or(true, |r| r.uuid == user.uuid) {
-                Some(user.chats.into_iter().map(|c| c.into()).collect())
+                Some(user.chats.into_iter().map(Into::into).collect())
             } else {
                 None
             },
@@ -112,144 +114,64 @@ pub struct ApiUserWritable {
 }
 
 impl ApiUserWritable {
+    pub fn is_admin(&self) -> bool {
+        self.uuid == get_admin_uuid().into()
+    }
+
     pub fn to_internal(mut self, db: &DB, published: bool) -> Result<InternalUser, Box<dyn Error>> {
         self.fill_prefs();
         self.fill_props();
-        let internal_uuid: InternalUuid<InternalUser> = self.uuid.into();
+        let is_admin = self.is_admin();
+        let internal_uuid: InternalUuid<InternalUser> = self.uuid.id.clone().into();
         let internal_user = internal_uuid.load(db)?;
 
         let hashed_password = if let Some(internal_user) = &internal_user {
             internal_user.hashed_password.clone()
-        } else if let Some(password) = self.password {
+        } else if let Some(password) = &self.password {
             hash(password, DEFAULT_COST)?
         } else {
             return Err("No password for no internal user".into());
         };
 
-        if let Some(internal_user) = &internal_user {
-            let old_images = internal_user.images.clone();
-            for image in old_images {
-                //if the image is not in the new images, delete it
-                if !self.images.contains(&image.clone().into()) {
-                    let loaded = image.load(db)?;
-                    match loaded {
-                        Some(image) => {
-                            image.uuid.delete(db)?;
-                        }
-                        None => {
-                            return Err(
-                                "Image not found, can't delete, this shouldn't happen".into()
-                            )
-                        }
-                    }
-                }
-            }
-        }
+        self.handle_image_updates(db, &internal_user)?;
 
-        let owned_images = if let Some(internal_user) = &internal_user {
-            (&internal_user).owned_images.clone()
+        let owned_images = internal_user
+            .as_ref()
+            .map(|user| user.owned_images.clone())
+            .unwrap_or_default();
+
+        self.validate_props_and_prefs()?;
+        self.validate_image_access(db, &internal_uuid)?;
+
+        let (elo, ratings, seen, mut chats, actions, notifications) =
+            self.get_user_data(&internal_user);
+
+        let bot_props = if self.is_bot && internal_user.is_none() {
+            Some(BotProps::gen())
         } else {
-            vec![]
+            internal_user
+                .as_ref()
+                .and_then(|user| user.bot_props.clone())
         };
 
-        //fill props.additional with default values up to PREFS_CARDINALITY, from the index of the last filled value
+        self.set_age();
 
-        assert!(self.props.len() == PREFS_CONFIG.len());
-        assert!(self.prefs.len() == PREFS_CONFIG.len());
-
-        //do you have access to all the images you're trying to add?
-        for image in &self.images {
-            let image_uuid: InternalUuid<InternalImage> = image.clone().into();
-            let loaded = image_uuid.load(db)?;
-            match loaded {
-                Some(image) => {
-                    if !image.access.can_access(&internal_uuid) {
-                        return Err("No access to image".into());
-                    }
-                }
-                None => return Err("Image not found".into()),
-            }
-        }
-
-        //do you have access to the preview image you're trying to add?
-        if let Some(preview_image) = &self.preview_image {
-            let image_uuid: InternalUuid<InternalImage> = preview_image.clone().into();
-            let loaded = image_uuid.load(db)?;
-            match loaded {
-                Some(image) => {
-                    if !image.access.can_access(&internal_uuid) {
-                        return Err("No access to image".into());
-                    }
-                }
-                None => return Err("Image not found".into()),
-            }
-        }
-
-        let mut bot_props = None;
-        if self.is_bot && internal_user.is_none() {
-            bot_props = Some(BotProps::gen());
-        }
-
-        let (elo, ratings, seen, mut chats, actions, notifications, is_admin) =
-            if let Some(internal_user) = internal_user {
-                // If we have an internal_user, use its bot_props if our initial bot_props is None
-                if bot_props.is_none() {
-                    bot_props = internal_user.bot_props;
-                }
-                (
-                    internal_user.elo,
-                    internal_user.ratings,
-                    internal_user.seen,
-                    internal_user.chats,
-                    internal_user.actions,
-                    internal_user.notifications,
-                    internal_user.is_admin,
-                )
-            } else {
-                (
-                    0.0,
-                    vec![],
-                    vec![internal_uuid.clone()],
-                    vec![],
-                    vec![],
-                    vec![],
-                    false,
-                )
-            };
-
-        //set age
-        let age_index = self
-            .props
-            .iter()
-            .position(|p| p.name == "age")
-            .ok_or("No age")?;
-        self.props[age_index].value = get_age(self.birthdate);
-
-        //is chats empty?
-        if chats.is_empty() {
-            let (chat, message) = InternalChat::new_admin_chat(&internal_uuid);
-            let chat_uuid = chat.save(db)?;
-            let chat = chat_uuid.load(db)?;
-            let mut chat = match chat {
-                Some(chat) => chat,
-                None => {
-                    return Err("Failed to load chat".into());
-                }
-            };
-            message
-                .into_internal(&internal_uuid, &chat, db)?
-                .save(&mut chat, db)?;
-            chats.push(chat_uuid.into());
+        if chats.is_empty() && !is_admin {
+            let mut admin = db.get_admin()?;
+            let mut admin_chats = admin.chats;
+            self.create_admin_chat(db, &internal_uuid, &mut chats, &mut admin_chats)?;
+            admin.chats = admin_chats;
+            admin.save(db)?;
         }
 
         Ok(InternalUser {
-            uuid: internal_uuid.clone(),
+            uuid: internal_uuid,
             hashed_password,
             elo,
             ratings,
             seen,
             chats,
-            images: self.images.clone().into_iter().map(|i| i.into()).collect(),
+            images: self.images.into_iter().map(Into::into).collect(),
             username: self.username,
             display_name: self.display_name,
             description: self.description,
@@ -258,35 +180,142 @@ impl ApiUserWritable {
             props: self.props,
             published,
             owned_images,
-            preview_image: self.preview_image.map(|i| i.into()),
+            preview_image: self.preview_image.map(Into::into),
             actions,
             notifications,
-            is_admin,
             bot_props,
         })
     }
 
+    fn handle_image_updates(
+        &self,
+        db: &DB,
+        internal_user: &Option<InternalUser>,
+    ) -> Result<(), Box<dyn Error>> {
+        if let Some(internal_user) = internal_user {
+            let old_images = internal_user.images.clone();
+            for image in old_images {
+                if !self.images.contains(&image.clone().into()) {
+                    if let Some(image) = image.load(db)? {
+                        image.uuid.delete(db)?;
+                    } else {
+                        return Err("Image not found, can't delete, this shouldn't happen".into());
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+
+    fn validate_props_and_prefs(&self) -> Result<(), Box<dyn Error>> {
+        if self.props.len() != PREFS_CONFIG.len() || self.prefs.len() != PREFS_CONFIG.len() {
+            return Err("Invalid number of props or prefs".into());
+        }
+        Ok(())
+    }
+
+    fn validate_image_access(
+        &self,
+        db: &DB,
+        internal_uuid: &InternalUuid<InternalUser>,
+    ) -> Result<(), Box<dyn Error>> {
+        for image in &self.images {
+            let image_uuid: InternalUuid<InternalImage> = image.clone().into();
+            if let Some(image) = image_uuid.load(db)? {
+                if !image.access.can_access(internal_uuid) {
+                    return Err("No access to image".into());
+                }
+            } else {
+                return Err("Image not found".into());
+            }
+        }
+
+        if let Some(preview_image) = &self.preview_image {
+            let image_uuid: InternalUuid<InternalImage> = preview_image.clone().into();
+            if let Some(image) = image_uuid.load(db)? {
+                if !image.access.can_access(internal_uuid) {
+                    return Err("No access to preview image".into());
+                }
+            } else {
+                return Err("Preview image not found".into());
+            }
+        }
+
+        Ok(())
+    }
+
+    fn get_user_data(
+        &self,
+        internal_user: &Option<InternalUser>,
+    ) -> (
+        f32,
+        Vec<InternalRating>,
+        Vec<InternalUuid<InternalUser>>,
+        Vec<InternalUuid<InternalChat>>,
+        Vec<TimestampedAction>,
+        Vec<Notification>,
+    ) {
+        if let Some(internal_user) = internal_user {
+            (
+                internal_user.elo,
+                internal_user.ratings.clone(),
+                internal_user.seen.clone(),
+                internal_user.chats.clone(),
+                internal_user.actions.clone(),
+                internal_user.notifications.clone(),
+            )
+        } else {
+            (
+                0.0,
+                vec![],
+                vec![self.uuid.clone().into()],
+                vec![],
+                vec![],
+                vec![],
+            )
+        }
+    }
+
+    fn set_age(&mut self) {
+        if let Some(age_index) = self.props.iter().position(|p| p.name == "age") {
+            self.props[age_index].value = get_age(self.birthdate);
+        }
+    }
+
+    fn create_admin_chat(
+        &self,
+        db: &DB,
+        internal_uuid: &InternalUuid<InternalUser>,
+        user_chats: &mut Vec<InternalUuid<InternalChat>>,
+        admin_chats: &mut Vec<InternalUuid<InternalChat>>,
+    ) -> Result<(), Box<dyn Error>> {
+        println!("Creating admin chat for {:?}", internal_uuid);
+        let (chat, message) = InternalChat::new_admin_chat(internal_uuid);
+        let chat_uuid = chat.save(db)?;
+        if let Some(mut chat) = chat_uuid.load(db)? {
+            message
+                .into_internal(&get_admin_uuid(), &chat, db)?
+                .save(&mut chat, db)?;
+            user_chats.push(chat_uuid.clone().into());
+            admin_chats.push(chat_uuid.clone().into());
+            Ok(())
+        } else {
+            Err("Failed to load chat".into())
+        }
+    }
+
     pub fn fill_props(&mut self) {
-        //fill props.additional with default values up to PREFS_CARDINALITY, from the index of the last filled value
         let last_filled = self.props.len();
         for i in last_filled..PREFS_CONFIG.len() {
             let pref = &PREFS_CONFIG[i];
-            if let Some(default) = pref.default {
-                self.props.push(LabeledProperty {
-                    name: pref.name.to_string(),
-                    value: default,
-                });
-            } else {
-                self.props.push(LabeledProperty {
-                    name: PREFS_CONFIG[i].name.to_string(),
-                    value: -32768,
-                });
-            }
+            self.props.push(LabeledProperty {
+                name: pref.name.to_string(),
+                value: pref.default.unwrap_or(-32768),
+            });
         }
     }
 
     pub fn fill_prefs(&mut self) {
-        //fill prefs.additional with default values up to PREFS_CARDINALITY, from the index of the last filled value
         let last_filled = self.prefs.len();
         for i in last_filled..PREFS_CONFIG.len() {
             self.prefs.push(LabeledPreferenceRange {
@@ -301,21 +330,20 @@ impl ApiUserWritable {
 }
 
 fn get_age(birthdate: i64) -> i16 {
-    let birthdate = chrono::DateTime::from_timestamp(birthdate, 0).unwrap();
-    let now = chrono::Utc::now();
+    let birthdate = DateTime::from_timestamp(birthdate, 0).unwrap();
+    let now = Utc::now();
     let age = now - birthdate;
     (age.num_days() / 365) as i16
 }
 
 fn rand_date_between(min: i64, max: i64) -> i64 {
-    let mut rng = rand::thread_rng();
-    rng.gen_range(min..max)
+    rand::thread_rng().gen_range(min..max)
 }
 
 fn rand_age_between_18_and_99() -> i64 {
-    let now = chrono::Utc::now();
-    let min_year = now - chrono::TimeDelta::weeks(99 * 52);
-    let max_year = now - chrono::TimeDelta::weeks(18 * 52);
+    let now = Utc::now();
+    let min_year = now - TimeDelta::weeks(99 * 52);
+    let max_year = now - TimeDelta::weeks(18 * 52);
     rand_date_between(min_year.timestamp(), max_year.timestamp())
 }
 
@@ -334,15 +362,13 @@ impl Gen<'_, DB> for ApiUserWritable {
 
         let is_male = rng.gen_bool(0.5);
         let percent_male = is_male as i16 * 100;
-        let percent_female = (is_male == false) as i16 * 100;
+        let percent_female = (!is_male) as i16 * 100;
         let username = fake::faker::phone_number::en::PhoneNumber().fake();
         let display_name = fake::faker::name::en::Name().fake();
         let description = fake::faker::lorem::en::Paragraph(1..3).fake();
         let birthdate = rand_age_between_18_and_99();
-        // let latitude = rng.gen_range(-90.0..90.0);
         let latitude = 45.501690;
         let latitudei16 = to_i16(latitude, -90.0, 90.0);
-        // let longitude = rng.gen_range(-180.0..180.0);
         let longitude = -73.567253;
         let longitudei16 = to_i16(longitude, -180.0, 180.0);
         let mut props = PREFS_CONFIG
@@ -375,8 +401,8 @@ impl Gen<'_, DB> for ApiUserWritable {
             prefs,
             props,
             uuid: ApiUuid::<InternalUser>::new(),
-            images: uuids.clone().into_iter().map(|uuid| uuid.into()).collect(),
-            preview_image: uuids.first().map(|uuid| uuid.clone().into()),
+            images: uuids.iter().cloned().map(Into::into).collect(),
+            preview_image: uuids.first().cloned().map(Into::into),
             password: Some(password),
             is_bot: true,
         }

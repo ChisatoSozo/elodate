@@ -7,7 +7,7 @@ use super::{
 
 use crate::db::DB;
 
-#[derive(Debug, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
+#[derive(Debug, rkyv::Serialize, rkyv::Deserialize, rkyv::Archive, serde::Serialize, paperclip::actix::Apiv2Schema)]
 #[archive(compare(PartialEq), check_bytes)]
 pub enum Access {
     Everyone,
@@ -23,7 +23,7 @@ impl Access {
     }
 }
 
-#[derive(Debug, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
+#[derive(Debug, rkyv::Serialize, rkyv::Deserialize, rkyv::Archive, serde::Serialize, paperclip::actix::Apiv2Schema)]
 #[archive(compare(PartialEq), check_bytes)]
 pub struct InternalImage {
     pub uuid: InternalUuid<InternalImage>,

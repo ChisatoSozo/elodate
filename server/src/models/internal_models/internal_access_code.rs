@@ -5,7 +5,7 @@ use crate::db::DB;
 use super::shared::{Insertable, InternalUuid, Save};
 use rand::Rng;
 
-#[derive(Debug, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
+#[derive(Debug, rkyv::Serialize, rkyv::Deserialize, rkyv::Archive, serde::Serialize, paperclip::actix::Apiv2Schema)]
 #[archive(compare(PartialEq), check_bytes)]
 pub struct InternalAccessCode {
     pub uuid: InternalUuid<InternalAccessCode>,

@@ -35,22 +35,26 @@ class SwipePageState extends State<SwipePage> {
   Future<void> _loadNextUser(int index) async {
     try {
       final user = await getPotentialMatch(index);
+      if (!mounted) return;
+      final userModel = Provider.of<UserModel>(context, listen: false);
 
       setState(() {
         if (user == null) {
           _isLoading = false;
           return;
         }
-        //if index is 1 and user is the same as the user at index 0, don't do anything
         if (index == 1 && _userStack[0] == null) {
           _isLoading = false;
           return;
         }
-        if (index == 1 && user.uuid == _userStack[0]!.uuid) {
+        if (index == 1 && user.uuid == _userStack[0]?.uuid) {
           _isLoading = false;
           return;
         }
         _userStack[index] = user;
+        if (index == 0) {
+          userModel.lastUserLoadedUuid = user.uuid;
+        }
         if (_userStack.every((user) => user != null)) {
           _isLoading = false;
         }
@@ -127,34 +131,25 @@ class SwipePageState extends State<SwipePage> {
         return null;
       }
       _potentialMatches.addAll(matches);
-      return _potentialMatches[index];
+      return index < _potentialMatches.length ? _potentialMatches[index] : null;
     }
-    return _potentialMatches[index];
+    return index < _potentialMatches.length ? _potentialMatches[index] : null;
   }
 
   Future<bool> likeUser(ApiUser user) async {
-    //pop the user from the potential matches
     _potentialMatches.remove(user);
     var client = Provider.of<UserModel>(context, listen: false).client;
     var result = await client.ratePost(RatingWithTarget(
         rating: RatingWithTargetRatingEnum.like, target: user.uuid));
-    if (result == null) {
-      throw Exception('Failed to like user');
-    }
-    return result;
+    return result ?? false;
   }
 
   Future<bool> dislikeUser(ApiUser user) async {
-    //pop the user from the potential matches
     _potentialMatches.remove(user);
-
     var client = Provider.of<UserModel>(context, listen: false).client;
     var result = await client.ratePost(RatingWithTarget(
         rating: RatingWithTargetRatingEnum.pass, target: user.uuid));
-    if (result == null) {
-      throw Exception('Failed to dislike user');
-    }
-    return result;
+    return result ?? false;
   }
 
   Future<List<ApiUser>> _fetchPotentialMatches() async {
@@ -164,7 +159,6 @@ class SwipePageState extends State<SwipePage> {
     if (matches == null) {
       throw Exception('Failed to get matches');
     }
-
     return matches.toList();
   }
 }

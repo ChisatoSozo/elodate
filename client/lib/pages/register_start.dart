@@ -1,4 +1,6 @@
 import 'package:client/api/pkg/lib/api.dart';
+import 'package:client/components/custom_form_field.dart';
+import 'package:client/components/spacer.dart';
 import 'package:client/models/register_model.dart';
 import 'package:client/models/user_model.dart';
 import 'package:client/router/elo_router_nav.dart';
@@ -21,7 +23,6 @@ class RegisterStartPageState extends State<RegisterStartPage> {
   void initState() {
     super.initState();
     var username = Provider.of<RegisterModel>(context, listen: false).username;
-    //if it's set, initialize the controller
     if (username != null) {
       usernameController.text = username;
     }
@@ -39,39 +40,33 @@ class RegisterStartPageState extends State<RegisterStartPage> {
             "Account Setup",
             style: theme.textTheme.titleLarge,
           ),
-          const SizedBox(height: 24),
+          const VerticalSpacer(size: SpacerSize.large),
           Text(
             "Choose a unique username for your account:",
             style: theme.textTheme.titleMedium,
           ),
-          const SizedBox(height: 8),
-          TextFormField(
+          const VerticalSpacer(),
+          CustomFormField(
             controller: usernameController,
-            decoration: const InputDecoration(
-              labelText: 'Username',
-              hintText: 'Used for login and mentions',
-              border: OutlineInputBorder(),
-            ),
+            labelText: 'Username',
+            hintText: 'Used for login and mentions',
             validator: (value) =>
                 value!.isEmpty ? 'Username cannot be empty' : null,
           ),
-          const SizedBox(height: 20),
+          const VerticalSpacer(),
           Text(
             "Enter your display name:",
             style: theme.textTheme.titleMedium,
           ),
-          const SizedBox(height: 8),
-          TextFormField(
+          const VerticalSpacer(size: SpacerSize.small),
+          CustomFormField(
             controller: displayNameController,
-            decoration: const InputDecoration(
-              labelText: 'Display Name',
-              hintText: 'Name shown to other users',
-              border: OutlineInputBorder(),
-            ),
+            labelText: 'Display Name',
+            hintText: 'Name shown to other users',
             validator: (value) =>
                 value!.isEmpty ? 'Display name cannot be empty' : null,
           ),
-          const SizedBox(height: 20),
+          const VerticalSpacer(),
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [

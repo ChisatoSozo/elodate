@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:client/components/spacer.dart';
 import 'package:client/models/user_model.dart';
 import 'package:client/pages/home/settings/image_picker.dart';
 import 'package:client/router/elo_router_nav.dart';
@@ -68,7 +69,7 @@ class SettingsFlowImagesPageState extends State<SettingsFlowImagesPage> {
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
         ),
-        const SizedBox(height: 20),
+        const VerticalSpacer(),
         Row(
           //align button to the right
           mainAxisAlignment: MainAxisAlignment.spaceBetween,

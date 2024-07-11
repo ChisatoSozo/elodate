@@ -1,4 +1,5 @@
 import 'package:client/api/pkg/lib/api.dart';
+import 'package:client/components/spacer.dart';
 import 'package:client/pages/home/settings/labeled_radio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -143,7 +144,7 @@ class GenderPickerState extends State<GenderPicker> {
           },
         ),
         if (getGenderValue() == "Advanced") ...[
-          const SizedBox(height: 20),
+          const VerticalSpacer(),
           GestureDetector(
             behavior: HitTestBehavior.opaque,
             onPanUpdate: _updateGenderValueByDetails,
@@ -546,7 +547,7 @@ class GenderRangePickerState extends State<GenderRangePicker> {
           },
         ),
         if (getGenderValue() == "Advanced") ...[
-          const SizedBox(height: 20),
+          const VerticalSpacer(),
           GestureDetector(
             behavior: HitTestBehavior.opaque,
             onPanUpdate: (details) {

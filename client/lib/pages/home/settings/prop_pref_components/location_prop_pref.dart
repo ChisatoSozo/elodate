@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:client/api/pkg/lib/api.dart';
 import 'package:client/components/loading.dart';
 import 'package:client/components/location_modal.dart';
+import 'package:client/components/spacer.dart';
 import 'package:client/models/user_model.dart';
 import 'package:client/utils/prefs_utils.dart';
 import 'package:flutter/foundation.dart';
@@ -29,20 +30,36 @@ int calculateInitialDistance(
   final preferenceMinLatLng = decodeLatLongFromI16(latPref.min, lngPref.min);
   final preferenceMaxLatLng = decodeLatLongFromI16(latPref.max, lngPref.max);
 
-  print(
-      "userLatLng: $userLatLng, preferenceMinLatLng: $preferenceMinLatLng, preferenceMaxLatLng: $preferenceMaxLatLng");
-
   double deltaLat = (preferenceMaxLatLng.$1 - preferenceMinLatLng.$1) / 2;
   double deltaLng = (preferenceMaxLatLng.$2 - preferenceMinLatLng.$2) / 2;
 
-  const double earthRadiusKm = 6371.0;
-  double distance = sqrt(pow(deltaLat * pi / 180 * earthRadiusKm, 2) +
-      pow(deltaLng * pi / 180 * earthRadiusKm * cos(userLatLng.$1 * pi / 180),
-          2));
-
-  print("distance: $distance");
+  var distance = calcDistanceKm(
+    userLatLng.$1,
+    userLatLng.$2,
+    userLatLng.$1 + deltaLat,
+    userLatLng.$2 + deltaLng,
+  );
 
   return distance.round();
+}
+
+double calcDistanceKm(double lat1, double lon1, double lat2, double lon2) {
+  const double earthRadiusKm = 6371.0;
+  double dLat = (lat2 - lat1) * pi / 180;
+  double dLon = (lon2 - lon1) * pi / 180;
+
+  //haversine formula
+  double a = sin(dLat / 2) * sin(dLat / 2) +
+      cos(lat1 * pi / 180) *
+          cos(lat2 * pi / 180) *
+          sin(dLon / 2) *
+          sin(dLon / 2);
+
+  //c is the angular distance in radians
+  double c = 2 * atan2(sqrt(a), sqrt(1 - a));
+  double distance = earthRadiusKm * c;
+
+  return distance;
 }
 
 int findClosestDistanceIndex(int distance, List<int> presetDistances) {
@@ -300,7 +317,7 @@ class LocationPickerState extends State<LocationPicker> {
                     )
                   ]
                 : []),
-            const SizedBox(height: 20),
+            const VerticalSpacer(),
             ElevatedButton.icon(
               onPressed: _getCurrentPosition,
               icon: const Icon(Icons.location_on),

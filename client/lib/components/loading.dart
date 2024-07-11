@@ -1,3 +1,4 @@
+import 'package:client/components/spacer.dart';
 import 'package:flutter/material.dart';
 
 class Loading extends StatelessWidget {
@@ -15,7 +16,7 @@ class Loading extends StatelessWidget {
           height: 100,
           child: CircularProgressIndicator(),
         ),
-        const SizedBox(height: 20),
+        const VerticalSpacer(),
         if (text != null) Text(text!),
       ],
     );

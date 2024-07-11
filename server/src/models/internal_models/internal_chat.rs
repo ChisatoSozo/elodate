@@ -1,14 +1,13 @@
 use std::error::Error;
 
 use crate::db::DB;
-use crate::models::api_models::api_message::{ApiMessage, ApiMessageWritable};
-use crate::models::api_models::shared::ApiUuid;
+use crate::models::api_models::api_message::ApiMessageWritable;
 
 use super::migration::migration::get_admin_uuid;
 use super::shared::{Insertable, InternalUuid, Save};
 use super::{internal_message::InternalMessage, internal_user::InternalUser};
 
-#[derive(Debug, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
+#[derive(Debug, rkyv::Serialize, rkyv::Deserialize, rkyv::Archive, serde::Serialize, paperclip::actix::Apiv2Schema)]
 #[archive(compare(PartialEq), check_bytes)]
 pub struct InternalChat {
     pub uuid: InternalUuid<InternalChat>,

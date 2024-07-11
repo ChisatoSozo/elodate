@@ -10,32 +10,30 @@ use serde::Deserialize;
 use crate::{
     db::DB,
     models::{
-        api_models::{api_message::ApiMessageWritable, shared::ApiUuid},
+        api_models::shared::ApiUuid,
         internal_models::{
-            internal_chat::InternalChat,
-            internal_user::TimestampedAction,
-            shared::{InternalUuid, Save},
+            internal_chat::InternalChat, internal_message::InternalMessage, shared::InternalUuid,
         },
     },
     routes::shared::route_body_mut_db,
 };
 
 #[derive(Debug, Deserialize, Apiv2Schema)]
-struct SendMessageInput {
+struct DeleteMessageInput {
     chat_uuid: ApiUuid<InternalChat>,
-    message: ApiMessageWritable,
+    message_uuid: ApiUuid<InternalMessage>,
 }
 
 #[api_v2_operation]
-#[post("/send_message")]
-pub fn send_message(
+#[post("/delete_message")]
+pub fn delete_message(
     db: web::Data<DB>,
     req: HttpRequest,
-    body: Json<SendMessageInput>,
+    body: Json<DeleteMessageInput>,
 ) -> Result<Json<bool>, Error> {
     route_body_mut_db(db, req, body, |db, user, body| {
         let chat_uuid = body.chat_uuid;
-        let message = body.message;
+        let message_uuid = body.message_uuid;
 
         let internal_chat_uuid: InternalUuid<InternalChat> = chat_uuid.into();
 
@@ -54,19 +52,15 @@ pub fn send_message(
             return Err(actix_web::error::ErrorBadRequest("User not in chat"));
         }
 
-        let internal_message = message.into_internal(&user.uuid, &chat, db)?;
+        //remove message from chat
+        let internal_message_uuid: InternalUuid<InternalMessage> = message_uuid.into();
+        chat.messages.retain(|m| m != &internal_message_uuid);
 
-        internal_message.save(&mut chat, db).map_err(|e| {
-            log::error!("Failed to save message {:?}", e);
-            actix_web::error::ErrorInternalServerError("Failed to save message")
+        //delete message
+        internal_message_uuid.delete(db).map_err(|e| {
+            log::error!("Failed to delete message {:?}", e);
+            actix_web::error::ErrorInternalServerError("Failed to delete message")
         })?;
-
-        let mut user = user;
-        user.actions.push(TimestampedAction {
-            timestamp: chrono::Utc::now().timestamp(),
-            action: crate::models::internal_models::internal_user::Action::SendMessage,
-        });
-        user.save(db)?;
 
         Ok(true)
     })

@@ -1,3 +1,5 @@
+import 'package:client/components/custom_form_field.dart';
+import 'package:client/components/spacer.dart';
 import 'package:client/models/register_model.dart';
 import 'package:client/router/elo_router_nav.dart';
 import 'package:flutter/material.dart';
@@ -21,7 +23,6 @@ class RegisterPasswordPageState extends State<RegisterPasswordPage> {
   void initState() {
     super.initState();
     var password = Provider.of<RegisterModel>(context, listen: false).password;
-    //if it's set, initialize the controller
     if (password != null) {
       _passwordController.text = password;
       _confirmPasswordController.text = password;
@@ -29,8 +30,6 @@ class RegisterPasswordPageState extends State<RegisterPasswordPage> {
   }
 
   bool _isPasswordValid(String password) {
-    // Implement your own password validation logic
-    //password must be at least 8 characters long
     return password.length >= 8;
   }
 
@@ -58,15 +57,12 @@ class RegisterPasswordPageState extends State<RegisterPasswordPage> {
             "Pick a Password. If it sucks and you get hacked, that's on you.",
             style: theme.textTheme.titleLarge,
           ),
-          const SizedBox(height: 24),
-          TextFormField(
+          const VerticalSpacer(size: SpacerSize.large),
+          CustomFormField(
             controller: _passwordController,
+            labelText: 'Password',
+            hintText: 'Enter your password',
             obscureText: true,
-            decoration: const InputDecoration(
-              labelText: 'Password',
-              hintText: 'Enter your password',
-              border: OutlineInputBorder(),
-            ),
             validator: (value) {
               if (value == null || value.isEmpty || !_isPasswordValid(value)) {
                 return 'Password must be at least 8 characters long';
@@ -74,15 +70,12 @@ class RegisterPasswordPageState extends State<RegisterPasswordPage> {
               return null;
             },
           ),
-          const SizedBox(height: 20),
-          TextFormField(
+          const VerticalSpacer(),
+          CustomFormField(
             controller: _confirmPasswordController,
+            labelText: 'Confirm Password',
+            hintText: 'Confirm your password',
             obscureText: true,
-            decoration: const InputDecoration(
-              labelText: 'Confirm Password',
-              hintText: 'Confirm your password',
-              border: OutlineInputBorder(),
-            ),
             validator: (value) {
               if (value == null ||
                   value.isEmpty ||
@@ -93,7 +86,7 @@ class RegisterPasswordPageState extends State<RegisterPasswordPage> {
               return null;
             },
           ),
-          const SizedBox(height: 40),
+          const VerticalSpacer(size: SpacerSize.large),
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [

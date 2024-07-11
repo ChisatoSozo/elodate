@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:client/api/pkg/lib/api.dart';
+import 'package:client/components/spacer.dart';
 import 'package:client/components/uuid_image_provider.dart';
 import 'package:client/models/user_model.dart';
 import 'package:flutter/material.dart';
@@ -126,12 +127,12 @@ class MatchModalState extends State<MatchModal>
             ),
             ..._buildParticles(),
           ]),
-          const SizedBox(height: 16.0),
+          const VerticalSpacer(),
           Text(
             "It's a match!",
             style: Theme.of(context).textTheme.headlineSmall,
           ),
-          const SizedBox(height: 16.0),
+          const VerticalSpacer(),
           Text(
             'You and ${widget.user.displayName} liked each other.',
             style: Theme.of(context).textTheme.titleMedium,

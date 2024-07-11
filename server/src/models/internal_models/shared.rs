@@ -1,5 +1,6 @@
 use crate::db::{DB, SCRATCH_SPACE_SIZE};
 use crate::vec::shared::Bbox;
+use paperclip::v2::schema::TypedData;
 use rkyv::ser::serializers::{
     AlignedSerializer, AllocScratch, CompositeSerializer, FallbackScratch, HeapScratch,
     SharedSerializeMap,
@@ -12,7 +13,7 @@ use uuid::Uuid;
 
 use super::internal_prefs_config::PREFS_CARDINALITY;
 
-#[derive(Debug, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
+#[derive(Debug, rkyv::Serialize, rkyv::Deserialize, rkyv::Archive)]
 #[archive(compare(PartialEq), check_bytes)]
 pub struct InternalUuid<InternalModel> {
     pub id: String,
@@ -25,6 +26,22 @@ impl<InternalModel> Clone for InternalUuid<InternalModel> {
             id: self.id.clone(),
             _marker: PhantomData,
         }
+    }
+}
+
+impl<InternalModel> TypedData for InternalUuid<InternalModel> {
+    fn data_type() -> paperclip::v2::models::DataType {
+        <String as TypedData>::data_type()
+    }
+
+    fn format() -> Option<paperclip::v2::models::DataTypeFormat> {
+        <String as TypedData>::format()
+    }
+}
+
+impl<InternalModel> serde::Serialize for InternalUuid<InternalModel> {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serde::Serialize::serialize(&self.id, serializer)
     }
 }
 
@@ -72,7 +89,7 @@ where
         Ok(exists)
     }
 
-    pub fn delete(self, db: &DB) -> Result<Option<InternalModel>, Box<dyn Error>> {
+    pub fn delete(self, db: &DB) -> Result<Option<std::convert::Infallible>, Box<dyn Error>> {
         db.delete_object(&self)
     }
 

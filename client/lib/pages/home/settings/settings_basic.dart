@@ -1,11 +1,12 @@
 import 'dart:convert';
 
+import 'package:client/components/custom_form_field.dart';
+import 'package:client/components/spacer.dart';
+import 'package:client/models/user_model.dart';
 import 'package:client/pages/home/settings/image_picker.dart';
 import 'package:client/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
-import '../../../models/user_model.dart';
 
 class BasicSettings extends StatelessWidget {
   const BasicSettings({super.key});
@@ -17,17 +18,17 @@ class BasicSettings extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildTextFormField(
-            initialValue: userModel.me.displayName,
+          CustomFormField(
+            controller: TextEditingController(text: userModel.me.displayName),
             labelText: 'Display Name',
             onChanged: (value) {
               userModel.me.displayName = value;
               userModel.setChanges(true);
             },
           ),
-          const SizedBox(height: 20),
-          _buildTextFormField(
-            initialValue: userModel.me.description,
+          const VerticalSpacer(),
+          CustomFormField(
+            controller: TextEditingController(text: userModel.me.description),
             labelText: 'Description',
             onChanged: (value) {
               userModel.me.description = value;
@@ -35,29 +36,12 @@ class BasicSettings extends StatelessWidget {
             },
             maxLines: 10,
           ),
-          const SizedBox(height: 20),
+          const VerticalSpacer(),
           Text('Images', style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 20),
+          const VerticalSpacer(),
           _buildImagePickerGrid(userModel),
         ],
       ),
-    );
-  }
-
-  Widget _buildTextFormField({
-    required String initialValue,
-    required String labelText,
-    required Function(String) onChanged,
-    int maxLines = 1,
-  }) {
-    return TextFormField(
-      initialValue: initialValue,
-      decoration: InputDecoration(
-        labelText: labelText,
-        border: const OutlineInputBorder(),
-      ),
-      onChanged: onChanged,
-      maxLines: maxLines,
     );
   }
 

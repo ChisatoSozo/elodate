@@ -1,4 +1,6 @@
 import 'package:animated_flip_counter/animated_flip_counter.dart';
+import 'package:client/components/elo_badge.dart';
+import 'package:client/components/spacer.dart';
 import 'package:client/models/user_model.dart';
 import 'package:client/router/elo_router_nav.dart';
 import 'package:flutter/material.dart';
@@ -38,6 +40,42 @@ class PreferCountAndSave extends StatelessWidget {
   }
 }
 
+class PreferCountAndElo extends StatelessWidget {
+  const PreferCountAndElo({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    var userModel = Provider.of<UserModel>(context, listen: true);
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        const PreferenceCounters(),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            EloBadge(eloLabel: userModel.me.elo, elo: userModel.me.eloNum),
+            Tooltip(
+              message:
+                  'This is your Elo, or rank. It is based on a few things, but mostly how often you are liked by others. You can improve it by being active, filling out properties, and keeping your preferences as open as possible',
+              child: IconButton(
+                icon: const Icon(Icons.help_outline),
+                onPressed: () {},
+                padding: const EdgeInsets.all(0),
+                visualDensity: VisualDensity.compact,
+                iconSize: 20,
+                color: theme.colorScheme.secondary,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
 class PreferenceCounters extends StatelessWidget {
   const PreferenceCounters({super.key});
 
@@ -54,7 +92,7 @@ class PreferenceCounters extends StatelessWidget {
           value: userModel.numUsersIPrefer,
           icon: Icons.thumb_up,
         ),
-        const SizedBox(width: 16), // Add some spacing between the counters
+        const HorizontalSpacer(),
         CounterRow(
           text: 'Prefer Me',
           value: userModel.numUsersMutuallyPrefer,
@@ -92,7 +130,7 @@ class CounterRow extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Icon(icon, color: theme.colorScheme.secondary, size: 20),
-        const SizedBox(width: 8),
+        const HorizontalSpacer(size: SpacerSize.small),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,

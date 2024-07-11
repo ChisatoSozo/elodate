@@ -58,7 +58,7 @@ const NOAUTH_PATHS: [&str; 5] = [
     "/login",
     "/signup",
     "/check_username",
-    "/report_bug",
+    "/report",
     JSON_SPEC_PATH,
 ];
 
