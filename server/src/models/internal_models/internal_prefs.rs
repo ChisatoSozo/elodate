@@ -249,6 +249,7 @@ pub enum UIElement {
     GenderPicker,
     LocationPicker,
     HeightAndWeight,
+    NumberInput,
 }
 
 #[derive(Debug, Serialize, Apiv2Schema, Clone, PartialEq)]

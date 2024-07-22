@@ -1,7 +1,9 @@
 import 'package:client/api/pkg/lib/api.dart';
+import 'package:client/components/spacer.dart';
 import 'package:client/models/user_model.dart';
 import 'package:client/pages/home/settings/prop_pref_components/gender_prop_pref.dart';
 import 'package:client/pages/home/settings/prop_pref_components/location_prop_pref.dart';
+import 'package:client/pages/home/settings/prop_pref_components/number_prop_pref.dart';
 import 'package:client/pages/home/settings/prop_pref_components/slider_prop_pref.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -50,6 +52,16 @@ class PrefState extends State<Pref> {
           prefs: widget.prefs,
           preferenceConfigs: widget.configs,
           onUpdated: widget.onUpdated);
+    }
+
+    if (widget.configs.first.uiElement ==
+        PreferenceConfigPublicUiElementEnum.numberInput) {
+      return PrefNumericalInput(
+        key: ValueKey(widget.configs.first.group),
+        prefs: widget.prefs,
+        preferenceConfigs: widget.configs,
+        onUpdated: widget.onUpdated,
+      );
     }
 
     if (widget.configs.first.uiElement ==
@@ -102,9 +114,9 @@ class PrefState extends State<Pref> {
           } else if (bmi < 39.9) {
             bmiClass = '"Husky"';
           } else if (bmi < 44.9) {
-            bmiClass = 'Fluffy';
+            bmiClass = '"Fluffy"';
           } else {
-            bmiClass = 'Damn';
+            bmiClass = '"Damn"';
           }
           weightLabels.add('$bmi bmi ($bmiClass)');
         }
@@ -140,12 +152,25 @@ class PrefState extends State<Pref> {
       heightConfig.labels = heightLabels;
       weightConfig.labels = weightLabels;
       return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          const VerticalSpacer(size: SpacerSize.large),
+          Text(
+            'Height',
+            style: Theme.of(context).textTheme.labelMedium,
+            textAlign: TextAlign.left,
+          ),
           PrefSlider(
             key: ValueKey('${widget.configs.first.group}height$isMetric'),
             prefs: [heightPref],
             preferenceConfigs: [heightConfig],
             onUpdated: widget.onUpdated,
+          ),
+          const VerticalSpacer(),
+          Text(
+            'Weight',
+            style: Theme.of(context).textTheme.labelMedium,
+            textAlign: TextAlign.left,
           ),
           PrefSlider(
             key: ValueKey('${widget.configs.last.group}weight$isMetric'),

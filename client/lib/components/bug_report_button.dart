@@ -7,10 +7,13 @@ import 'package:client/components/labeled_checkbox.dart';
 import 'package:client/components/spacer.dart';
 import 'package:client/models/user_model.dart';
 import 'package:client/router/elo_router_nav.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:screenshot/screenshot.dart';
+import 'package:universal_platform/universal_platform.dart';
 
 class BugReportButton extends StatefulWidget {
   const BugReportButton({super.key});
@@ -88,6 +91,90 @@ class BugReportButtonState extends State<BugReportButton> {
         ],
       ),
     );
+  }
+
+  Future<String> _getPlatform() async {
+    var platformString = '';
+    var platform = UniversalPlatform.value;
+    platformString += "Platform: ${platform.toString()}" '\n';
+
+    //get screen size
+    platformString +=
+        "Screen size: ${MediaQuery.of(context).size.width}x${MediaQuery.of(context).size.height}"
+        '\n';
+
+    switch (platform) {
+      case UniversalPlatformType.Android:
+        var androidInfo = await DeviceInfoPlugin().androidInfo;
+
+        platformString += "version: ${androidInfo.version}" '\n';
+        platformString += "board: ${androidInfo.board}" '\n';
+        platformString += "bootloader: ${androidInfo.bootloader}" '\n';
+        platformString += "brand: ${androidInfo.brand}" '\n';
+        platformString += "device: ${androidInfo.device}" '\n';
+        platformString += "display: ${androidInfo.display}" '\n';
+        platformString += "fingerprint: ${androidInfo.fingerprint}" '\n';
+        platformString += "hardware: ${androidInfo.hardware}" '\n';
+        platformString += "host: ${androidInfo.host}" '\n';
+        platformString += "id: ${androidInfo.id}" '\n';
+        platformString += "manufacturer: ${androidInfo.manufacturer}" '\n';
+        platformString += "model: ${androidInfo.model}" '\n';
+        platformString += "product: ${androidInfo.product}" '\n';
+        platformString += "tags: ${androidInfo.tags}" '\n';
+        platformString += "type: ${androidInfo.type}" '\n';
+        platformString +=
+            "isPhysicalDevice: ${androidInfo.isPhysicalDevice}" '\n';
+        break;
+      case UniversalPlatformType.IOS:
+        var iosInfo = await DeviceInfoPlugin().iosInfo;
+
+        platformString += "name: ${iosInfo.name}" '\n';
+        platformString += "systemName: ${iosInfo.systemName}" '\n';
+        platformString += "systemVersion: ${iosInfo.systemVersion}" '\n';
+        platformString += "model: ${iosInfo.model}" '\n';
+        platformString += "localizedModel: ${iosInfo.localizedModel}" '\n';
+        platformString +=
+            "identifierForVendor: ${iosInfo.identifierForVendor}" '\n';
+        platformString += "isPhysicalDevice: ${iosInfo.isPhysicalDevice}" '\n';
+        break;
+      case UniversalPlatformType.Web:
+        var webInfo = await DeviceInfoPlugin().webBrowserInfo;
+
+        platformString += "browser: ${webInfo.browserName}" '\n';
+        platformString += "platform: ${webInfo.platform}" '\n';
+        platformString += "appCodeName: ${webInfo.appCodeName}" '\n';
+        platformString += "appName: ${webInfo.appName}" '\n';
+        platformString += "appVersion: ${webInfo.appVersion}" '\n';
+        platformString += "product: ${webInfo.product}" '\n';
+        platformString += "userAgent: ${webInfo.userAgent}" '\n';
+        platformString += "vendor: ${webInfo.vendor}" '\n';
+        platformString += "vendorSub: ${webInfo.vendorSub}" '\n';
+        platformString += "deviceMemory: ${webInfo.deviceMemory}" '\n';
+        platformString +=
+            "hardwareConcurrency: ${webInfo.hardwareConcurrency}" '\n';
+        platformString += "maxTouchPoints: ${webInfo.maxTouchPoints}" '\n';
+        platformString += "language: ${webInfo.language}" '\n';
+        platformString += "languages: ${webInfo.languages}" '\n';
+        break;
+      case UniversalPlatformType.Windows:
+        var windowsInfo = await DeviceInfoPlugin().windowsInfo;
+        platformString += "userName: ${windowsInfo.userName}" '\n';
+        break;
+      case UniversalPlatformType.Linux:
+        var linuxInfo = await DeviceInfoPlugin().linuxInfo;
+        platformString += "name: ${linuxInfo.name}" '\n';
+        break;
+      case UniversalPlatformType.MacOS:
+        var macInfo = await DeviceInfoPlugin().macOsInfo;
+        platformString += "computerName: ${macInfo.computerName}" '\n';
+        break;
+      case UniversalPlatformType.Fuchsia:
+        var fuchsiaInfo = await DeviceInfoPlugin().deviceInfo;
+        platformString += "data: ${fuchsiaInfo.data}" '\n';
+        break;
+    }
+
+    return platformString;
   }
 
   void _captureData() {
@@ -206,35 +293,44 @@ class BugReportButtonState extends State<BugReportButton> {
     );
   }
 
-  void _sendReport() {
+  void _sendReport() async {
     if (_sending) return;
     setState(() => _sending = true);
 
     var client = constructClient(null);
     client
-        .reportPost(ReportInput(
-            content: _textController.text,
-            imageb64: _image!,
-            isViolation: _isViolation,
-            chat: _reportedChatUuid,
-            userUuid: _reportedUserUuid))
-        .then((_) {
-      setState(() {
-        _sending = false;
-        _formVisible = false;
-        _textController.clear();
-        _image = null;
-        _isViolation = false;
-        _reportedUserUuid = null;
-        _reportedChatUuid = null;
-      });
-      _showThankYouDialog();
-    }).catchError((onError) {
-      print(onError);
-      setState(() {
-        _sending = false;
-        _error = 'Failed to send report';
-      });
+        .reportPost(
+      ReportInput(
+        content: _textController.text,
+        imageb64: _image!,
+        isViolation: _isViolation,
+        chat: _reportedChatUuid,
+        userUuid: _reportedUserUuid,
+        platform: await _getPlatform(),
+      ),
+    )
+        .then(
+      (_) {
+        setState(
+          () {
+            _sending = false;
+            _formVisible = false;
+            _textController.clear();
+            _image = null;
+            _isViolation = false;
+            _reportedUserUuid = null;
+            _reportedChatUuid = null;
+          },
+        );
+        _showThankYouDialog();
+      },
+    ).catchError((onError) {
+      setState(
+        () {
+          _sending = false;
+          _error = 'Failed to send report: $onError';
+        },
+      );
     });
   }
 

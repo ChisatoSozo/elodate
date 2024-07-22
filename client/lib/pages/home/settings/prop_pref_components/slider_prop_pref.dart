@@ -124,6 +124,7 @@ class PropSlider extends BaseSlider<ApiUserPropsInner> {
 
 class PropSliderState extends BaseSliderState<ApiUserPropsInner, PropSlider> {
   late int _value;
+  late int _previousValue;
 
   @override
   bool isUnset() => _value == -32768;
@@ -131,6 +132,7 @@ class PropSliderState extends BaseSliderState<ApiUserPropsInner, PropSlider> {
   @override
   void initializeState() {
     _value = widget.items.first.value;
+    _previousValue = _value == -32768 ? _preferenceConfig.min : _value;
   }
 
   @override
@@ -138,6 +140,9 @@ class PropSliderState extends BaseSliderState<ApiUserPropsInner, PropSlider> {
     if (value is int) {
       setState(() {
         _value = value;
+        if (!isUnset()) {
+          _previousValue = _value;
+        }
       });
       widget.items[0].value = _value;
       widget.onUpdated(widget.items);
@@ -146,21 +151,41 @@ class PropSliderState extends BaseSliderState<ApiUserPropsInner, PropSlider> {
 
   @override
   void updateUnsetValue(bool? newUnset) {
-    _value = newUnset == true ? -32768 : _preferenceConfig.min;
-    updateValue(_value);
+    setState(() {
+      if (newUnset == true) {
+        _value = -32768;
+      } else {
+        _value = _previousValue;
+      }
+    });
+    widget.items[0].value = _value;
+    widget.onUpdated(widget.items);
+  }
+
+  void _handleTapDown(TapDownDetails _) {
+    if (isUnset()) {
+      updateUnsetValue(false);
+    }
   }
 
   @override
   Widget buildSlider() {
     return Column(
       children: [
-        Slider(
-          value:
-              isUnset() ? _preferenceConfig.min.toDouble() : _value.toDouble(),
-          min: _preferenceConfig.min.toDouble(),
-          max: _preferenceConfig.max.toDouble(),
-          divisions: _preferenceConfig.max - _preferenceConfig.min,
-          onChanged: (value) => updateValue(value.round()),
+        GestureDetector(
+          onTapDown: _handleTapDown,
+          child: Slider(
+            value: isUnset()
+                ? _previousValue.toDouble()
+                : _value.toDouble().clamp(_preferenceConfig.min.toDouble(),
+                    _preferenceConfig.max.toDouble()),
+            min: _preferenceConfig.min.toDouble(),
+            max: _preferenceConfig.max.toDouble(),
+            divisions: _preferenceConfig.max - _preferenceConfig.min,
+            onChanged: (value) {
+              updateValue(value.round());
+            },
+          ),
         ),
         if (!isUnset())
           Text(
@@ -197,26 +222,26 @@ class PrefSlider extends BaseSlider<ApiUserPrefsInner> {
 
 class PrefSliderState extends BaseSliderState<ApiUserPrefsInner, PrefSlider> {
   late ApiUserPrefsInnerRange range;
+  late ApiUserPrefsInnerRange previousRange;
 
   @override
-  bool isUnset() =>
-      widget.items.first.range.max == 32767 &&
-      widget.items.first.range.min == -32768;
+  bool isUnset() => range.max == 32767 && range.min == -32768;
 
   @override
   void initializeState() {
     range = widget.items.first.range;
+    previousRange = ApiUserPrefsInnerRange(min: range.min, max: range.max);
   }
 
   @override
   void updateValue(dynamic value) {
     if (value is ApiUserPrefsInnerRange) {
-      if (value.min == _preferenceConfig.min &&
-          value.max == _preferenceConfig.max) {
-        value = ApiUserPrefsInnerRange(min: -32768, max: 32767);
-      }
       setState(() {
         range = value;
+        if (!isUnset()) {
+          previousRange =
+              ApiUserPrefsInnerRange(min: range.min, max: range.max);
+        }
       });
       widget.items[0].range = range;
       widget.onUpdated(widget.items);
@@ -225,11 +250,16 @@ class PrefSliderState extends BaseSliderState<ApiUserPrefsInner, PrefSlider> {
 
   @override
   void updateUnsetValue(bool? newUnset) {
-    range = newUnset == true
-        ? ApiUserPrefsInnerRange(min: -32768, max: 32767)
-        : ApiUserPrefsInnerRange(
-            min: _preferenceConfig.min, max: _preferenceConfig.max - 1);
-    updateValue(range);
+    setState(() {
+      if (newUnset == true) {
+        range = ApiUserPrefsInnerRange(min: -32768, max: 32767);
+      } else {
+        range = ApiUserPrefsInnerRange(
+            min: previousRange.min, max: previousRange.max);
+      }
+    });
+    widget.items[0].range = range;
+    widget.onUpdated(widget.items);
   }
 
   @override
@@ -237,22 +267,25 @@ class PrefSliderState extends BaseSliderState<ApiUserPrefsInner, PrefSlider> {
     return Column(
       children: [
         RangeSlider(
-          values: isUnset()
-              ? RangeValues(_preferenceConfig.min.toDouble(),
-                  _preferenceConfig.max.toDouble())
-              : RangeValues(
-                  range.min.toDouble().clamp(_preferenceConfig.min.toDouble(),
-                      _preferenceConfig.max.toDouble()),
-                  range.max.toDouble().clamp(_preferenceConfig.min.toDouble(),
-                      _preferenceConfig.max.toDouble()),
-                ),
+          values: RangeValues(
+              (isUnset() ? previousRange.min : range.min).toDouble().clamp(
+                  _preferenceConfig.min.toDouble(),
+                  _preferenceConfig.max.toDouble()),
+              (isUnset() ? previousRange.max : range.max).toDouble().clamp(
+                  _preferenceConfig.min.toDouble(),
+                  _preferenceConfig.max.toDouble())),
           min: _preferenceConfig.min.toDouble(),
           max: _preferenceConfig.max.toDouble(),
           divisions: _preferenceConfig.max - _preferenceConfig.min,
-          onChanged: (values) => updateValue(ApiUserPrefsInnerRange(
-            min: values.start.round(),
-            max: values.end.round(),
-          )),
+          onChanged: (values) {
+            if (isUnset()) {
+              updateUnsetValue(false);
+            }
+            updateValue(ApiUserPrefsInnerRange(
+              min: values.start.round(),
+              max: values.end.round(),
+            ));
+          },
         ),
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -262,7 +295,8 @@ class PrefSliderState extends BaseSliderState<ApiUserPrefsInner, PrefSlider> {
               child: Container(
                 alignment: Alignment.topLeft,
                 child: Text(
-                  formatLabel(range.min, _preferenceConfig),
+                  formatLabel(isUnset() ? previousRange.min : range.min,
+                      _preferenceConfig),
                   style: Theme.of(context).textTheme.bodySmall,
                   softWrap: true,
                   textAlign: TextAlign.left,
@@ -275,7 +309,8 @@ class PrefSliderState extends BaseSliderState<ApiUserPrefsInner, PrefSlider> {
               child: Container(
                 alignment: Alignment.topRight,
                 child: Text(
-                  formatLabel(range.max, _preferenceConfig),
+                  formatLabel(isUnset() ? previousRange.max : range.max,
+                      _preferenceConfig),
                   style: Theme.of(context).textTheme.bodySmall,
                   softWrap: true,
                   textAlign: TextAlign.right,

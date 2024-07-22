@@ -34,11 +34,18 @@ class LabeledCheckbox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final labelWidget = InkWell(
-      onTap: () => onChanged(!checked),
-      child: MouseRegion(
-        cursor: SystemMouseCursors.click,
-        child: Text(label, style: labelStyle),
+    final labelWidget = Expanded(
+      child: InkWell(
+        onTap: () => onChanged(!checked),
+        child: MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: Text(
+            label,
+            style: labelStyle,
+            softWrap: true,
+            overflow: TextOverflow.visible,
+          ),
+        ),
       ),
     );
 
@@ -56,25 +63,21 @@ class LabeledCheckbox extends StatelessWidget {
 
     return Container(
       alignment: alignRight ? Alignment.centerRight : Alignment.centerLeft,
-      child: labelOnRight
-          ? Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: labelOnRight
+            ? [
                 checkboxWidget,
-                const SizedBox(
-                    width: 8), // Add some spacing between checkbox and label
+                const SizedBox(width: 8),
                 labelWidget,
-              ],
-            )
-          : Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
+              ]
+            : [
                 labelWidget,
-                const SizedBox(
-                    width: 8), // Add some spacing between label and checkbox
+                const SizedBox(width: 8),
                 checkboxWidget,
               ],
-            ),
+      ),
     );
   }
 }

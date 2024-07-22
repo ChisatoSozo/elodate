@@ -25,6 +25,7 @@ struct ReportInput {
     imageb64: String,
     user_uuid: Option<ApiUuid<InternalUser>>,
     chat: Option<ApiUuid<InternalChat>>,
+    platform: Option<String>,
 }
 
 #[api_v2_operation]
@@ -79,6 +80,12 @@ fn report(
         format!("{}/{}/report.jpg", report_base_folder, report_uuid),
         buf,
     )?; //write image content
+
+    //write platform type to report folder
+    fs::write(
+        format!("{}/{}/platform.txt", report_base_folder, report_uuid),
+        body.platform.clone().unwrap_or("unknown".to_string()),
+    )?;
 
     if let Some(user_uuid) = &body.user_uuid {
         let internal_uuid: InternalUuid<InternalUser> = user_uuid.clone().into();

@@ -12,6 +12,7 @@ import 'package:client/pages/register_finish.dart';
 import 'package:client/pages/register_password.dart';
 import 'package:client/pages/register_start.dart';
 import 'package:client/pages/settings_flow.dart';
+import 'package:client/pages/settings_flow_explanation.dart';
 import 'package:client/pages/settings_flow_images.dart';
 import 'package:flutter/material.dart';
 
@@ -83,6 +84,8 @@ class RouteHandlers {
         return const RegisterFinishPage();
       case '/settings_images':
         return const SettingsFlowImagesPage();
+      case '/settings_flow_explainer':
+        return const SettingsFlowExplainerPage();
       case '/manage_account':
         return const ManageAccountPage();
       default:

@@ -11,6 +11,7 @@ class RouteConfiguration {
     '/login': null,
     '/register': 'Register',
     '/settings': 'Settings',
+    '/settings_flow_explainer': 'Settings Explainer',
     '/manage_account': 'Manage Account',
     '/settings_images': 'Images',
     '/register_password': 'Register Password',

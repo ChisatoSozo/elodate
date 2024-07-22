@@ -36,6 +36,17 @@
       // The value below is injected by flutter build, do not touch.
       const serviceWorkerVersion = null;
     </script>
+    <script>
+      function isIPad() {
+        return navigator.userAgent.match(/iPad/i) != null;
+      }
+      function isTablet() {
+        return (
+          /Android/.test(navigator.userAgent) &&
+          !/Mobile/.test(navigator.userAgent)
+        );
+      }
+    </script>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <script src="https://unpkg.com/pica/dist/pica.min.js"></script>
     <script src="location.js"></script>

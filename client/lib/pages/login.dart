@@ -122,7 +122,7 @@ class LoginPageState extends State<LoginPage> {
             ),
             const VerticalSpacer(),
             const Text(
-              "Welcome to the Elodate alpha! 🚀\n\n"
+              "Welcome to Elodate alpha v2! 🚀\n\n"
               "To get the most out of this early version:\n"
               "1. Set your own properties (sliders) ✅\n"
               "2. Leave most preferences (ranges) unset for now ⏳\n"

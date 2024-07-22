@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 const categoryOrdering = [
+  PreferenceConfigPublicCategoryEnum.mandatory,
   PreferenceConfigPublicCategoryEnum.background,
   PreferenceConfigPublicCategoryEnum.beliefs,
   PreferenceConfigPublicCategoryEnum.diet,
@@ -18,7 +19,6 @@ const categoryOrdering = [
   PreferenceConfigPublicCategoryEnum.hobbies,
   PreferenceConfigPublicCategoryEnum.lgbt,
   PreferenceConfigPublicCategoryEnum.lifestyle,
-  PreferenceConfigPublicCategoryEnum.mandatory,
   PreferenceConfigPublicCategoryEnum.physical,
   PreferenceConfigPublicCategoryEnum.relationshipStyle,
   PreferenceConfigPublicCategoryEnum.sexual,

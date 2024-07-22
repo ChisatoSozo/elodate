@@ -1,8 +1,10 @@
 import 'package:client/api/pkg/lib/api.dart';
+import 'package:client/components/spacer.dart';
 import 'package:client/models/user_model.dart';
 import 'package:client/pages/home/settings/labeled_checkbox.dart';
 import 'package:client/pages/home/settings/prop_pref_components/gender_prop_pref.dart';
 import 'package:client/pages/home/settings/prop_pref_components/location_prop_pref.dart';
+import 'package:client/pages/home/settings/prop_pref_components/number_prop_pref.dart';
 import 'package:client/pages/home/settings/prop_pref_components/slider_prop_pref.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -51,6 +53,15 @@ class PropState extends State<Prop> {
           props: widget.props,
           preferenceConfigs: widget.configs,
           onUpdated: widget.onUpdated);
+    }
+    if (widget.configs.first.uiElement ==
+        PreferenceConfigPublicUiElementEnum.numberInput) {
+      return PropNumericalInput(
+        key: ValueKey(widget.configs.first.group),
+        props: widget.props,
+        preferenceConfigs: widget.configs,
+        onUpdated: widget.onUpdated,
+      );
     }
     if (widget.configs.first.uiElement ==
         PreferenceConfigPublicUiElementEnum.heightAndWeight) {
@@ -124,6 +135,7 @@ class PropState extends State<Prop> {
       weightConfig.labels = weightLabels;
 
       return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           LabeledCheckbox(
             checked: isMetric,
@@ -132,11 +144,23 @@ class PropState extends State<Prop> {
             alignRight: true,
             label: "Metric",
           ),
+          const VerticalSpacer(size: SpacerSize.large),
+          Text(
+            'Height',
+            style: Theme.of(context).textTheme.labelMedium,
+            textAlign: TextAlign.left,
+          ),
           PropSlider(
             key: ValueKey('${widget.configs.first.group}height$isMetric'),
             props: [heightProp],
             preferenceConfigs: [heightConfig],
             onUpdated: widget.onUpdated,
+          ),
+          const VerticalSpacer(),
+          Text(
+            'Weight',
+            style: Theme.of(context).textTheme.labelMedium,
+            textAlign: TextAlign.left,
           ),
           PropSlider(
             key: ValueKey(

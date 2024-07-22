@@ -11,6 +11,7 @@ pub static PREFS_CONFIG: [PreferenceConfig; PREFS_CARDINALITY] = [
         name: "age",
         group: "age",
         display: "Age",
+        ui_element: UIElement::NumberInput,
         category: Category::Mandatory,
         value_question: "",
         range_question: "How old do you want your partner to be?",
@@ -233,8 +234,8 @@ pub static PREFS_CONFIG: [PreferenceConfig; PREFS_CARDINALITY] = [
         group: "financial_planning_importance",
         display: "Importance of Financial Planning",
         category: Category::Financial,
-        value_question: "How important is financial planning for the future to you?",
-        range_question: "How important should financial planning for the future be to your partner?",
+        value_question: "How important is financial planning to you?",
+        range_question: "How important should financial planning be to your partner?",
         labels: Some(&["Not important", "Somewhat important", "Important", "Very important", "Obsessed with it"]),
         ..default_preference_config()
     },

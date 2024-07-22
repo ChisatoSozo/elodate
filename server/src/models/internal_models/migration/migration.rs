@@ -166,9 +166,10 @@ pub fn get_admin_uuid() -> InternalUuid<InternalUser> {
 }
 
 pub fn make_admin_user(db: &DB) -> InternalUser {
-    let admin_password = std::env::var("ADMIN_PASSWORD")
-        .map_err(|_| "ADMIN_PASSWORD not set")
-        .unwrap();
+    let admin_password = "admin".to_string();
+    // let admin_password = std::env::var("ADMIN_PASSWORD")
+    //     .map_err(|_| "ADMIN_PASSWORD not set")
+    //     .unwrap();
 
     let admin_image = ApiImageWritable::new_admin();
     let internal_admin_image = admin_image.to_internal(Access::Everyone).unwrap();

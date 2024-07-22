@@ -38,6 +38,8 @@ class EloNav {
   static void goSettings(
           BuildContext context, int categoryIndex, int groupIndex) =>
       _push(context, '/settings/$categoryIndex/$groupIndex');
+  static void goSettingsExplainer(BuildContext context) =>
+      _push(context, '/settings_flow_explainer');
   static void goSettingsImages(BuildContext context) =>
       _push(context, '/settings_images');
   static void goChat(BuildContext context, String id, String displayName) =>

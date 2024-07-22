@@ -83,6 +83,10 @@ class SettingsFlowPageState extends State<SettingsFlowPage> {
     }
     var userModel = Provider.of<UserModel>(context, listen: false);
     userModel.updateMe();
+    if (newCategoryIndex == 1 && newGroupIndex == 0) {
+      EloNav.goSettingsExplainer(context);
+      return;
+    }
     EloNav.goSettings(context, newCategoryIndex, newGroupIndex);
   }
 
